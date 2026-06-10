@@ -1,0 +1,70 @@
+{{if eq .PackageDescriptor.Package.Type "apex"}}
+<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.installation"}}</h4>
+<div class="ui attached segment">
+	<div class="ui form">
+		<div class="field">
+			<label>{{svg "octicon-terminal"}} APEX Repository Setup</label>
+			<div class="markup">
+				<pre class="code-block"><code>
+{{-  range $i,$v := .Groups -}}
+# Repository: {{.}}
+# Sync URL: <origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/apex/{{.}}"></origin-url>
+{{end -}}
+</code></pre>
+			</div>
+		</div>
+		<div class="field">
+			<label>{{svg "octicon-terminal"}} Manual Installation</label>
+			<div class="markup">
+				<pre class="code-block"><code>adb install {{.PackageDescriptor.Package.LowerName}}.apex</code></pre>
+			</div>
+		</div>
+	</div>
+</div>
+
+<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.details"}}</h4>
+<div class="ui attached segment">
+	<table class="ui very basic compact table">
+		<tbody>
+			<tr>
+				<td class="collapsing">
+					<h5>{{ctx.Locale.Tr "packages.description"}}</h5>
+				</td>
+				<td>{{.PackageDescriptor.Metadata.Description}}</td>
+			</tr>
+			{{if .PackageDescriptor.Metadata.Org}}
+			<tr>
+				<td class="collapsing">
+					<h5>Organization</h5>
+				</td>
+				<td>{{.PackageDescriptor.Metadata.Org}}</td>
+			</tr>
+			{{end}}
+			{{if .PackageDescriptor.Metadata.ProjectURL}}
+			<tr>
+				<td class="collapsing">
+					<h5>Project URL</h5>
+				</td>
+				<td><a href="{{.PackageDescriptor.Metadata.ProjectURL}}">{{.PackageDescriptor.Metadata.ProjectURL}}</a></td>
+			</tr>
+			{{end}}
+			{{if .PackageDescriptor.Metadata.Provides}}
+			<tr>
+				<td class="collapsing">
+					<h5>Provides</h5>
+				</td>
+				<td>{{StringUtils.Join $.PackageDescriptor.Metadata.Provides ", "}}</td>
+			</tr>
+			{{end}}
+			{{if .PackageDescriptor.Metadata.Depends}}
+			<tr>
+				<td class="collapsing">
+					<h5>Depends</h5>
+				</td>
+				<td>{{StringUtils.Join $.PackageDescriptor.Metadata.Depends ", "}}</td>
+			</tr>
+			{{end}}
+		</tbody>
+	</table>
+</div>
+{{end}}
