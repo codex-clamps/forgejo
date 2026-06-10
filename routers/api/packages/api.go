@@ -17,6 +17,7 @@ import (
 	"forgejo.org/modules/web"
 	"forgejo.org/routers/api/packages/alpine"
 	"forgejo.org/routers/api/packages/alt"
+	"forgejo.org/routers/api/packages/apex"
 	"forgejo.org/routers/api/packages/arch"
 	"forgejo.org/routers/api/packages/cargo"
 	"forgejo.org/routers/api/packages/chef"
@@ -227,6 +228,12 @@ func CommonRoutes() *web.Route {
 			r.Methods("HEAD,GET", "*", arch.GetPackageOrDB)
 			r.Methods("PUT", "*", reqPackageAccess(perm.AccessModeWrite), arch.PushPackage)
 			r.Methods("DELETE", "*", reqPackageAccess(perm.AccessModeWrite), arch.RemovePackage)
+		}, reqPackageAccess(perm.AccessModeRead))
+		r.Group("/apex", func() {
+			r.Methods("HEAD,GET", "/repository.key", apex.GetRepositoryKey)
+			r.Methods("HEAD,GET", "*", apex.GetPackageOrDB)
+			r.Methods("PUT", "*", reqPackageAccess(perm.AccessModeWrite), apex.PushPackage)
+			r.Methods("DELETE", "*", reqPackageAccess(perm.AccessModeWrite), apex.RemovePackage)
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/cargo", func() {
 			r.Group("/api/v1/crates", func() {
