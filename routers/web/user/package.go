@@ -20,6 +20,7 @@ import (
 	"forgejo.org/modules/log"
 	"forgejo.org/modules/optional"
 	alpine_module "forgejo.org/modules/packages/alpine"
+	apex_module "forgejo.org/modules/packages/apex"
 	arch_model "forgejo.org/modules/packages/arch"
 	debian_module "forgejo.org/modules/packages/debian"
 	rpm_module "forgejo.org/modules/packages/rpm"
@@ -177,6 +178,19 @@ func ViewPackageVersion(ctx *context.Context) {
 	ctx.Data["PackageRegistryHost"] = setting.Packages.RegistryHost
 
 	switch pd.Package.Type {
+	case packages_model.TypeApex:
+		architectures := make(container.Set[string])
+
+		for _, f := range pd.Files {
+			for _, pp := range f.Properties {
+				switch pp.Name {
+				case apex_module.PropertyArch:
+					architectures.Add(pp.Value)
+				}
+			}
+		}
+
+		ctx.Data["Architectures"] = slices.Sorted(architectures.Seq())
 	case packages_model.TypeAlpine:
 		branches := make(container.Set[string])
 		repositories := make(container.Set[string])
