@@ -59,6 +59,10 @@ func (su *StringUtils) Join(a []string, sep string) string {
 	return strings.Join(a, sep)
 }
 
+func (su *StringUtils) ReplaceAll(s, old, new string) string {
+	return strings.ReplaceAll(s, old, new)
+}
+
 func (su *StringUtils) Cut(s, sep string) []any {
 	before, after, found := strings.Cut(s, sep)
 	return []any{before, after, found}
