@@ -15,6 +15,7 @@ import (
 	"forgejo.org/modules/optional"
 	packages_module "forgejo.org/modules/packages"
 	packages_service "forgejo.org/services/packages"
+	apex_service "forgejo.org/services/packages/apex"
 	alpine_service "forgejo.org/services/packages/alpine"
 	alt_service "forgejo.org/services/packages/alt"
 	arch_service "forgejo.org/services/packages/arch"
@@ -73,6 +74,10 @@ func ExecuteCleanupRules(ctx context.Context) error {
 				case packages_model.TypeDebian:
 					if err := debian_service.BuildAllRepositoryFiles(ctx, pcr.OwnerID); err != nil {
 						return fmt.Errorf("CleanupRule [%d]: debian.BuildAllRepositoryFiles failed: %w", pcr.ID, err)
+					}
+				case packages_model.TypeApex:
+					if err := apex_service.BuildAllRepositoryFiles(ctx, pcr.OwnerID); err != nil {
+						return fmt.Errorf("CleanupRule [%d]: apex.BuildAllRepositoryFiles failed: %w", pcr.ID, err)
 					}
 				case packages_model.TypeAlpine:
 					if err := alpine_service.BuildAllRepositoryFiles(ctx, pcr.OwnerID); err != nil {
