@@ -48,6 +48,7 @@ type FileMetadata struct {
 	Packager       string `json:"packager"`
 	Arch           string `json:"arch"`
 	MicroArchLevel string `json:"micro_architecture_level,omitempty"`
+	Extension      string `json:"extension"`
 
 	Files []string `json:"files,omitempty"`
 }
