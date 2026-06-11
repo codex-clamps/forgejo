@@ -146,7 +146,7 @@ func (pt Type) SVGName() string {
 	case TypeAlpine:
 		return "gitea-alpine"
 	case TypeApex:
-		return "gitea-arch" // Use arch SVG as a fallback
+		return "octicon-share-android"
 	case TypeArch:
 		return "gitea-arch"
 	case TypeCargo:

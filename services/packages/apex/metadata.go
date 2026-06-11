@@ -108,6 +108,11 @@ func ParsePackage(ctx context.Context, buf *packages.HashedBuffer) (*apex_module
 	pkgName, _ := pkg.Package.String()
 	pkgVersion, _ := pkg.VersionName.String()
 
+	extension := "apex"
+	if originalApexFile != nil {
+		extension = "capex"
+	}
+
 	// Create apex package representation
 	p := &apex_module.Package{
 		Name:    pkgName,
@@ -115,6 +120,7 @@ func ParsePackage(ctx context.Context, buf *packages.HashedBuffer) (*apex_module
 		FileMetadata: apex_module.FileMetadata{
 			CompressedSize: size,
 			Files:          fileList,
+			Extension:      extension,
 		},
 	}
 
