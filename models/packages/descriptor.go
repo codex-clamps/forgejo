@@ -13,6 +13,7 @@ import (
 	user_model "forgejo.org/models/user"
 	"forgejo.org/modules/json"
 	"forgejo.org/modules/packages/alpine"
+	apex_module "forgejo.org/modules/packages/apex"
 	"forgejo.org/modules/packages/arch"
 	"forgejo.org/modules/packages/cargo"
 	"forgejo.org/modules/packages/chef"
@@ -154,6 +155,8 @@ func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDesc
 	switch p.Type {
 	case TypeAlpine:
 		metadata = &alpine.VersionMetadata{}
+	case TypeApex:
+		metadata = &apex_module.VersionMetadata{}
 	case TypeArch:
 		metadata = &arch.VersionMetadata{}
 	case TypeCargo:
