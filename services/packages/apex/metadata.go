@@ -9,6 +9,7 @@ import (
 	"context"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"io"
 	"strings"
 
@@ -113,6 +114,12 @@ func ParsePackage(ctx context.Context, buf *packages.HashedBuffer) (*apex_module
 		extension = "capex"
 	}
 
+	apiLevel, _ := pkg.SDK.Min.Int32()
+	apiLevelStr := fmt.Sprintf("%d", apiLevel)
+	if apiLevel == 0 {
+		apiLevelStr = "29"
+	}
+
 	// Create apex package representation
 	p := &apex_module.Package{
 		Name:    pkgName,
@@ -121,6 +128,7 @@ func ParsePackage(ctx context.Context, buf *packages.HashedBuffer) (*apex_module
 			CompressedSize: size,
 			Files:          fileList,
 			Extension:      extension,
+			ApiLevel:       apiLevelStr,
 		},
 	}
 
