@@ -112,7 +112,7 @@ func PushPackage(ctx *context.Context) {
 		microArchPath = "v" + p.FileMetadata.MicroArchLevel + "/"
 	}
 
-	filename := fmt.Sprintf("%s/%s%s/%s.%s", p.FileMetadata.Arch, microArchPath, strings.ReplaceAll(p.Name, ".", "/"), p.Version, p.FileMetadata.Extension)
+	filename := fmt.Sprintf("%s/%s%s/%s/%s.%s", p.FileMetadata.Arch, microArchPath, p.FileMetadata.ApiLevel, strings.ReplaceAll(p.Name, ".", "/"), p.Version, p.FileMetadata.Extension)
 
 	properties := map[string]string{
 		apex_module.PropertyDescription:  p.Desc(filename),
