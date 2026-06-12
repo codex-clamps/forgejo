@@ -48,6 +48,7 @@ type FileMetadata struct {
 	Packager       string `json:"packager"`
 	Arch           string `json:"arch"`
 	MicroArchLevel string `json:"micro_architecture_level,omitempty"`
+	ApiLevel       string `json:"api_level,omitempty"`
 	Extension      string `json:"extension"`
 
 	Files []string `json:"files,omitempty"`
@@ -68,6 +69,7 @@ func (p *Package) Desc(filename string) string {
 		"LICENSE", strings.Join(p.VersionMetadata.License, "\n"),
 		"ARCH", p.FileMetadata.Arch,
 		"MICROARCH", p.FileMetadata.MicroArchLevel,
+		"APILEVEL", p.FileMetadata.ApiLevel,
 		"BUILDDATE", fmt.Sprintf("%d", p.FileMetadata.BuildDate),
 		"PACKAGER", p.FileMetadata.Packager,
 		"PROVIDES", strings.Join(p.VersionMetadata.Provides, "\n"),
