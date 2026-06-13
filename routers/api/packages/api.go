@@ -234,6 +234,7 @@ func CommonRoutes() *web.Route {
 			r.Methods("HEAD,GET", "*", apex.GetPackageOrDB)
 			r.Methods("PUT", "*", reqPackageAccess(perm.AccessModeWrite), apex.PushPackage)
 			r.Methods("DELETE", "*", reqPackageAccess(perm.AccessModeWrite), apex.RemovePackage)
+			r.Methods("POST", "/build/*", reqPackageAccess(perm.AccessModeWrite), apex.ForceBuildDB)
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/cargo", func() {
 			r.Group("/api/v1/crates", func() {
