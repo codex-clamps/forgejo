@@ -19,6 +19,7 @@ import (
 	"github.com/shogo82148/androidbinary"
 	"github.com/shogo82148/androidbinary/apk"
 	"google.golang.org/protobuf/encoding/protowire"
+	"encoding/json"
 )
 
 // ParsePackage parses an APEX/CAPEX package buffer and extracts its metadata
@@ -40,6 +41,7 @@ func ParsePackage(ctx context.Context, buf *packages.HashedBuffer) (*apex_module
 	var originalApexFile *zip.File
 	var pubKeyFile *zip.File
 	var pbFile *zip.File
+	var jsonFile *zip.File
 
 	for _, f := range reader.File {
 		fileList = append(fileList, f.Name)
@@ -81,6 +83,8 @@ func ParsePackage(ctx context.Context, buf *packages.HashedBuffer) (*apex_module
 				pubKeyFile = f
 			} else if f.Name == "apex_manifest.pb" && pbFile == nil {
 				pbFile = f
+			} else if f.Name == "apex_manifest.json" && jsonFile == nil {
+				jsonFile = f
 			}
 		}
 	}
@@ -223,6 +227,22 @@ func ParsePackage(ctx context.Context, buf *packages.HashedBuffer) (*apex_module
 						// To be safe, if we hit an unknown type, we break to avoid infinite loop
 						break
 					}
+				}
+			}
+		}
+	} else if jsonFile != nil {
+		rcJson, err := jsonFile.Open()
+		if err == nil {
+			jsonBytes, err := io.ReadAll(rcJson)
+			rcJson.Close()
+			if err == nil {
+				var manifest struct {
+					ProvideNativeLibs []string `json:"provideNativeLibs"`
+					RequireNativeLibs []string `json:"requireNativeLibs"`
+				}
+				if err := json.Unmarshal(jsonBytes, &manifest); err == nil {
+					p.VersionMetadata.Provides = append(p.VersionMetadata.Provides, manifest.ProvideNativeLibs...)
+					p.VersionMetadata.Depends = append(p.VersionMetadata.Depends, manifest.RequireNativeLibs...)
 				}
 			}
 		}
