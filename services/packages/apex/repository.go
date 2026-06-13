@@ -141,6 +141,14 @@ func BuildApexDB(ctx context.Context, ownerID int64, group, arch string) error {
 	if err != nil {
 		return err
 	}
+	_, err = filesDB.Seek(0, io.SeekStart)
+	if err != nil {
+		return err
+	}
+	_, err = providersDB.Seek(0, io.SeekStart)
+	if err != nil {
+		return err
+	}
 	sig, err := NewFileSign(ctx, ownerID, db)
 	if err != nil {
 		return err
