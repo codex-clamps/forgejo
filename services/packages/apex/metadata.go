@@ -15,9 +15,10 @@ import (
 
 	"forgejo.org/modules/packages"
 
+	apex_module "forgejo.org/modules/packages/apex"
 	"github.com/shogo82148/androidbinary"
 	"github.com/shogo82148/androidbinary/apk"
-	apex_module "forgejo.org/modules/packages/apex"
+	"google.golang.org/protobuf/encoding/protowire"
 )
 
 // ParsePackage parses an APEX/CAPEX package buffer and extracts its metadata
@@ -38,15 +39,19 @@ func ParsePackage(ctx context.Context, buf *packages.HashedBuffer) (*apex_module
 	var manifestFile *zip.File
 	var originalApexFile *zip.File
 	var pubKeyFile *zip.File
+	var pbFile *zip.File
 
 	for _, f := range reader.File {
 		fileList = append(fileList, f.Name)
-		if f.Name == "AndroidManifest.xml" {
+		switch f.Name {
+		case "AndroidManifest.xml":
 			manifestFile = f
-		} else if f.Name == "original_apex" {
+		case "original_apex":
 			originalApexFile = f
-		} else if f.Name == "apex_pubkey" {
+		case "apex_pubkey":
 			pubKeyFile = f
+		case "apex_manifest.pb":
+			pbFile = f
 		}
 	}
 
@@ -74,6 +79,8 @@ func ParsePackage(ctx context.Context, buf *packages.HashedBuffer) (*apex_module
 				manifestFile = f
 			} else if f.Name == "apex_pubkey" && pubKeyFile == nil {
 				pubKeyFile = f
+			} else if f.Name == "apex_manifest.pb" && pbFile == nil {
+				pbFile = f
 			}
 		}
 	}
@@ -163,6 +170,61 @@ func ParsePackage(ctx context.Context, buf *packages.HashedBuffer) (*apex_module
 		// Handle dynamic microarch level
 		if strings.HasSuffix(name, "_micro_architecture_level") {
 			p.FileMetadata.MicroArchLevel = value
+		}
+	}
+
+	// Parse apex_manifest.pb if available
+	if pbFile != nil {
+		rcPb, err := pbFile.Open()
+		if err == nil {
+			pbBytes, err := io.ReadAll(rcPb)
+			rcPb.Close()
+			if err == nil {
+				data := pbBytes
+				for len(data) > 0 {
+					num, typ, length := protowire.ConsumeTag(data)
+					if length < 0 {
+						break
+					}
+					data = data[length:]
+
+					if typ == protowire.BytesType {
+						v, n := protowire.ConsumeBytes(data)
+						if n < 0 {
+							break
+						}
+						switch num {
+						case 4: // provideNativeLibs
+							p.VersionMetadata.Provides = append(p.VersionMetadata.Provides, string(v))
+						case 5: // requireNativeLibs
+							p.VersionMetadata.Depends = append(p.VersionMetadata.Depends, string(v))
+						}
+						data = data[n:]
+					} else if typ == protowire.VarintType {
+						_, n := protowire.ConsumeVarint(data)
+						if n < 0 {
+							break
+						}
+						data = data[n:]
+					} else if typ == protowire.Fixed32Type {
+						_, n := protowire.ConsumeFixed32(data)
+						if n < 0 {
+							break
+						}
+						data = data[n:]
+					} else if typ == protowire.Fixed64Type {
+						_, n := protowire.ConsumeFixed64(data)
+						if n < 0 {
+							break
+						}
+						data = data[n:]
+					} else {
+						// Unknown wire type or unsupported, skip it by breaking (or skipping group)
+						// To be safe, if we hit an unknown type, we break to avoid infinite loop
+						break
+					}
+				}
+			}
 		}
 	}
 
