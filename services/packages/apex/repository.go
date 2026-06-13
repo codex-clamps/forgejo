@@ -281,14 +281,27 @@ func createDB(ctx context.Context, ownerID int64, group, arch string) (*packages
 // GetPackageFile Get data related to provided filename and distribution, for package files
 // update download counter.
 func GetPackageFile(ctx context.Context, group, file string, ownerID int64) (io.ReadSeekCloser, *url.URL, *packages_model.PackageFile, error) {
-	fileSplit := strings.Split(file, "-")
-	if len(fileSplit) <= 3 {
-		return nil, nil, nil, errors.New("invalid file format, need <name>-<version>-<release>-<arch>.pkg.<archive>")
+	fileParts := strings.Split(file, "/")
+	if len(fileParts) < 4 {
+		return nil, nil, nil, errors.New("invalid file format")
 	}
-	var (
-		pkgName = strings.Join(fileSplit[0:len(fileSplit)-3], "-")
-		pkgVer  = fileSplit[len(fileSplit)-3] + "-" + fileSplit[len(fileSplit)-2]
-	)
+	
+	orgStartIndex := 2
+	if strings.HasPrefix(fileParts[1], "v") {
+		orgStartIndex = 3
+	}
+
+	if len(fileParts) <= orgStartIndex+1 {
+		return nil, nil, nil, errors.New("invalid file format: missing package name or version")
+	}
+
+	orgPathParts := fileParts[orgStartIndex : len(fileParts)-1]
+	pkgName := strings.Join(orgPathParts, ".")
+
+	verFile := fileParts[len(fileParts)-1]
+	pkgVer := strings.TrimSuffix(verFile, ".apex")
+	pkgVer = strings.TrimSuffix(pkgVer, ".capex")
+	pkgVer = strings.TrimSuffix(pkgVer, ".sig")
 	version, err := packages_model.GetVersionByNameAndVersion(ctx, ownerID, packages_model.TypeApex, pkgName, pkgVer)
 	if err != nil {
 		return nil, nil, nil, err

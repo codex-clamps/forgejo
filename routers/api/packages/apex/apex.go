@@ -240,14 +240,28 @@ func RemovePackage(ctx *context.Context) {
 	// `file` should be architecture-v<microarch>/reverse/domain/org/name/version.apex
 	// Parse the path to get pkg, ver, pkgArch
 	fileParts := strings.Split(file, "/")
-	if len(fileParts) < 6 {
+	if len(fileParts) < 4 {
 		ctx.Status(http.StatusBadRequest)
 		return
 	}
-	// pkgArch := fileParts[0] // actually this is arch-vmicroarch
-	pkg := fileParts[len(fileParts)-2]
-	ver := strings.TrimSuffix(fileParts[len(fileParts)-1], ".apex")
+	
+	orgStartIndex := 2
+	if strings.HasPrefix(fileParts[1], "v") {
+		orgStartIndex = 3
+	}
+
+	if len(fileParts) <= orgStartIndex+1 {
+		ctx.Status(http.StatusBadRequest)
+		return
+	}
+
+	orgPathParts := fileParts[orgStartIndex : len(fileParts)-1]
+	pkg := strings.Join(orgPathParts, ".")
+
+	verFile := fileParts[len(fileParts)-1]
+	ver := strings.TrimSuffix(verFile, ".apex")
 	ver = strings.TrimSuffix(ver, ".capex")
+	ver = strings.TrimSuffix(ver, ".sig")
 
 	releaser := refreshLocker(ctx, group)
 	defer releaser()
@@ -289,4 +303,18 @@ func RemovePackage(ctx *context.Context) {
 	} else {
 		ctx.Error(http.StatusNotFound)
 	}
+}
+
+func ForceBuildDB(ctx *context.Context) {
+	group := strings.Trim(ctx.Params("*"), "/")
+	if group == "" {
+		ctx.Status(http.StatusBadRequest)
+		return
+	}
+	err := apex_service.BuildApexDB(ctx, ctx.Package.Owner.ID, group, "")
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	ctx.Status(http.StatusNoContent)
 }
