@@ -4,15 +4,11 @@
 package apex
 
 import (
-	"archive/tar"
-	"bytes"
-	"compress/gzip"
 	"context"
 	"errors"
 	"fmt"
 	"io"
 	"net/url"
-	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -151,10 +147,16 @@ func BuildApexDB(ctx context.Context, ownerID int64, group, arch string) error {
 	}
 	defer sig.Close()
 
+	// Rewind db after NewFileSign consumes it
+	_, err = db.Seek(0, io.SeekStart)
+	if err != nil {
+		return err
+	}
+
 	for name, data := range map[string]*packages_module.HashedBuffer{
-		fmt.Sprintf("%s.db", group):               db,
-		fmt.Sprintf("%s.db.sig", group):           sig,
-		fmt.Sprintf("%s.providers", group):        providersDB,
+		fmt.Sprintf("%s.db", group):        db,
+		fmt.Sprintf("%s.db.sig", group):    sig,
+		fmt.Sprintf("%s.providers", group): providersDB,
 	} {
 		_, err = packages_service.AddFileToPackageVersionInternal(ctx, pv, &packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{
@@ -185,19 +187,15 @@ func createDB(ctx context.Context, ownerID int64, group, arch string) (*packages
 	if err != nil {
 		return nil, nil, err
 	}
-	
+
 	providersDB, err := packages_module.NewHashedBuffer()
 	if err != nil {
 		db.Close()
 		return nil, nil, err
 	}
 
-	providersGw := gzip.NewWriter(providersDB)
-	defer providersGw.Close()
-	providersTw := tar.NewWriter(providersGw)
-	defer providersTw.Close()
 	count := 0
-	providerMap := make(map[string][]string)
+	providerSet := make(map[string]struct{})
 	for _, pkg := range pkgs {
 		versions, err := packages_model.GetVersionsByPackageName(
 			ctx, ownerID, packages_model.TypeApex, pkg.Name,
@@ -247,7 +245,7 @@ func createDB(ctx context.Context, ownerID int64, group, arch string) (*packages
 			fileArch := getProperty(apex_module.PropertyArch)
 			microArch := getProperty(apex_module.PropertyMicroArch)
 			apiLevel := getProperty(apex_module.PropertyApiLevel)
-			
+
 			if apiLevel == "" {
 				apiLevel = "29" // fallback if not available
 			}
@@ -266,11 +264,16 @@ func createDB(ctx context.Context, ownerID int64, group, arch string) (*packages
 				return nil, nil, err
 			}
 			if len(provs) >= 1 && provs[0].Value != "" {
-				providerMap[pkg.Name] = strings.Split(provs[0].Value, "\n")
+				for _, prov := range strings.Split(provs[0].Value, "\n") {
+					if prov == "" {
+						continue
+					}
+					line := fmt.Sprintf("%s %s %s %s %s %s\n", prov, fileArch, microArch, apiLevel, pkg.Name, ver.Version)
+					providerSet[line] = struct{}{}
+				}
 			}
 
 			count++
-			break
 		}
 	}
 	if count == 0 {
@@ -278,28 +281,8 @@ func createDB(ctx context.Context, ownerID int64, group, arch string) (*packages
 	}
 
 	// Write providers file
-	var providersBuf bytes.Buffer
-	invProvMap := make(map[string][]string)
-	for pkgName, provList := range providerMap {
-		for _, prov := range provList {
-			invProvMap[prov] = append(invProvMap[prov], pkgName)
-		}
-	}
-	for prov, pkgList := range invProvMap {
-		providersBuf.WriteString(fmt.Sprintf("%s: %s\n", prov, strings.Join(pkgList, " ")))
-	}
-	if providersBuf.Len() > 0 {
-		header := &tar.Header{
-			Name: "providers",
-			Size: int64(providersBuf.Len()),
-			Mode: int64(os.ModePerm),
-		}
-		if err = providersTw.WriteHeader(header); err != nil {
-			return nil, nil, err
-		}
-		if _, err := providersTw.Write(providersBuf.Bytes()); err != nil {
-			return nil, nil, err
-		}
+	for line := range providerSet {
+		providersDB.Write([]byte(line))
 	}
 
 	return db, providersDB, nil
@@ -334,7 +317,7 @@ func GetPackageDBFile(ctx context.Context, ownerID int64, group, file string, si
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	
+
 	pkgFile, err := packages_model.GetFileForVersionByName(ctx, pv.ID, file, group)
 	if err != nil {
 		return nil, nil, nil, err
