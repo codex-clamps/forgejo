@@ -126,22 +126,18 @@ func BuildApexDB(ctx context.Context, ownerID int64, group, arch string) error {
 		}
 	}
 
-	db, filesDB, providersDB, err := createDB(ctx, ownerID, group, arch)
-	if errors.Is(err, io.EOF) {
-		return nil
-	} else if err != nil {
+	db, providersDB, err := createDB(ctx, ownerID, group, arch)
+	if err != nil {
+		if errors.Is(err, io.EOF) {
+			return nil
+		}
 		return err
 	}
 	defer db.Close()
-	defer filesDB.Close()
 	defer providersDB.Close()
 
 	// Create db signature cache
 	_, err = db.Seek(0, io.SeekStart)
-	if err != nil {
-		return err
-	}
-	_, err = filesDB.Seek(0, io.SeekStart)
 	if err != nil {
 		return err
 	}
@@ -158,7 +154,6 @@ func BuildApexDB(ctx context.Context, ownerID int64, group, arch string) error {
 	for name, data := range map[string]*packages_module.HashedBuffer{
 		fmt.Sprintf("%s.db", group):               db,
 		fmt.Sprintf("%s.db.sig", group):           sig,
-		fmt.Sprintf("%s.files", group):            filesDB,
 		fmt.Sprintf("%s.providers", group):        providersDB,
 	} {
 		_, err = packages_service.AddFileToPackageVersionInternal(ctx, pv, &packages_service.PackageFileCreationInfo{
@@ -178,41 +173,24 @@ func BuildApexDB(ctx context.Context, ownerID int64, group, arch string) error {
 	return nil
 }
 
-func createDB(ctx context.Context, ownerID int64, group, arch string) (*packages_module.HashedBuffer, *packages_module.HashedBuffer, *packages_module.HashedBuffer, error) {
+func createDB(ctx context.Context, ownerID int64, group, arch string) (*packages_module.HashedBuffer, *packages_module.HashedBuffer, error) {
 	pkgs, err := packages_model.GetPackagesByType(ctx, ownerID, packages_model.TypeApex)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 	if len(pkgs) == 0 {
-		return nil, nil, nil, io.EOF
+		return nil, nil, io.EOF
 	}
 	db, err := packages_module.NewHashedBuffer()
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 	
-	filesDB, err := packages_module.NewHashedBuffer()
-	if err != nil {
-		db.Close()
-		return nil, nil, nil, err
-	}
-
 	providersDB, err := packages_module.NewHashedBuffer()
 	if err != nil {
 		db.Close()
-		filesDB.Close()
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
-
-	gw := gzip.NewWriter(db)
-	defer gw.Close()
-	tw := tar.NewWriter(gw)
-	defer tw.Close()
-
-	filesGw := gzip.NewWriter(filesDB)
-	defer filesGw.Close()
-	filesTw := tar.NewWriter(filesGw)
-	defer filesTw.Close()
 
 	providersGw := gzip.NewWriter(providersDB)
 	defer providersGw.Close()
@@ -225,7 +203,7 @@ func createDB(ctx context.Context, ownerID int64, group, arch string) (*packages
 			ctx, ownerID, packages_model.TypeApex, pkg.Name,
 		)
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, nil, err
 		}
 		sort.Slice(versions, func(i, j int) bool {
 			return versions[i].CreatedUnix > versions[j].CreatedUnix
@@ -234,7 +212,7 @@ func createDB(ctx context.Context, ownerID int64, group, arch string) (*packages
 		for _, ver := range versions {
 			files, err := packages_model.GetFilesByVersionID(ctx, ver.ID)
 			if err != nil {
-				return nil, nil, nil, err
+				return nil, nil, err
 			}
 			var pf *packages_model.PackageFile
 			for _, file := range files {
@@ -253,55 +231,39 @@ func createDB(ctx context.Context, ownerID int64, group, arch string) (*packages
 				// file not exists
 				continue
 			}
-			pps, err := packages_model.GetPropertiesByName(
-				ctx, packages_model.PropertyTypeFile, pf.ID, apex_module.PropertyDescription,
-			)
-			if err != nil {
-				return nil, nil, nil, err
-			}
-			if len(pps) == 0 {
-				continue
-			}
-			pkgDesc := []byte(pps[0].Value)
-			header := &tar.Header{
-				Name: pkg.Name + "-" + ver.Version + "/desc",
-				Size: int64(len(pkgDesc)),
-				Mode: int64(os.ModePerm),
-			}
-			if err = tw.WriteHeader(header); err != nil {
-				return nil, nil, nil, err
-			}
-			if _, err := tw.Write(pkgDesc); err != nil {
-				return nil, nil, nil, err
+			getProperty := func(propName string) string {
+				pps, _ := packages_model.GetPropertiesByName(ctx, packages_model.PropertyTypeFile, pf.ID, propName)
+				if len(pps) > 0 {
+					return pps[0].Value
+				}
+				return ""
 			}
 
-			pfs, err := packages_model.GetPropertiesByName(
-				ctx, packages_model.PropertyTypeFile, pf.ID, apex_module.PropertyFiles,
-			)
+			blob, err := packages_model.GetBlobByID(ctx, pf.BlobID)
 			if err != nil {
-				return nil, nil, nil, err
+				return nil, nil, err
 			}
-			if len(pfs) >= 1 {
-				pkgFiles := []byte(pfs[0].Value)
-				header := &tar.Header{
-					Name: pkg.Name + "-" + ver.Version + "/files",
-					Size: int64(len(pkgFiles)),
-					Mode: int64(os.ModePerm),
-				}
-				if err = filesTw.WriteHeader(header); err != nil {
-					return nil, nil, nil, err
-				}
-				if _, err := filesTw.Write(pkgFiles); err != nil {
-					return nil, nil, nil, err
-				}
+
+			fileArch := getProperty(apex_module.PropertyArch)
+			microArch := getProperty(apex_module.PropertyMicroArch)
+			apiLevel := getProperty(apex_module.PropertyApiLevel)
+			
+			if apiLevel == "" {
+				apiLevel = "29" // fallback if not available
 			}
+			if microArch == "" {
+				microArch = "1"
+			}
+
+			line := fmt.Sprintf("%s %s %s %s %s %d\n", pkg.Name, fileArch, microArch, apiLevel, ver.Version, blob.Size)
+			db.Write([]byte(line))
 
 			// Providers logic
 			provs, err := packages_model.GetPropertiesByName(
 				ctx, packages_model.PropertyTypeFile, pf.ID, apex_module.PropertyProvides,
 			)
 			if err != nil {
-				return nil, nil, nil, err
+				return nil, nil, err
 			}
 			if len(provs) >= 1 && provs[0].Value != "" {
 				providerMap[pkg.Name] = strings.Split(provs[0].Value, "\n")
@@ -312,7 +274,7 @@ func createDB(ctx context.Context, ownerID int64, group, arch string) (*packages
 		}
 	}
 	if count == 0 {
-		return nil, nil, nil, io.EOF
+		return nil, nil, io.EOF
 	}
 
 	// Write providers file
@@ -333,14 +295,14 @@ func createDB(ctx context.Context, ownerID int64, group, arch string) (*packages
 			Mode: int64(os.ModePerm),
 		}
 		if err = providersTw.WriteHeader(header); err != nil {
-			return nil, nil, nil, err
+			return nil, nil, err
 		}
 		if _, err := providersTw.Write(providersBuf.Bytes()); err != nil {
-			return nil, nil, nil, err
+			return nil, nil, err
 		}
 	}
 
-	return db, filesDB, providersDB, nil
+	return db, providersDB, nil
 }
 
 // GetPackageFile Get data related to provided filename and distribution, for package files
