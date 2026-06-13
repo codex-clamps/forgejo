@@ -196,19 +196,16 @@ func createDB(ctx context.Context, ownerID int64, group, arch string) (*packages
 		return nil, nil, nil, err
 	}
 
-	defer db.Close()
 	gw := gzip.NewWriter(db)
 	defer gw.Close()
 	tw := tar.NewWriter(gw)
 	defer tw.Close()
 
-	defer filesDB.Close()
 	filesGw := gzip.NewWriter(filesDB)
 	defer filesGw.Close()
 	filesTw := tar.NewWriter(filesGw)
 	defer filesTw.Close()
 
-	defer providersDB.Close()
 	providersGw := gzip.NewWriter(providersDB)
 	defer providersGw.Close()
 	providersTw := tar.NewWriter(providersGw)
