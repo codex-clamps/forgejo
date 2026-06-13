@@ -15,6 +15,7 @@ const (
 	PropertyFiles       = "apex.files"
 	PropertyArch        = "apex.architecture"
 	PropertyMicroArch   = "apex.micro_architecture_level"
+	PropertyApiLevel    = "apex.api_level"
 	PropertyProvides    = "apex.provides"
 
 	SettingKeyPublic  = "apex.key.public"

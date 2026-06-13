@@ -119,6 +119,8 @@ func PushPackage(ctx *context.Context) {
 		apex_module.PropertyFiles:        p.Files(),
 		apex_module.PropertyArch:         p.FileMetadata.Arch,
 		apex_module.PropertyProvides:     strings.Join(p.VersionMetadata.Provides, "\n"),
+		apex_module.PropertyMicroArch:    p.FileMetadata.MicroArchLevel,
+		apex_module.PropertyApiLevel:     p.FileMetadata.ApiLevel,
 	}
 
 	version, _, err := packages_service.CreatePackageOrAddFileToExisting(
