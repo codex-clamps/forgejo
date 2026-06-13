@@ -198,9 +198,9 @@ func ParsePackage(ctx context.Context, buf *packages.HashedBuffer) (*apex_module
 							break
 						}
 						switch num {
-						case 4: // provideNativeLibs
+						case 7: // provideNativeLibs
 							p.VersionMetadata.Provides = append(p.VersionMetadata.Provides, string(v))
-						case 5: // requireNativeLibs
+						case 8: // requireNativeLibs
 							p.VersionMetadata.Depends = append(p.VersionMetadata.Depends, string(v))
 						}
 						data = data[n:]

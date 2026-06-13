@@ -212,68 +212,58 @@ func createDB(ctx context.Context, ownerID int64, group, arch string) (*packages
 			if err != nil {
 				return nil, nil, err
 			}
-			var pf *packages_model.PackageFile
 			for _, file := range files {
 				ext := filepath.Ext(file.Name)
-				if file.CompositeKey == group && ext != "" && ext != ".db" && ext != ".sig" {
-					if pf == nil && strings.HasSuffix(file.Name, ".capex") {
-						pf = file
+				if file.CompositeKey != group || ext == "" || ext == ".db" || ext == ".sig" {
+					continue
+				}
+				if !strings.HasSuffix(file.Name, ".apex") && !strings.HasSuffix(file.Name, ".capex") {
+					continue
+				}
+
+				getProperty := func(propName string) string {
+					pps, _ := packages_model.GetPropertiesByName(ctx, packages_model.PropertyTypeFile, file.ID, propName)
+					if len(pps) > 0 {
+						return pps[0].Value
 					}
-					if strings.HasSuffix(file.Name, ".apex") {
-						pf = file
-						break
+					return ""
+				}
+
+				blob, err := packages_model.GetBlobByID(ctx, file.BlobID)
+				if err != nil {
+					return nil, nil, err
+				}
+
+				fileArch := getProperty(apex_module.PropertyArch)
+				microArch := getProperty(apex_module.PropertyMicroArch)
+				apiLevel := getProperty(apex_module.PropertyApiLevel)
+
+				if apiLevel == "" {
+					apiLevel = "29" // fallback if not available
+				}
+				if microArch == "" {
+					microArch = "1"
+				}
+
+				line := fmt.Sprintf("%s %s %s %s %s %d\n", pkg.Name, fileArch, microArch, apiLevel, ver.Version, blob.Size)
+				db.Write([]byte(line))
+
+				// Providers logic
+				provs, err := packages_model.GetPropertiesByName(
+					ctx, packages_model.PropertyTypeFile, file.ID, apex_module.PropertyProvides,
+				)
+				if err == nil && len(provs) >= 1 && provs[0].Value != "" {
+					for _, prov := range strings.Split(provs[0].Value, "\n") {
+						if prov == "" {
+							continue
+						}
+						line := fmt.Sprintf("%s %s %s %s %s %s\n", prov, fileArch, microArch, apiLevel, pkg.Name, ver.Version)
+						providerSet[line] = struct{}{}
 					}
 				}
-			}
-			if pf == nil {
-				// file not exists
-				continue
-			}
-			getProperty := func(propName string) string {
-				pps, _ := packages_model.GetPropertiesByName(ctx, packages_model.PropertyTypeFile, pf.ID, propName)
-				if len(pps) > 0 {
-					return pps[0].Value
-				}
-				return ""
-			}
 
-			blob, err := packages_model.GetBlobByID(ctx, pf.BlobID)
-			if err != nil {
-				return nil, nil, err
+				count++
 			}
-
-			fileArch := getProperty(apex_module.PropertyArch)
-			microArch := getProperty(apex_module.PropertyMicroArch)
-			apiLevel := getProperty(apex_module.PropertyApiLevel)
-
-			if apiLevel == "" {
-				apiLevel = "29" // fallback if not available
-			}
-			if microArch == "" {
-				microArch = "1"
-			}
-
-			line := fmt.Sprintf("%s %s %s %s %s %d\n", pkg.Name, fileArch, microArch, apiLevel, ver.Version, blob.Size)
-			db.Write([]byte(line))
-
-			// Providers logic
-			provs, err := packages_model.GetPropertiesByName(
-				ctx, packages_model.PropertyTypeFile, pf.ID, apex_module.PropertyProvides,
-			)
-			if err != nil {
-				return nil, nil, err
-			}
-			if len(provs) >= 1 && provs[0].Value != "" {
-				for _, prov := range strings.Split(provs[0].Value, "\n") {
-					if prov == "" {
-						continue
-					}
-					line := fmt.Sprintf("%s %s %s %s %s %s\n", prov, fileArch, microArch, apiLevel, pkg.Name, ver.Version)
-					providerSet[line] = struct{}{}
-				}
-			}
-
-			count++
 		}
 	}
 	if count == 0 {
