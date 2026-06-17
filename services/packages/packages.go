@@ -104,6 +104,10 @@ func createPackageAndAddFile(ctx context.Context, pvci *PackageCreationInfo, pfc
 		var pb *packages_model.PackageBlob
 		var blobCreated bool
 
+		if seeker, ok := pfci.Data.(io.Seeker); ok {
+			seeker.Seek(0, io.SeekStart)
+		}
+
 		pv, createdPackage, err = createPackageAndVersion(ctx, pvci, allowDuplicate)
 		if err != nil {
 			return err
@@ -219,6 +223,10 @@ func AddFileToExistingPackage(ctx context.Context, pvi *PackageInfo, pfci *Packa
 			return nil, nil, false, err
 		}
 
+		if seeker, ok := pfci.Data.(io.Seeker); ok {
+			seeker.Seek(0, io.SeekStart)
+		}
+
 		return addFileToPackageVersion(ctx, pv, pvi, pfci)
 	})
 }
@@ -227,6 +235,9 @@ func AddFileToExistingPackage(ctx context.Context, pvi *PackageInfo, pfci *Packa
 // This method skips quota checks and should only be used for system-managed packages.
 func AddFileToPackageVersionInternal(ctx context.Context, pv *packages_model.PackageVersion, pfci *PackageFileCreationInfo) (*packages_model.PackageFile, error) {
 	return addFileToPackageWrapper(ctx, func(ctx context.Context) (*packages_model.PackageFile, *packages_model.PackageBlob, bool, error) {
+		if seeker, ok := pfci.Data.(io.Seeker); ok {
+			seeker.Seek(0, io.SeekStart)
+		}
 		return addFileToPackageVersionUnchecked(ctx, pv, pfci, "")
 	})
 }
