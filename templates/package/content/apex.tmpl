@@ -6,10 +6,8 @@
 			<label>{{svg "octicon-terminal"}} APEX Repository Setup (repo.conf)</label>
 			<div class="markup">
 				<pre class="code-block"><code>
-{{-  range $i,$v := .Groups -}}
 [{{.}}]
-url = <origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/apex/{{.}}"></origin-url>
-{{end -}}
+URL=<origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/apex/{{.}}"></origin-url>
 </code></pre>
 			</div>
 		</div>
@@ -36,7 +34,7 @@ url = <origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Own
 		<tbody>
 			<tr>
 				<td class="collapsing">
-					<h5>{{ctx.Locale.Tr "packages.description"}}</h5>
+					<h5>{{ctx.Locale.Tr "packages.about"}}</h5>
 				</td>
 				<td>{{.PackageDescriptor.Metadata.Description}}</td>
 			</tr>
@@ -61,7 +59,7 @@ url = <origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Own
 				<td class="collapsing">
 					<h5>Provides</h5>
 				</td>
-				<td>{{StringUtils.Join $.PackageDescriptor.Metadata.Provides ", "}}</td>
+				<td>{{StringUtils.Join $.PackageDescriptor.Metadata.Provides "<br>" | SanitizeHTML}}</td>
 			</tr>
 			{{end}}
 			{{if .PackageDescriptor.Metadata.Depends}}
@@ -69,7 +67,7 @@ url = <origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Own
 				<td class="collapsing">
 					<h5>Depends</h5>
 				</td>
-				<td>{{StringUtils.Join $.PackageDescriptor.Metadata.Depends ", "}}</td>
+				<td>{{StringUtils.Join $.PackageDescriptor.Metadata.Depends "<br>" | SanitizeHTML}}</td>
 			</tr>
 			{{end}}
 		</tbody>
