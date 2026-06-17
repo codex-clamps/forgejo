@@ -108,19 +108,8 @@ func BuildApexDB(ctx context.Context, ownerID int64, group, arch string) error {
 	if err != nil {
 		return err
 	}
-	// remove old db files
-	pfs, err := packages_model.GetFilesByVersionID(ctx, pv.ID)
-	if err != nil {
-		return err
-	}
-	for _, pf := range pfs {
-		if pf.CompositeKey == group && (pf.Name == fmt.Sprintf("%s.db", group) || pf.Name == fmt.Sprintf("%s.files", group) || pf.Name == fmt.Sprintf("%s.providers", group)) {
-			// remove group
-			if err := packages_service.DeletePackageFile(ctx, pf); err != nil {
-				return err
-			}
-		}
-	}
+	// Old DB files are intentionally NOT deleted here to prevent downtime.
+	// AddFileToPackageVersionInternal with OverwriteExisting: true handles the atomic replacement.
 
 	db, providersDB, err := createDB(ctx, ownerID, group, arch)
 	if err != nil {
