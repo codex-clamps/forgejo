@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 
 	"forgejo.org/modules/packages"
@@ -66,12 +67,19 @@ func ParsePackage(ctx context.Context, buf *packages.HashedBuffer) (*apex_module
 		defer rc.Close()
 
 		// original_apex is also a zip file
-		innerBuf, err := io.ReadAll(rc)
+		tmpFile, err := os.CreateTemp("", "original_apex_*.zip")
+		if err != nil {
+			return nil, err
+		}
+		defer os.Remove(tmpFile.Name())
+		defer tmpFile.Close()
+
+		size, err := io.Copy(tmpFile, rc)
 		if err != nil {
 			return nil, err
 		}
 
-		innerReader, err := zip.NewReader(bytes.NewReader(innerBuf), int64(len(innerBuf)))
+		innerReader, err := zip.NewReader(tmpFile, size)
 		if err != nil {
 			return nil, err
 		}
