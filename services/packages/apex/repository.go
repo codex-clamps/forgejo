@@ -234,7 +234,12 @@ func createDB(ctx context.Context, ownerID int64, group, arch string) (*packages
 					microArch = "1"
 				}
 
-				line := fmt.Sprintf("%s %s %s %s %s %d\n", pkg.Name, fileArch, microArch, apiLevel, ver.Version, blob.Size)
+				pkgType := "apex"
+				if strings.HasSuffix(file.Name, ".capex") {
+					pkgType = "capex"
+				}
+
+				line := fmt.Sprintf("%s %s %s %s %s %d %s\n", pkg.Name, fileArch, microArch, apiLevel, ver.Version, blob.Size, pkgType)
 				db.Write([]byte(line))
 
 				// Providers logic
