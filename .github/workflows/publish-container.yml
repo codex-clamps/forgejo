@@ -50,11 +50,7 @@ jobs:
         id: version
         shell: bash
         run: |
-          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
-            version="${GITHUB_REF_NAME#v}"
-          else
-            version="${GITHUB_REF_NAME//\//-}-${GITHUB_SHA::12}"
-          fi
+          version="${GITHUB_RUN_ID}"
           echo "value=${version}" >> "${GITHUB_OUTPUT}"
 
       - name: Generate image metadata
