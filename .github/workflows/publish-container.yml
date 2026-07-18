@@ -99,6 +99,7 @@ jobs:
           annotations: ${{ steps.meta.outputs.annotations }}
           build-args: |
             RELEASE_VERSION=${{ steps.version.outputs.value }}
+            FORGEJO_VERSION=
             GOPROXY=https://proxy.golang.org,direct
           cache-from: type=gha,scope=forgejo-${{ matrix.variant }}
           cache-to: type=gha,mode=max,scope=forgejo-${{ matrix.variant }}
