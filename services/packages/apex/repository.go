@@ -100,7 +100,7 @@ func NewFileSign(ctx context.Context, ownerID int64, input io.Reader) (*packages
 }
 
 // BuildApexDB Create db signature cache
-func BuildApexDB(ctx context.Context, ownerID int64, group, arch string) error {
+func BuildApexDB(ctx context.Context, ownerID int64, group, _ string) error {
 	key := fmt.Sprintf("pkg_%d_apex_db_%s", ownerID, group)
 	locker.CheckIn(key)
 	defer locker.CheckOut(key)
@@ -111,10 +111,10 @@ func BuildApexDB(ctx context.Context, ownerID int64, group, arch string) error {
 	// Old DB files are intentionally NOT deleted here to prevent downtime.
 	// AddFileToPackageVersionInternal with OverwriteExisting: true handles the atomic replacement.
 
-	db, providersDB, err := createDB(ctx, ownerID, group, arch)
+	db, providersDB, err := createDB(ctx, ownerID, group)
 	if err != nil {
 		if errors.Is(err, io.EOF) {
-			return nil
+			return deleteRepositoryFiles(ctx, pv, group)
 		}
 		return err
 	}
@@ -164,7 +164,33 @@ func BuildApexDB(ctx context.Context, ownerID int64, group, arch string) error {
 	return nil
 }
 
-func createDB(ctx context.Context, ownerID int64, group, arch string) (*packages_module.HashedBuffer, *packages_module.HashedBuffer, error) {
+func deleteRepositoryFiles(ctx context.Context, pv *packages_model.PackageVersion, group string) error {
+	pfs, err := packages_model.GetFilesByVersionID(ctx, pv.ID)
+	if err != nil {
+		return err
+	}
+
+	filenames := map[string]struct{}{
+		fmt.Sprintf("%s.db", group):        {},
+		fmt.Sprintf("%s.db.sig", group):    {},
+		fmt.Sprintf("%s.files", group):     {},
+		fmt.Sprintf("%s.providers", group): {},
+	}
+	for _, pf := range pfs {
+		if pf.CompositeKey != group {
+			continue
+		}
+		if _, ok := filenames[pf.Name]; !ok {
+			continue
+		}
+		if err := packages_service.DeletePackageFile(ctx, pf); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func createDB(ctx context.Context, ownerID int64, group string) (*packages_module.HashedBuffer, *packages_module.HashedBuffer, error) {
 	pkgs, err := packages_model.GetPackagesByType(ctx, ownerID, packages_model.TypeApex)
 	if err != nil {
 		return nil, nil, err
@@ -182,6 +208,13 @@ func createDB(ctx context.Context, ownerID int64, group, arch string) (*packages
 		db.Close()
 		return nil, nil, err
 	}
+	keepOpen := false
+	defer func() {
+		if !keepOpen {
+			db.Close()
+			providersDB.Close()
+		}
+	}()
 
 	count := 0
 	providerSet := make(map[string]struct{})
@@ -210,10 +243,15 @@ func createDB(ctx context.Context, ownerID int64, group, arch string) (*packages
 					continue
 				}
 
+				properties, err := packages_model.GetProperties(ctx, packages_model.PropertyTypeFile, file.ID)
+				if err != nil {
+					return nil, nil, err
+				}
 				getProperty := func(propName string) string {
-					pps, _ := packages_model.GetPropertiesByName(ctx, packages_model.PropertyTypeFile, file.ID, propName)
-					if len(pps) > 0 {
-						return pps[0].Value
+					for _, property := range properties {
+						if property.Name == propName {
+							return property.Value
+						}
 					}
 					return ""
 				}
@@ -225,7 +263,7 @@ func createDB(ctx context.Context, ownerID int64, group, arch string) (*packages
 
 				fileArch := getProperty(apex_module.PropertyArch)
 				microArch := getProperty(apex_module.PropertyMicroArch)
-				apiLevel := getProperty(apex_module.PropertyApiLevel)
+				apiLevel := getProperty(apex_module.PropertyAPILevel)
 
 				if apiLevel == "" {
 					apiLevel = "29" // fallback if not available
@@ -240,14 +278,14 @@ func createDB(ctx context.Context, ownerID int64, group, arch string) (*packages
 				}
 
 				line := fmt.Sprintf("%s %s %s %s %s %d %s\n", pkg.Name, fileArch, microArch, apiLevel, ver.Version, blob.Size, pkgType)
-				db.Write([]byte(line))
+				if _, err := db.Write([]byte(line)); err != nil {
+					return nil, nil, err
+				}
 
 				// Providers logic
-				provs, err := packages_model.GetPropertiesByName(
-					ctx, packages_model.PropertyTypeFile, file.ID, apex_module.PropertyProvides,
-				)
-				if err == nil && len(provs) >= 1 && provs[0].Value != "" {
-					for _, prov := range strings.Split(provs[0].Value, "\n") {
+				provides := getProperty(apex_module.PropertyProvides)
+				if provides != "" {
+					for prov := range strings.SplitSeq(provides, "\n") {
 						if prov == "" {
 							continue
 						}
@@ -265,10 +303,18 @@ func createDB(ctx context.Context, ownerID int64, group, arch string) (*packages
 	}
 
 	// Write providers file
+	providerLines := make([]string, 0, len(providerSet))
 	for line := range providerSet {
-		providersDB.Write([]byte(line))
+		providerLines = append(providerLines, line)
+	}
+	sort.Strings(providerLines)
+	for _, line := range providerLines {
+		if _, err := providersDB.Write([]byte(line)); err != nil {
+			return nil, nil, err
+		}
 	}
 
+	keepOpen = true
 	return db, providersDB, nil
 }
 
@@ -279,7 +325,7 @@ func GetPackageFile(ctx context.Context, group, file string, ownerID int64) (io.
 	if len(fileParts) < 4 {
 		return nil, nil, nil, errors.New("invalid file format")
 	}
-	
+
 	orgStartIndex := 2
 	if strings.HasPrefix(fileParts[1], "v") {
 		orgStartIndex = 3

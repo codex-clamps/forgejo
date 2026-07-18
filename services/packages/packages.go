@@ -105,7 +105,9 @@ func createPackageAndAddFile(ctx context.Context, pvci *PackageCreationInfo, pfc
 		var blobCreated bool
 
 		if seeker, ok := pfci.Data.(io.Seeker); ok {
-			seeker.Seek(0, io.SeekStart)
+			if _, err := seeker.Seek(0, io.SeekStart); err != nil {
+				return err
+			}
 		}
 
 		pv, createdPackage, err = createPackageAndVersion(ctx, pvci, allowDuplicate)
@@ -224,7 +226,9 @@ func AddFileToExistingPackage(ctx context.Context, pvi *PackageInfo, pfci *Packa
 		}
 
 		if seeker, ok := pfci.Data.(io.Seeker); ok {
-			seeker.Seek(0, io.SeekStart)
+			if _, err := seeker.Seek(0, io.SeekStart); err != nil {
+				return nil, nil, false, err
+			}
 		}
 
 		return addFileToPackageVersion(ctx, pv, pvi, pfci)
@@ -236,7 +240,9 @@ func AddFileToExistingPackage(ctx context.Context, pvi *PackageInfo, pfci *Packa
 func AddFileToPackageVersionInternal(ctx context.Context, pv *packages_model.PackageVersion, pfci *PackageFileCreationInfo) (*packages_model.PackageFile, error) {
 	return addFileToPackageWrapper(ctx, func(ctx context.Context) (*packages_model.PackageFile, *packages_model.PackageBlob, bool, error) {
 		if seeker, ok := pfci.Data.(io.Seeker); ok {
-			seeker.Seek(0, io.SeekStart)
+			if _, err := seeker.Seek(0, io.SeekStart); err != nil {
+				return nil, nil, false, err
+			}
 		}
 		return addFileToPackageVersionUnchecked(ctx, pv, pfci, "")
 	})
@@ -429,6 +435,8 @@ func CheckSizeQuotaExceeded(ctx context.Context, doer, owner *user_model.User, p
 		typeSpecificSize = setting.Packages.LimitSizeCran
 	case packages_model.TypeDebian:
 		typeSpecificSize = setting.Packages.LimitSizeDebian
+	case packages_model.TypeFDroid:
+		typeSpecificSize = setting.Packages.LimitSizeFDroid
 	case packages_model.TypeGeneric:
 		typeSpecificSize = setting.Packages.LimitSizeGeneric
 	case packages_model.TypeGo:

@@ -15,13 +15,14 @@ import (
 	"forgejo.org/modules/optional"
 	packages_module "forgejo.org/modules/packages"
 	packages_service "forgejo.org/services/packages"
-	apex_service "forgejo.org/services/packages/apex"
 	alpine_service "forgejo.org/services/packages/alpine"
 	alt_service "forgejo.org/services/packages/alt"
+	apex_service "forgejo.org/services/packages/apex"
 	arch_service "forgejo.org/services/packages/arch"
 	cargo_service "forgejo.org/services/packages/cargo"
 	container_service "forgejo.org/services/packages/container"
 	debian_service "forgejo.org/services/packages/debian"
+	fdroid_service "forgejo.org/services/packages/fdroid"
 	rpm_service "forgejo.org/services/packages/rpm"
 )
 
@@ -94,6 +95,10 @@ func ExecuteCleanupRules(ctx context.Context) error {
 				case packages_model.TypeAlt:
 					if err := alt_service.BuildAllRepositoryFiles(ctx, pcr.OwnerID); err != nil {
 						return fmt.Errorf("CleanupRule [%d]: alt.BuildAllRepositoryFiles failed: %w", pcr.ID, err)
+					}
+				case packages_model.TypeFDroid:
+					if err := fdroid_service.BuildAllRepositoryFiles(ctx, pcr.OwnerID); err != nil {
+						return fmt.Errorf("CleanupRule [%d]: fdroid.BuildAllRepositoryFiles failed: %w", pcr.ID, err)
 					}
 				}
 			}

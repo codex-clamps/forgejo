@@ -27,6 +27,7 @@ import (
 	"forgejo.org/routers/api/packages/container"
 	"forgejo.org/routers/api/packages/cran"
 	"forgejo.org/routers/api/packages/debian"
+	"forgejo.org/routers/api/packages/fdroid"
 	"forgejo.org/routers/api/packages/generic"
 	"forgejo.org/routers/api/packages/goproxy"
 	"forgejo.org/routers/api/packages/helm"
@@ -232,7 +233,7 @@ func CommonRoutes() *web.Route {
 		r.Group("/apex", func() {
 			r.Methods("HEAD,GET", "/repository.key", apex.GetRepositoryKey)
 			r.Methods("HEAD,GET", "*", apex.GetPackageOrDB)
-			r.Methods("PUT", "*", reqPackageAccess(perm.AccessModeWrite), apex.PushPackage)
+			r.Methods("PUT", "*", reqPackageAccess(perm.AccessModeWrite), enforcePackagesQuota(), apex.PushPackage)
 			r.Methods("DELETE", "*", reqPackageAccess(perm.AccessModeWrite), apex.RemovePackage)
 			r.Methods("POST", "/build/*", reqPackageAccess(perm.AccessModeWrite), apex.ForceBuildDB)
 		}, reqPackageAccess(perm.AccessModeRead))
@@ -450,6 +451,12 @@ func CommonRoutes() *web.Route {
 					r.Delete("/{name}/{version}/{architecture}", debian.DeletePackageFile)
 				}, reqPackageAccess(perm.AccessModeWrite))
 			})
+		}, reqPackageAccess(perm.AccessModeRead))
+		r.Group("/fdroid", func() {
+			r.Put("", reqPackageAccess(perm.AccessModeWrite), enforcePackagesQuota(), fdroid.UploadPackage)
+			r.Post("/rebuild", reqPackageAccess(perm.AccessModeWrite), fdroid.RebuildRepository)
+			r.Methods("HEAD,GET", "/repo/{filename}", fdroid.GetRepositoryFile)
+			r.Delete("/repo/{filename}", reqPackageAccess(perm.AccessModeWrite), fdroid.DeletePackage)
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/go", func() {
 			r.Put("/upload", reqPackageAccess(perm.AccessModeWrite), enforcePackagesQuota(), goproxy.UploadPackage)

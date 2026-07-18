@@ -14,13 +14,13 @@ import (
 	"os"
 	"strings"
 
+	"forgejo.org/modules/json"
 	"forgejo.org/modules/packages"
-
 	apex_module "forgejo.org/modules/packages/apex"
+
 	"github.com/shogo82148/androidbinary"
 	"github.com/shogo82148/androidbinary/apk"
 	"google.golang.org/protobuf/encoding/protowire"
-	"encoding/json"
 )
 
 // ParsePackage parses an APEX/CAPEX package buffer and extracts its metadata
@@ -147,7 +147,7 @@ func ParsePackage(ctx context.Context, buf *packages.HashedBuffer) (*apex_module
 			CompressedSize: size,
 			Files:          fileList,
 			Extension:      extension,
-			ApiLevel:       apiLevelStr,
+			APILevel:       apiLevelStr,
 		},
 	}
 
@@ -239,10 +239,10 @@ func ParsePackage(ctx context.Context, buf *packages.HashedBuffer) (*apex_module
 			}
 		}
 	} else if jsonFile != nil {
-		rcJson, err := jsonFile.Open()
+		rcJSON, err := jsonFile.Open()
 		if err == nil {
-			jsonBytes, err := io.ReadAll(rcJson)
-			rcJson.Close()
+			jsonBytes, err := io.ReadAll(rcJSON)
+			rcJSON.Close()
 			if err == nil {
 				var manifest struct {
 					ProvideNativeLibs []string `json:"provideNativeLibs"`
