@@ -15,7 +15,7 @@ const (
 	PropertyFiles       = "apex.files"
 	PropertyArch        = "apex.architecture"
 	PropertyMicroArch   = "apex.micro_architecture_level"
-	PropertyApiLevel    = "apex.api_level"
+	PropertyAPILevel    = "apex.api_level"
 	PropertyProvides    = "apex.provides"
 
 	SettingKeyPublic  = "apex.key.public"
@@ -33,12 +33,12 @@ type Package struct {
 }
 
 type VersionMetadata struct {
-	Org          string   `json:"org"`
-	Description  string   `json:"description"`
-	ProjectURL   string   `json:"project_url"`
-	Provides     []string `json:"provides,omitempty"`
-	License      []string `json:"license,omitempty"`
-	Depends      []string `json:"depends,omitempty"`
+	Org         string   `json:"org"`
+	Description string   `json:"description"`
+	ProjectURL  string   `json:"project_url"`
+	Provides    []string `json:"provides,omitempty"`
+	License     []string `json:"license,omitempty"`
+	Depends     []string `json:"depends,omitempty"`
 }
 
 type FileMetadata struct {
@@ -49,7 +49,7 @@ type FileMetadata struct {
 	Packager       string `json:"packager"`
 	Arch           string `json:"arch"`
 	MicroArchLevel string `json:"micro_architecture_level,omitempty"`
-	ApiLevel       string `json:"api_level,omitempty"`
+	APILevel       string `json:"api_level,omitempty"`
 	Extension      string `json:"extension"`
 
 	Files []string `json:"files,omitempty"`
@@ -70,7 +70,7 @@ func (p *Package) Desc(filename string) string {
 		"LICENSE", strings.Join(p.VersionMetadata.License, "\n"),
 		"ARCH", p.FileMetadata.Arch,
 		"MICROARCH", p.FileMetadata.MicroArchLevel,
-		"APILEVEL", p.FileMetadata.ApiLevel,
+		"APILEVEL", p.FileMetadata.APILevel,
 		"BUILDDATE", fmt.Sprintf("%d", p.FileMetadata.BuildDate),
 		"PACKAGER", p.FileMetadata.Packager,
 		"PROVIDES", strings.Join(p.VersionMetadata.Provides, "\n"),

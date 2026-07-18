@@ -31,6 +31,7 @@ var (
 		LimitSizeContainer    int64
 		LimitSizeCran         int64
 		LimitSizeDebian       int64
+		LimitSizeFDroid       int64
 		LimitSizeGeneric      int64
 		LimitSizeGo           int64
 		LimitSizeHelm         int64
@@ -93,6 +94,7 @@ func loadPackagesFrom(rootCfg ConfigProvider) (err error) {
 	Packages.LimitSizeContainer = mustBytes(sec, "LIMIT_SIZE_CONTAINER")
 	Packages.LimitSizeCran = mustBytes(sec, "LIMIT_SIZE_CRAN")
 	Packages.LimitSizeDebian = mustBytes(sec, "LIMIT_SIZE_DEBIAN")
+	Packages.LimitSizeFDroid = mustBytes(sec, "LIMIT_SIZE_FDROID")
 	Packages.LimitSizeGeneric = mustBytes(sec, "LIMIT_SIZE_GENERIC")
 	Packages.LimitSizeGo = mustBytes(sec, "LIMIT_SIZE_GO")
 	Packages.LimitSizeHelm = mustBytes(sec, "LIMIT_SIZE_HELM")

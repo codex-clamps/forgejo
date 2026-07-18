@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"slices"
+	"strings"
 
 	"forgejo.org/models/db"
 	org_model "forgejo.org/models/organization"
@@ -17,12 +18,14 @@ import (
 	repo_model "forgejo.org/models/repo"
 	"forgejo.org/modules/base"
 	"forgejo.org/modules/container"
+	"forgejo.org/modules/json"
 	"forgejo.org/modules/log"
 	"forgejo.org/modules/optional"
 	alpine_module "forgejo.org/modules/packages/alpine"
 	apex_module "forgejo.org/modules/packages/apex"
 	arch_model "forgejo.org/modules/packages/arch"
 	debian_module "forgejo.org/modules/packages/debian"
+	fdroid_module "forgejo.org/modules/packages/fdroid"
 	rpm_module "forgejo.org/modules/packages/rpm"
 	"forgejo.org/modules/setting"
 	"forgejo.org/modules/web"
@@ -31,6 +34,7 @@ import (
 	"forgejo.org/services/context"
 	"forgejo.org/services/forms"
 	packages_service "forgejo.org/services/packages"
+	fdroid_service "forgejo.org/services/packages/fdroid"
 )
 
 const (
@@ -180,17 +184,21 @@ func ViewPackageVersion(ctx *context.Context) {
 	switch pd.Package.Type {
 	case packages_model.TypeApex:
 		architectures := make(container.Set[string])
+		groups := make(container.Set[string])
 
 		for _, f := range pd.Files {
+			if f.File.CompositeKey != "" {
+				groups.Add(f.File.CompositeKey)
+			}
 			for _, pp := range f.Properties {
-				switch pp.Name {
-				case apex_module.PropertyArch:
+				if pp.Name == apex_module.PropertyArch {
 					architectures.Add(pp.Value)
 				}
 			}
 		}
 
 		ctx.Data["Architectures"] = slices.Sorted(architectures.Seq())
+		ctx.Data["Groups"] = slices.Sorted(groups.Seq())
 	case packages_model.TypeAlpine:
 		branches := make(container.Set[string])
 		repositories := make(container.Set[string])
@@ -244,6 +252,34 @@ func ViewPackageVersion(ctx *context.Context) {
 		ctx.Data["Distributions"] = slices.Sorted(distributions.Seq())
 		ctx.Data["Components"] = slices.Sorted(components.Seq())
 		ctx.Data["Architectures"] = slices.Sorted(architectures.Seq())
+	case packages_model.TypeFDroid:
+		repositoryURL := fdroid_service.RepositoryURL(ctx.Package.Owner.Name)
+		fingerprint, err := fdroid_service.GetRepositoryFingerprint(ctx, ctx.Package.Owner.ID)
+		if err != nil {
+			ctx.ServerError("GetRepositoryFingerprint", err)
+			return
+		}
+		ctx.Data["RepositoryURL"] = repositoryURL
+		ctx.Data["RepositoryInstallURL"] = repositoryURL + "?fingerprint=" + fingerprint
+		ctx.Data["RepositoryFingerprint"] = fingerprint
+		ctx.Data["FDroidUploadURL"] = strings.TrimSuffix(repositoryURL, "/repo")
+
+		for _, file := range pd.Files {
+			if !file.File.IsLead {
+				continue
+			}
+			metadataJSON := file.Properties.GetByName(fdroid_module.PropertyFileMetadata)
+			if metadataJSON == "" {
+				continue
+			}
+			var metadata fdroid_module.FileMetadata
+			if err := json.Unmarshal([]byte(metadataJSON), &metadata); err != nil {
+				ctx.ServerError("DecodeFDroidFileMetadata", err)
+				return
+			}
+			ctx.Data["FDroidFileMetadata"] = &metadata
+			break
+		}
 	case packages_model.TypeRpm, packages_model.TypeAlt:
 		groups := make(container.Set[string])
 		architectures := make(container.Set[string])

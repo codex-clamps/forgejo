@@ -26,6 +26,7 @@ require (
 	github.com/PuerkitoBio/goquery v1.13.0
 	github.com/SaveTheRbtz/zstd-seekable-format-go/pkg v0.9.0
 	github.com/alecthomas/chroma/v2 v2.27.0
+	github.com/avast/apkverifier v0.0.0-20260710162049-d0e1a791cd5a
 	github.com/blakesmith/ar v0.0.0-20190502131153-809d4375e1fb
 	github.com/blevesearch/bleve/v2 v2.6.1
 	github.com/buildkite/terminal-to-html/v3 v3.17.1
@@ -88,6 +89,8 @@ require (
 	github.com/redis/go-redis/v9 v9.22.0
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
 	github.com/sergi/go-diff v1.4.0
+	github.com/shogo82148/androidbinary v1.0.5
+	github.com/smallstep/pkcs7 v0.2.2
 	github.com/sourcegraph/zoekt v0.0.0-20260114143800-c747a3bccc2a
 	github.com/stretchr/testify v1.12.1
 	github.com/syndtr/goleveldb v1.0.0
@@ -125,6 +128,7 @@ require (
 	github.com/andybalholm/brotli v1.2.0 // indirect
 	github.com/andybalholm/cascadia v1.3.4 // indirect
 	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be // indirect
+	github.com/avast/apkparser v0.0.0-20251022140151-7294e274bf65 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bits-and-blooms/bitset v1.24.2 // indirect

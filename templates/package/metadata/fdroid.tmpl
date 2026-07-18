@@ -1,0 +1,13 @@
+{{if eq .PackageDescriptor.Package.Type "fdroid"}}
+	{{if .PackageDescriptor.Metadata.License}}<div class="item" title="{{ctx.Locale.Tr "packages.details.license"}}">{{svg "octicon-law" 16 "tw-mr-2"}} {{.PackageDescriptor.Metadata.License}}</div>{{end}}
+	{{if .PackageDescriptor.Metadata.Website}}<div class="item">{{svg "octicon-link-external" 16 "tw-mr-2"}} <a href="{{.PackageDescriptor.Metadata.Website}}" target="_blank" rel="noopener noreferrer me">{{ctx.Locale.Tr "packages.details.project_site"}}</a></div>{{end}}
+	{{if .PackageDescriptor.Metadata.SourceCode}}<div class="item">{{svg "octicon-code" 16 "tw-mr-2"}} <a href="{{.PackageDescriptor.Metadata.SourceCode}}" target="_blank" rel="noopener noreferrer">{{ctx.Locale.Tr "packages.fdroid.source_code"}}</a></div>{{end}}
+	{{if .PackageDescriptor.Metadata.IssueTracker}}<div class="item">{{svg "octicon-issue-opened" 16 "tw-mr-2"}} <a href="{{.PackageDescriptor.Metadata.IssueTracker}}" target="_blank" rel="noopener noreferrer">{{ctx.Locale.Tr "packages.fdroid.issue_tracker"}}</a></div>{{end}}
+	{{if .FDroidFileMetadata}}
+		{{if .FDroidFileMetadata.MinSDKVersion}}<div class="item">{{svg "octicon-device-mobile" 16 "tw-mr-2"}} {{ctx.Locale.Tr "packages.fdroid.min_sdk" .FDroidFileMetadata.MinSDKVersion}}</div>{{end}}
+		{{if .FDroidFileMetadata.TargetSDKVersion}}<div class="item">{{svg "octicon-device-mobile" 16 "tw-mr-2"}} {{ctx.Locale.Tr "packages.fdroid.target_sdk" .FDroidFileMetadata.TargetSDKVersion}}</div>{{end}}
+		{{if .FDroidFileMetadata.NativeCode}}<div class="item">{{svg "octicon-cpu" 16 "tw-mr-2"}} {{StringUtils.Join .FDroidFileMetadata.NativeCode ", "}}</div>{{end}}
+		<div class="item" title="{{ctx.Locale.Tr "packages.fdroid.signer"}}">{{svg "octicon-key" 16 "tw-mr-2"}} <span class="gt-word-break"><code>{{.FDroidFileMetadata.SignerSHA256}}</code></span></div>
+		<div class="item">{{svg "octicon-shield-lock" 16 "tw-mr-2"}} {{ctx.Locale.Tr "packages.fdroid.signature_scheme" .FDroidFileMetadata.SignatureScheme}}</div>
+	{{end}}
+{{end}}

@@ -1,0 +1,43 @@
+{{if eq .PackageDescriptor.Package.Type "fdroid"}}
+	<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.installation"}}</h4>
+	<div class="ui attached segment">
+		<div class="ui form">
+			<div class="field">
+				<label>{{svg "octicon-device-mobile"}} {{ctx.Locale.Tr "packages.fdroid.repository_url"}}</label>
+				<div class="markup"><pre class="code-block"><code><origin-url data-url="{{.RepositoryInstallURL}}"></origin-url></code></pre></div>
+				<p>{{ctx.Locale.Tr "packages.fdroid.repository_info"}}</p>
+			</div>
+			{{if .CanWritePackages}}
+				<div class="field">
+					<label>{{svg "octicon-upload"}} {{ctx.Locale.Tr "packages.fdroid.upload"}}</label>
+					<div class="markup"><pre class="code-block"><code>curl --user {{.PackageDescriptor.Owner.Name}} --upload-file app.apk <origin-url data-url="{{.FDroidUploadURL}}"></origin-url></code></pre></div>
+				</div>
+			{{end}}
+		</div>
+	</div>
+
+	<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.common.repository"}}</h4>
+	<div class="ui attached segment">
+		<table class="ui very basic table">
+			<tbody>
+				<tr>
+					<td class="collapsing"><h5>{{ctx.Locale.Tr "packages.fdroid.repository_url"}}</h5></td>
+					<td class="gt-word-break"><origin-url data-url="{{.RepositoryURL}}"></origin-url></td>
+				</tr>
+				<tr>
+					<td class="collapsing"><h5>{{ctx.Locale.Tr "packages.fdroid.fingerprint"}}</h5></td>
+					<td class="gt-word-break"><code>{{.RepositoryFingerprint}}</code></td>
+				</tr>
+				<tr>
+					<td class="collapsing"><h5>{{ctx.Locale.Tr "packages.fdroid.index_formats"}}</h5></td>
+					<td>{{ctx.Locale.Tr "packages.fdroid.index_formats_value"}}</td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+
+	{{if .PackageDescriptor.Metadata.Description}}
+		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.about"}}</h4>
+		<div class="ui attached segment">{{.PackageDescriptor.Metadata.Description}}</div>
+	{{end}}
+{{end}}

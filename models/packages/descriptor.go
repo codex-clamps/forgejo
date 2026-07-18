@@ -23,6 +23,7 @@ import (
 	"forgejo.org/modules/packages/container"
 	"forgejo.org/modules/packages/cran"
 	"forgejo.org/modules/packages/debian"
+	"forgejo.org/modules/packages/fdroid"
 	"forgejo.org/modules/packages/helm"
 	"forgejo.org/modules/packages/maven"
 	"forgejo.org/modules/packages/npm"
@@ -175,6 +176,8 @@ func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDesc
 		metadata = &cran.Metadata{}
 	case TypeDebian:
 		metadata = &debian.Metadata{}
+	case TypeFDroid:
+		metadata = &fdroid.VersionMetadata{}
 	case TypeGeneric:
 		// generic packages have no metadata
 		break

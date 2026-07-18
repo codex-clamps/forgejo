@@ -43,6 +43,8 @@ var (
 	Webhook = deriveKey("webhook")
 	// Used for the `mirror` table.
 	PullMirror = deriveKey("pullmirror")
+	// Used for F-Droid repository signing keys stored in `user_setting`.
+	FDroidRepository = deriveKey("fdroid_repository")
 )
 
 var (
