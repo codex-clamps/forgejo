@@ -53,6 +53,9 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		Quiet:         true,
 		Timeout:       migrateTimeout,
 		SkipTLSVerify: setting.Migrations.SkipTLSVerify,
+		// CloneAddr would have passed IsMigrateURLAllowed, but any redirection URL may not. Prohibit redirects in order
+		// to protect against SSRF risks.
+		ProhibitHTTPRedirect: true,
 	}); err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			return repo, fmt.Errorf("Clone timed out. Consider increasing [git.timeout] MIGRATE in app.ini. Underlying Error: %w", err)
@@ -77,6 +80,9 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 				Quiet:         true,
 				Timeout:       migrateTimeout,
 				SkipTLSVerify: setting.Migrations.SkipTLSVerify,
+				// CloneAddr would have passed IsMigrateURLAllowed, but any redirection URL may not. Prohibit redirects
+				// in order to protect against SSRF risks.
+				ProhibitHTTPRedirect: true,
 			}); err != nil {
 				log.Warn("Clone wiki: %v", err)
 				if err := util.RemoveAll(wikiPath); err != nil {

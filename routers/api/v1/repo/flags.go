@@ -36,7 +36,7 @@ func ListFlags(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	repoFlags, err := ctx.Repo.Repository.ListFlags(ctx)
+	repoFlags, err := ctx.Repo().Repository.ListFlags(ctx)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -82,7 +82,7 @@ func ReplaceAllFlags(ctx *context.APIContext) {
 
 	flagsForm := web.GetForm(ctx).(*api.ReplaceFlagsOption)
 
-	if err := ctx.Repo.Repository.ReplaceAllFlags(ctx, flagsForm.Flags); err != nil {
+	if err := ctx.Repo().Repository.ReplaceAllFlags(ctx, flagsForm.Flags); err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
@@ -115,7 +115,7 @@ func DeleteAllFlags(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if err := ctx.Repo.Repository.ReplaceAllFlags(ctx, nil); err != nil {
+	if err := ctx.Repo().Repository.ReplaceAllFlags(ctx, nil); err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
@@ -153,7 +153,7 @@ func HasFlag(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	hasFlag := ctx.Repo.Repository.HasFlag(ctx, ctx.Params(":flag"))
+	hasFlag := ctx.Repo().Repository.HasFlag(ctx, ctx.Params(":flag"))
 	if hasFlag {
 		ctx.Status(http.StatusNoContent)
 	} else {
@@ -193,12 +193,12 @@ func AddFlag(ctx *context.APIContext) {
 
 	flag := ctx.Params(":flag")
 
-	if ctx.Repo.Repository.HasFlag(ctx, flag) {
+	if ctx.Repo().Repository.HasFlag(ctx, flag) {
 		ctx.Status(http.StatusNoContent)
 		return
 	}
 
-	if err := ctx.Repo.Repository.AddFlag(ctx, flag); err != nil {
+	if err := ctx.Repo().Repository.AddFlag(ctx, flag); err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
@@ -237,7 +237,7 @@ func DeleteFlag(ctx *context.APIContext) {
 
 	flag := ctx.Params(":flag")
 
-	if _, err := ctx.Repo.Repository.DeleteFlag(ctx, flag); err != nil {
+	if _, err := ctx.Repo().Repository.DeleteFlag(ctx, flag); err != nil {
 		ctx.InternalServerError(err)
 		return
 	}

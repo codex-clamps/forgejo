@@ -13,6 +13,7 @@ window.customElements.define('absolute-date', class extends HTMLElement {
   static observedAttributes = ['date', 'year', 'month', 'weekday', 'day'];
 
   initialized = false;
+  contentSpan = null;
 
   update = () => {
     const opt = {};
@@ -22,8 +23,13 @@ window.customElements.define('absolute-date', class extends HTMLElement {
     const lang = this.closest('[lang]')?.getAttribute('lang') ||
       this.ownerDocument.documentElement.getAttribute('lang') || '';
 
-    if (!this.shadowRoot) this.attachShadow({mode: 'open'});
-    this.shadowRoot.textContent = toAbsoluteLocaleDate(this.getAttribute('date'), lang, opt);
+    if (!this.shadowRoot) {
+      this.attachShadow({mode: 'open'});
+      this.contentSpan = document.createElement('span');
+      this.contentSpan.setAttribute('part', 'absolute-date');
+      this.shadowRoot.append(this.contentSpan);
+    }
+    this.contentSpan.textContent = toAbsoluteLocaleDate(this.getAttribute('date'), lang, opt);
   };
 
   attributeChangedCallback(_name, oldValue, newValue) {

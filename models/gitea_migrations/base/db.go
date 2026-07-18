@@ -114,8 +114,7 @@ func RecreateTables(beans ...any) func(*xorm.Engine) error {
 		// Drop all the old tables in the right order, starting with satellite tables working inwards to base tables,
 		// and rename all the temp tables to the final tables.  The database will automatically update the foreign key
 		// references during the rename from temp to final tables.
-		for i := len(orderedBeans) - 1; i >= 0; i-- {
-			bean := orderedBeans[i]
+		for _, bean := range slices.Backward(orderedBeans) {
 			log.Info("Dropping existing table %s, and renaming temp table %s in its place", tableNames[bean], tempTableNames[bean])
 			if err := renameTable(sess, bean, tableNames[bean], tempTableNames[bean], tableSchemas[bean]); err != nil {
 				// renameTable does its own logging

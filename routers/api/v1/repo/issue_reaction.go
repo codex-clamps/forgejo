@@ -51,14 +51,14 @@ func GetIssueCommentReactions(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	comment := ctx.Comment
+	comment := ctx.Comment()
 
 	reactions, _, err := issues_model.FindCommentReactions(ctx, comment.IssueID, comment.ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "FindCommentReactions", err)
 		return
 	}
-	_, err = reactions.LoadUsers(ctx, ctx.Repo.Repository)
+	_, err = reactions.LoadUsers(ctx, ctx.Repo().Repository)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ReactionList.LoadUsers()", err)
 		return
@@ -67,7 +67,7 @@ func GetIssueCommentReactions(ctx *context.APIContext) {
 	var result []api.Reaction
 	for _, r := range reactions {
 		result = append(result, api.Reaction{
-			User:     convert.ToUser(ctx, r.User, ctx.Doer),
+			User:     convert.ToUser(ctx, r.User, ctx.Doer()),
 			Reaction: r.Type,
 			Created:  r.CreatedUnix.AsTime(),
 		})
@@ -165,22 +165,22 @@ func DeleteIssueCommentReaction(ctx *context.APIContext) {
 }
 
 func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOption, isCreateType bool) {
-	comment := ctx.Comment
+	comment := ctx.Comment()
 
-	if comment.Issue.IsLocked && !ctx.Repo.CanWriteIssuesOrPulls(comment.Issue.IsPull) {
+	if comment.Issue.IsLocked && !ctx.Repo().CanWriteIssuesOrPulls(comment.Issue.IsPull) {
 		ctx.Error(http.StatusForbidden, "ChangeIssueCommentReaction", errors.New("no permission to change reaction"))
 		return
 	}
 
 	if isCreateType {
 		// PostIssueCommentReaction part
-		reaction, err := issue_service.CreateCommentReaction(ctx, ctx.Doer, comment.Issue, comment, form.Reaction)
+		reaction, err := issue_service.CreateCommentReaction(ctx, ctx.Doer(), comment.Issue, comment, form.Reaction)
 		if err != nil {
 			if issues_model.IsErrForbiddenIssueReaction(err) || errors.Is(err, user_model.ErrBlockedByUser) {
 				ctx.Error(http.StatusForbidden, err.Error(), err)
 			} else if issues_model.IsErrReactionAlreadyExist(err) {
 				ctx.JSON(http.StatusOK, api.Reaction{
-					User:     convert.ToUser(ctx, ctx.Doer, ctx.Doer),
+					User:     convert.ToUser(ctx, ctx.Doer(), ctx.Doer()),
 					Reaction: reaction.Type,
 					Created:  reaction.CreatedUnix.AsTime(),
 				})
@@ -191,13 +191,13 @@ func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOp
 		}
 
 		ctx.JSON(http.StatusCreated, api.Reaction{
-			User:     convert.ToUser(ctx, ctx.Doer, ctx.Doer),
+			User:     convert.ToUser(ctx, ctx.Doer(), ctx.Doer()),
 			Reaction: reaction.Type,
 			Created:  reaction.CreatedUnix.AsTime(),
 		})
 	} else {
 		// DeleteIssueCommentReaction part
-		err := issues_model.DeleteCommentReaction(ctx, ctx.Doer.ID, comment.Issue.ID, comment.ID, form.Reaction)
+		err := issue_service.DeleteCommentReaction(ctx, ctx.Doer(), comment, form.Reaction)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "DeleteCommentReaction", err)
 			return
@@ -249,7 +249,7 @@ func GetIssueReactions(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	issue, err := issues_model.GetIssueWithAttrsByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueWithAttrsByIndex(ctx, ctx.Repo().Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound()
@@ -259,7 +259,7 @@ func GetIssueReactions(ctx *context.APIContext) {
 		return
 	}
 
-	if !ctx.Repo.CanReadIssuesOrPulls(issue.IsPull) {
+	if !ctx.Repo().CanReadIssuesOrPulls(issue.IsPull) {
 		ctx.Error(http.StatusForbidden, "GetIssueReactions", errors.New("no permission to get reactions"))
 		return
 	}
@@ -269,7 +269,7 @@ func GetIssueReactions(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "FindIssueReactions", err)
 		return
 	}
-	_, err = reactions.LoadUsers(ctx, ctx.Repo.Repository)
+	_, err = reactions.LoadUsers(ctx, ctx.Repo().Repository)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ReactionList.LoadUsers()", err)
 		return
@@ -278,7 +278,7 @@ func GetIssueReactions(ctx *context.APIContext) {
 	var result []api.Reaction
 	for _, r := range reactions {
 		result = append(result, api.Reaction{
-			User:     convert.ToUser(ctx, r.User, ctx.Doer),
+			User:     convert.ToUser(ctx, r.User, ctx.Doer()),
 			Reaction: r.Type,
 			Created:  r.CreatedUnix.AsTime(),
 		})
@@ -373,7 +373,7 @@ func DeleteIssueReaction(ctx *context.APIContext) {
 }
 
 func changeIssueReaction(ctx *context.APIContext, form api.EditReactionOption, isCreateType bool) {
-	issue, err := issues_model.GetIssueWithAttrsByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueWithAttrsByIndex(ctx, ctx.Repo().Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound()
@@ -383,20 +383,20 @@ func changeIssueReaction(ctx *context.APIContext, form api.EditReactionOption, i
 		return
 	}
 
-	if issue.IsLocked && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
+	if issue.IsLocked && !ctx.Repo().CanWriteIssuesOrPulls(issue.IsPull) {
 		ctx.Error(http.StatusForbidden, "ChangeIssueCommentReaction", errors.New("no permission to change reaction"))
 		return
 	}
 
 	if isCreateType {
 		// PostIssueReaction part
-		reaction, err := issue_service.CreateIssueReaction(ctx, ctx.Doer, issue, form.Reaction)
+		reaction, err := issue_service.CreateIssueReaction(ctx, ctx.Doer(), issue, form.Reaction)
 		if err != nil {
 			if issues_model.IsErrForbiddenIssueReaction(err) || errors.Is(err, user_model.ErrBlockedByUser) {
 				ctx.Error(http.StatusForbidden, err.Error(), err)
 			} else if issues_model.IsErrReactionAlreadyExist(err) {
 				ctx.JSON(http.StatusOK, api.Reaction{
-					User:     convert.ToUser(ctx, ctx.Doer, ctx.Doer),
+					User:     convert.ToUser(ctx, ctx.Doer(), ctx.Doer()),
 					Reaction: reaction.Type,
 					Created:  reaction.CreatedUnix.AsTime(),
 				})
@@ -407,13 +407,13 @@ func changeIssueReaction(ctx *context.APIContext, form api.EditReactionOption, i
 		}
 
 		ctx.JSON(http.StatusCreated, api.Reaction{
-			User:     convert.ToUser(ctx, ctx.Doer, ctx.Doer),
+			User:     convert.ToUser(ctx, ctx.Doer(), ctx.Doer()),
 			Reaction: reaction.Type,
 			Created:  reaction.CreatedUnix.AsTime(),
 		})
 	} else {
 		// DeleteIssueReaction part
-		err = issues_model.DeleteIssueReaction(ctx, ctx.Doer.ID, issue.ID, form.Reaction)
+		err = issue_service.DeleteIssueReaction(ctx, ctx.Doer(), issue, form.Reaction)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "DeleteIssueReaction", err)
 			return

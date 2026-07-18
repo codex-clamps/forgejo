@@ -147,7 +147,7 @@ func TestPackageSwift(t *testing.T) {
 				"Package.swift":           contentManifest1,
 				"Package@swift-5.6.swift": contentManifest2,
 			}),
-			`{"name":"`+packageName+`","version":"`+packageVersion+`","description":"`+packageDescription+`","codeRepository":"`+packageRepositoryURL+`","author":{"givenName":"`+packageAuthor+`"},"repositoryURLs":["`+packageRepositoryURL+`"]}`,
+			`{"description":"`+packageDescription+`","author":{"name":"`+packageAuthor+`"},"repositoryURLs":["`+packageRepositoryURL+`"]}`,
 		)
 
 		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeSwift)
@@ -159,9 +159,9 @@ func TestPackageSwift(t *testing.T) {
 		assert.NotNil(t, pd.SemVer)
 		assert.Equal(t, packageID, pd.Package.Name)
 		assert.Equal(t, packageVersion, pd.Version.Version)
-		assert.IsType(t, &swift_module.Metadata{}, pd.Metadata)
-		metadata := pd.Metadata.(*swift_module.Metadata)
-		assert.Equal(t, packageDescription, metadata.Description)
+		assert.IsType(t, &swift_module.Package{}, pd.Metadata)
+		metadata := pd.Metadata.(*swift_module.Package)
+		assert.Equal(t, packageDescription, metadata.Metadata.Description)
 		assert.Len(t, metadata.Manifests, 2)
 		assert.Equal(t, contentManifest1, metadata.Manifests[""].Content)
 		assert.Equal(t, contentManifest2, metadata.Manifests["5.6"].Content)
@@ -235,7 +235,7 @@ func TestPackageSwift(t *testing.T) {
 				"Package.swift":           contentManifest1,
 				"Package@swift-5.6.swift": contentManifest2,
 			}),
-			`{"name":"`+packageName+`","version":"`+packageVersion2+`","description":"`+packageDescription+`","codeRepository":"`+packageRepositoryURL+`","author":{"givenName":"`+packageAuthor+`"},"repositoryURLs":["`+packageRepositoryURL+`"]}`,
+			`{"description":"`+packageDescription+`","author":{"name":"`+packageAuthor+`"},"repositoryURLs":["`+packageRepositoryURL+`"]}`,
 		)
 
 		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeSwift)
@@ -247,9 +247,9 @@ func TestPackageSwift(t *testing.T) {
 		assert.NotNil(t, pd.SemVer)
 		assert.Equal(t, packageID, pd.Package.Name)
 		assert.Equal(t, packageVersion2, pd.Version.Version)
-		assert.IsType(t, &swift_module.Metadata{}, pd.Metadata)
-		metadata := pd.Metadata.(*swift_module.Metadata)
-		assert.Equal(t, packageDescription, metadata.Description)
+		assert.IsType(t, &swift_module.Package{}, pd.Metadata)
+		metadata := pd.Metadata.(*swift_module.Package)
+		assert.Equal(t, packageDescription, metadata.Metadata.Description)
 		assert.Len(t, metadata.Manifests, 2)
 		assert.Equal(t, contentManifest1, metadata.Manifests[""].Content)
 		assert.Equal(t, contentManifest2, metadata.Manifests["5.6"].Content)
@@ -350,12 +350,8 @@ func TestPackageSwift(t *testing.T) {
 		assert.Equal(t, "source-archive", result.Resources[0].Name)
 		assert.Equal(t, "application/zip", result.Resources[0].Type)
 		assert.Equal(t, pd.Files[0].Blob.HashSHA256, result.Resources[0].Checksum)
-		assert.Equal(t, "SoftwareSourceCode", result.Metadata.Type)
-		assert.Equal(t, packageName, result.Metadata.Name)
-		assert.Equal(t, packageVersion, result.Metadata.Version)
 		assert.Equal(t, packageDescription, result.Metadata.Description)
-		assert.Equal(t, "Swift", result.Metadata.ProgrammingLanguage.Name)
-		assert.Equal(t, packageAuthor, result.Metadata.Author.GivenName)
+		assert.Equal(t, packageAuthor, result.Metadata.Author.Name)
 
 		req = NewRequest(t, "GET", fmt.Sprintf("%s/%s/%s/%s.json", url, packageScope, packageName, packageVersion)).
 			AddBasicAuth(user.Name)

@@ -116,7 +116,10 @@ func TestPackageGeneric(t *testing.T) {
 
 		checkDownloadCount(0)
 
-		req := NewRequest(t, "GET", url+"/"+filename)
+		req := NewRequest(t, "HEAD", url+"/"+filename)
+		MakeRequest(t, req, http.StatusOK)
+
+		req = NewRequest(t, "GET", url+"/"+filename)
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		assert.Equal(t, content, resp.Body.Bytes())
@@ -131,7 +134,10 @@ func TestPackageGeneric(t *testing.T) {
 		t.Run("NotExists", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			req := NewRequest(t, "GET", url+"/not.found")
+			req := NewRequest(t, "HEAD", url+"/not.found")
+			MakeRequest(t, req, http.StatusNotFound)
+
+			req = NewRequest(t, "GET", url+"/not.found")
 			MakeRequest(t, req, http.StatusNotFound)
 		})
 
@@ -142,6 +148,9 @@ func TestPackageGeneric(t *testing.T) {
 			defer func() {
 				setting.Service.RequireSignInView = false
 			}()
+
+			req = NewRequest(t, "HEAD", url+"/dummy.bin")
+			MakeRequest(t, req, http.StatusUnauthorized)
 
 			req = NewRequest(t, "GET", url+"/dummy.bin")
 			MakeRequest(t, req, http.StatusUnauthorized)
@@ -164,7 +173,10 @@ func TestPackageGeneric(t *testing.T) {
 				setting.Packages.Storage.MinioConfig.ServeDirect = true
 			}
 
-			req := NewRequest(t, "GET", url+"/"+filename)
+			req := NewRequest(t, "HEAD", url+"/"+filename)
+			MakeRequest(t, req, http.StatusOK)
+
+			req = NewRequest(t, "GET", url+"/"+filename)
 			resp := MakeRequest(t, req, http.StatusSeeOther)
 
 			checkDownloadCount(3)

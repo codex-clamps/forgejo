@@ -46,7 +46,7 @@ func GetBlobs(ctx *context.APIContext) {
 		return
 	}
 
-	if blobs, err := files_service.GetBlobsBySHA(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, strings.Split(shas, ",")); err != nil {
+	if blobs, err := files_service.GetBlobsBySHA(ctx, ctx.Repo().Repository, ctx.Repo().GitRepo, strings.Split(shas, ",")); err != nil {
 		ctx.Error(http.StatusBadRequest, "", err)
 	} else {
 		ctx.JSON(http.StatusOK, blobs)
@@ -90,7 +90,7 @@ func GetBlob(ctx *context.APIContext) {
 		return
 	}
 
-	if blob, err := files_service.GetBlobBySHA(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, sha); err != nil {
+	if blob, err := files_service.GetBlobBySHA(ctx, ctx.Repo().Repository, ctx.Repo().GitRepo, sha); err != nil {
 		ctx.Error(http.StatusBadRequest, "", err)
 	} else {
 		ctx.JSON(http.StatusOK, blob)

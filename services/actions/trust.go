@@ -40,33 +40,22 @@ func loadPullRequestAttributes(ctx context.Context, pr *issues_model.PullRequest
 	return pr.Issue.LoadRepo(ctx)
 }
 
-func getIssuePoster(ctx context.Context, issue *issues_model.Issue) (*user_model.User, error) {
+func mustGetIssuePoster(ctx context.Context, issue *issues_model.Issue) (*user_model.User, error) {
 	if issue.Poster != nil {
 		return issue.Poster, nil
 	}
 	if issue.PosterID == 0 {
-		return nil, nil
+		return nil, issues_model.ErrNoPosterSetOnIssue
 	}
 
 	poster, err := user_model.GetPossibleUserByID(ctx, issue.PosterID)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
-			return nil, nil
+			return nil, err
 		}
 		return nil, fmt.Errorf("getIssuePoster [%d]: %w", issue.PosterID, err)
 	}
 	issue.Poster = poster
-	return poster, nil
-}
-
-func mustGetIssuePoster(ctx context.Context, issue *issues_model.Issue) (*user_model.User, error) {
-	poster, err := getIssuePoster(ctx, issue)
-	if err != nil {
-		return nil, err
-	}
-	if poster == nil {
-		return nil, user_model.ErrUserNotExist{UID: issue.PosterID}
-	}
 	return poster, nil
 }
 

@@ -60,7 +60,7 @@ func ListPackages(ctx *context.APIContext) {
 	query := ctx.FormTrim("q")
 
 	pvs, count, err := packages.SearchVersions(ctx, &packages.PackageSearchOptions{
-		OwnerID:    ctx.Package.Owner.ID,
+		OwnerID:    ctx.Package().Owner.ID,
 		Type:       packages.Type(packageType),
 		Name:       packages.SearchValue{Value: query},
 		IsInternal: optional.Some(false),
@@ -79,7 +79,7 @@ func ListPackages(ctx *context.APIContext) {
 
 	apiPackages := make([]*api.Package, 0, len(pds))
 	for _, pd := range pds {
-		apiPackage, err := convert.ToPackage(ctx, pd, ctx.Doer)
+		apiPackage, err := convert.ToPackage(ctx, pd, ctx.Doer())
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "Error converting package for api", err)
 			return
@@ -126,7 +126,7 @@ func GetPackage(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	apiPackage, err := convert.ToPackage(ctx, ctx.Package.Descriptor, ctx.Doer)
+	apiPackage, err := convert.ToPackage(ctx, ctx.Package().Descriptor, ctx.Doer())
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "Error converting package for api", err)
 		return
@@ -167,7 +167,7 @@ func DeletePackage(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	err := packages_service.RemovePackageVersion(ctx, ctx.Doer, ctx.Package.Descriptor.Version)
+	err := packages_service.RemovePackageVersion(ctx, ctx.Doer(), ctx.Package().Descriptor.Version)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "RemovePackageVersion", err)
 		return
@@ -209,8 +209,8 @@ func ListPackageFiles(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	apiPackageFiles := make([]*api.PackageFile, 0, len(ctx.Package.Descriptor.Files))
-	for _, pfd := range ctx.Package.Descriptor.Files {
+	apiPackageFiles := make([]*api.PackageFile, 0, len(ctx.Package().Descriptor.Files))
+	for _, pfd := range ctx.Package().Descriptor.Files {
 		apiPackageFiles = append(apiPackageFiles, convert.ToPackageFile(pfd))
 	}
 
@@ -249,7 +249,7 @@ func LinkPackage(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	pkg, err := packages.GetPackageByName(ctx, ctx.ContextUser.ID, packages.Type(ctx.Params("type")), ctx.Params("name"))
+	pkg, err := packages.GetPackageByName(ctx, ctx.User().ID, packages.Type(ctx.Params("type")), ctx.Params("name"))
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.Error(http.StatusNotFound, "GetPackageByName", err)
@@ -259,7 +259,7 @@ func LinkPackage(ctx *context.APIContext) {
 		return
 	}
 
-	repo, err := repo_model.GetRepositoryByName(ctx, ctx.ContextUser.ID, ctx.Params("repo_name"))
+	repo, err := repo_model.GetRepositoryByName(ctx, ctx.User().ID, ctx.Params("repo_name"))
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.Error(http.StatusNotFound, "GetRepositoryByName", err)
@@ -269,7 +269,7 @@ func LinkPackage(ctx *context.APIContext) {
 		return
 	}
 
-	err = packages_service.LinkToRepository(ctx, pkg, repo, ctx.Doer)
+	err = packages_service.LinkToRepository(ctx, pkg, repo, ctx.Doer())
 	if err != nil {
 		switch {
 		case errors.Is(err, util.ErrInvalidArgument):
@@ -311,7 +311,7 @@ func UnlinkPackage(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	pkg, err := packages.GetPackageByName(ctx, ctx.ContextUser.ID, packages.Type(ctx.Params("type")), ctx.Params("name"))
+	pkg, err := packages.GetPackageByName(ctx, ctx.User().ID, packages.Type(ctx.Params("type")), ctx.Params("name"))
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.Error(http.StatusNotFound, "GetPackageByName", err)
@@ -321,7 +321,7 @@ func UnlinkPackage(ctx *context.APIContext) {
 		return
 	}
 
-	err = packages_service.UnlinkFromRepository(ctx, pkg, ctx.Doer)
+	err = packages_service.UnlinkFromRepository(ctx, pkg, ctx.Doer())
 	if err != nil {
 		switch {
 		case errors.Is(err, util.ErrPermissionDenied):

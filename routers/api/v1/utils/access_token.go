@@ -33,7 +33,7 @@ func DeleteAccessToken(ctx *context.APIContext) {
 	if tokenID == 0 {
 		tokens, err := db.Find[auth_model.AccessToken](ctx, auth_model.ListAccessTokensOptions{
 			Name:   token,
-			UserID: ctx.ContextUser.ID,
+			UserID: ctx.User().ID,
 		})
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "ListAccessTokens", err)
@@ -56,7 +56,7 @@ func DeleteAccessToken(ctx *context.APIContext) {
 		return
 	}
 
-	if err := auth_model.DeleteAccessTokenByID(ctx, tokenID, ctx.ContextUser.ID); err != nil {
+	if err := auth_model.DeleteAccessTokenByID(ctx, tokenID, ctx.User().ID); err != nil {
 		if auth_model.IsErrAccessTokenNotExist(err) {
 			ctx.NotFound()
 		} else {
@@ -71,7 +71,7 @@ func DeleteAccessToken(ctx *context.APIContext) {
 // ListAccessTokens lists access tokens for a user identified by ctx.ContextUser.
 // Shared logic between user and admin token listing endpoints.
 func ListAccessTokens(ctx *context.APIContext) {
-	opts := auth_model.ListAccessTokensOptions{UserID: ctx.ContextUser.ID, ListOptions: GetListOptions(ctx)}
+	opts := auth_model.ListAccessTokensOptions{UserID: ctx.User().ID, ListOptions: GetListOptions(ctx)}
 
 	tokens, count, err := db.FindAndCount[auth_model.AccessToken](ctx, opts)
 	if err != nil {
@@ -85,7 +85,7 @@ func ListAccessTokens(ctx *context.APIContext) {
 			// Repos associated with a repo-specific access token should already be visible to the token owner, but it's
 			// possible that access has changed, such as a removed collaborator on a repo -- don't provide info on that
 			// repo if so.
-			permission, err := access_model.GetUserRepoPermissionWithReducer(ctx, repo, ctx.Doer, ctx.Reducer)
+			permission, err := access_model.GetUserRepoPermissionWithReducer(ctx, repo, ctx.Doer(), ctx.Reducer())
 			if err != nil {
 				return false, err
 			}
@@ -137,7 +137,7 @@ func CreateAccessToken(ctx *context.APIContext) {
 	form := web.GetForm(ctx).(*api.CreateAccessTokenOption)
 
 	t := &auth_model.AccessToken{
-		UID:  ctx.ContextUser.ID,
+		UID:  ctx.User().ID,
 		Name: form.Name,
 	}
 
@@ -176,7 +176,7 @@ func CreateAccessToken(ctx *context.APIContext) {
 				ctx.ServerError("GetRepositoryByOwnerAndName", err)
 				return
 			}
-			permission, err := access_model.GetUserRepoPermissionWithReducer(ctx, repo, ctx.Doer, ctx.Reducer)
+			permission, err := access_model.GetUserRepoPermissionWithReducer(ctx, repo, ctx.Doer(), ctx.Reducer())
 			if err != nil {
 				ctx.ServerError("GetUserRepoPermissionWithReducer", err)
 				return

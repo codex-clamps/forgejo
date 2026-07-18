@@ -22,7 +22,9 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func PickTask(ctx context.Context, runner *actions_model.ActionRunner, requestKey, handle *string) (*runnerv1.Task, bool, error) {
+var ErrEphemeralRunnerHasAssignedTask = errors.New("ephemeral runner already has an assigned task")
+
+func PickTask(ctx context.Context, runner *actions_model.ActionRunner, requestKey, handle *string) (*runnerv1.Task, error) {
 	var (
 		task *runnerv1.Task
 		job  *actions_model.ActionRunJob
@@ -32,23 +34,18 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner, requestKe
 		hasRunnerAssignedTask, err := actions_model.HasTaskForRunner(ctx, runner.ID)
 		// Let the runner retry the request, do not allow to proceed
 		if err != nil {
-			return nil, false, err
+			return nil, err
 		}
 
 		// if runner has task, dont assign new task
 		if hasRunnerAssignedTask {
-			return nil, false, nil
+			return nil, ErrEphemeralRunnerHasAssignedTask
 		}
 	}
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		t, err := actions_model.CreateTaskForRunner(ctx, runner, requestKey, handle)
 		if err != nil {
-			if errors.Is(err, actions_model.ErrNoMatchingJobFound) ||
-				errors.Is(err, actions_model.ErrNoJobUpdated) {
-				return nil
-			}
-
 			return fmt.Errorf("CreateTaskForRunner: %w", err)
 		}
 
@@ -93,16 +90,18 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner, requestKe
 
 		return nil
 	}); err != nil {
-		return nil, false, err
-	}
-
-	if task == nil {
-		return nil, false, nil
+		return nil, err
 	}
 
 	CreateCommitStatus(ctx, job)
 
-	return task, true, nil
+	return task, nil
+}
+
+func IsNoTaskAvailable(err error) bool {
+	return errors.Is(err, ErrEphemeralRunnerHasAssignedTask) ||
+		errors.Is(err, actions_model.ErrNoMatchingJobFound) ||
+		errors.Is(err, actions_model.ErrNoJobUpdated)
 }
 
 func RecoverTasks(ctx context.Context, tasks []*actions_model.ActionTask) ([]*runnerv1.Task, error) {
@@ -189,7 +188,8 @@ func generateTaskContext(t *actions_model.ActionTask, ac *repo_model.ActionsConf
 		return nil, err
 	}
 
-	gitCtx["gitea_runtime_token"] = giteaRuntimeToken
+	gitCtx["gitea_runtime_token"] = giteaRuntimeToken // Can be removed after Forgejo 19.
+	gitCtx["forgejo_runtime_token"] = giteaRuntimeToken
 
 	if enableOpenIDConnect {
 		gitCtx["forgejo_actions_id_token_request_token"] = giteaRuntimeToken
@@ -387,9 +387,11 @@ func deleteTask(ctx context.Context, taskID int64) error {
 			return fmt.Errorf("unable to remove task %d because it has not completed yet", taskID)
 		}
 
-		err = actions_module.RemoveLogs(ctx, task.LogInStorage, task.LogFilename)
-		if err != nil {
-			return fmt.Errorf("unable to remove logs of task %d: %w", taskID, err)
+		if task.HasLogs() {
+			err = actions_module.RemoveLogs(ctx, task.LogInStorage, task.LogFilename)
+			if err != nil {
+				return fmt.Errorf("unable to remove logs of task %d: %w", taskID, err)
+			}
 		}
 
 		// Whether an ephemeral runner has been used is determined based on whether it is assigned to a task.

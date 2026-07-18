@@ -26,7 +26,6 @@
 	"admin.config.git.mirror_timeout": "ミラー更新タイムアウト",
 	"admin.config.git.migrate_timeout": "移行タイムアウト",
 	"admin.config.git.gc_args": "GC引数",
-	"admin.config.git.diff.max_files": "差分を表示する最大ファイル数",
 	"admin.config.git.diff.max_line_characters": "1行あたりの最大差分文字数",
 	"admin.config.git.diff.max_lines": "ファイルあたりの最大差分行数",
 	"admin.config.git.disable_diff_highlight": "Diffのシンタックスハイライトが無効",
@@ -214,22 +213,10 @@
 	"webauthn.press_button": "セキュリティキーのボタンを押してください…",
 	"webauthn.sign_in": "セキュリティキーのボタンを押してください。セキュリティキーにボタンが無い場合は、挿入しなおしてください。",
 	"webauthn.insert_key": "セキュリティキーを挿入",
-	"counters.n_commits": {
-		"one": "%s のコミット",
-		"other": "%s のコミット"
-	},
-	"counters.n_branches": {
-		"one": "%s のブランチ",
-		"other": "%s のブランチ"
-	},
-	"counters.n_tags": {
-		"one": "%s のタグ",
-		"other": "%s のタグ"
-	},
-	"counters.n_releases": {
-		"one": "%s リリース",
-		"other": "%s リリース"
-	},
+	"counters.n_commits": "%s のコミット",
+	"counters.n_branches": "%s のブランチ",
+	"counters.n_tags": "%s のタグ",
+	"counters.n_releases": "%s リリース",
 	"actions.actions": "Actions",
 	"actions.status.unknown": "不明",
 	"actions.status.waiting": "待機中",

@@ -141,7 +141,7 @@ func ReadNotifications(ctx *context.APIContext) {
 		}
 	}
 	opts := &activities_model.FindNotificationOptions{
-		UserID:            ctx.Doer.ID,
+		UserID:            ctx.Doer().ID,
 		UpdatedBeforeUnix: lastRead,
 	}
 	if !ctx.FormBool("all") {
@@ -162,7 +162,7 @@ func ReadNotifications(ctx *context.APIContext) {
 	changed := make([]*structs.NotificationThread, 0, len(nl))
 
 	for _, n := range nl {
-		notif, err := activities_model.SetNotificationStatus(ctx, n.ID, ctx.Doer, targetStatus)
+		notif, err := activities_model.SetNotificationStatus(ctx, n.ID, ctx.Doer(), targetStatus)
 		if err != nil {
 			ctx.InternalServerError(err)
 			return

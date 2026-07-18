@@ -7,7 +7,7 @@
   head_repo_id: 11
   base_repo_id: 10
   head_branch: branch2000
-  base_branch: master
+  base_branch: main
   merge_base: 0abcb056019adb83
   has_merged: false
 
@@ -20,7 +20,7 @@
   head_repo_id: 11
   base_repo_id: 11
   head_branch: branch2000
-  base_branch: master
+  base_branch: main
   merge_base: 0abcb056019adb83
   has_merged: false
 
@@ -33,7 +33,7 @@
   head_repo_id: 11 # different from base_repo
   base_repo_id: 10
   head_branch: branch3000
-  base_branch: master
+  base_branch: main
   merge_base: 0abcb056019adb83
   has_merged: false
 
@@ -46,7 +46,7 @@
   head_repo_id: 11 # different from base_repo
   base_repo_id: 10
   head_branch: branch4000
-  base_branch: master
+  base_branch: main
   merge_base: 0abcb056019adb83
   has_merged: false
 
@@ -59,6 +59,32 @@
   head_repo_id: 11 # different from base_repo
   base_repo_id: 10
   head_branch: branch5000
-  base_branch: master
+  base_branch: main
+  merge_base: 0abcb056019adb83
+  has_merged: false
+
+-
+  id: 6000
+  type: 0 # pull request
+  status: 2 # mergeable
+  issue_id: 86000
+  index: 6000
+  head_repo_id: 11 # different from base_repo
+  base_repo_id: 10
+  head_branch: branch6000
+  base_branch: main
+  merge_base: 0abcb056019adb83
+  has_merged: false
+
+-
+  id: 7000
+  type: 0 # pull request
+  status: 2 # mergeable
+  issue_id: 87000
+  index: 7000
+  head_repo_id: 11 # different from base_repo
+  base_repo_id: 10
+  head_branch: branch7000
+  base_branch: main
   merge_base: 0abcb056019adb83
   has_merged: false

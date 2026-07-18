@@ -16,7 +16,13 @@
 									<input class="prompt" name="uname" placeholder="{{ctx.Locale.Tr "search.user_kind"}}" autocomplete="off" required>
 								</div>
 							</div>
-							<button class="ui primary button">{{ctx.Locale.Tr "org.teams.add_team_member"}}</button>
+							<button class="ui primary button">
+								{{if $.AddMembersByInvitations}}
+									{{ctx.Locale.Tr "members.invite_team_member"}}
+								{{else}}
+									{{ctx.Locale.Tr "org.teams.add_team_member"}}
+								{{end}}
+							</button>
 						</form>
 					</div>
 				{{end}}
@@ -57,9 +63,20 @@
 					<div class="flex-list">
 						{{range .Invites}}
 							<div class="flex-item tw-items-center">
-								<div class="flex-item-main">
-									{{.Email}}
-								</div>
+								{{if .InvitedUser}}
+									<div class="flex-item-leading">
+										<a href="{{.InvitedUser.HomeLink}}">{{ctx.AvatarUtils.Avatar .InvitedUser 32}}</a>
+									</div>
+									<div class="flex-item-main">
+										<div class="flex-item-title">
+											{{template "shared/user/name" .InvitedUser}}
+										</div>
+									</div>
+								{{else}}
+									<div class="flex-item-main">
+										{{.Email}}
+									</div>
+								{{end}}
 								<div class="flex-item-trailing">
 									<form action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/remove_invite" method="post">
 										<input type="hidden" name="iid" value="{{.ID}}">

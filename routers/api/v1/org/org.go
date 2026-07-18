@@ -27,7 +27,7 @@ import (
 
 func listUserOrgs(ctx *context.APIContext, u *user_model.User) {
 	listOptions := utils.GetListOptions(ctx)
-	showPrivate := ctx.IsSigned && (ctx.IsUserSiteAdmin() || ctx.Doer.ID == u.ID)
+	showPrivate := ctx.IsSigned() && (ctx.IsUserSiteAdmin() || ctx.Doer().ID == u.ID)
 
 	opts := organization.FindOrgOptions{
 		ListOptions:    listOptions,
@@ -76,7 +76,7 @@ func ListMyOrgs(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	listUserOrgs(ctx, ctx.Doer)
+	listUserOrgs(ctx, ctx.Doer())
 }
 
 // ListUserOrgs list user's orgs
@@ -106,7 +106,7 @@ func ListUserOrgs(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	listUserOrgs(ctx, ctx.ContextUser)
+	listUserOrgs(ctx, ctx.User())
 }
 
 // GetUserOrgsPermissions get user permissions in organization
@@ -142,13 +142,13 @@ func GetUserOrgsPermissions(ctx *context.APIContext) {
 
 	op := api.OrganizationPermissions{}
 
-	if !organization.HasOrgOrUserVisible(ctx, o, ctx.ContextUser) {
+	if !organization.HasOrgOrUserVisible(ctx, o, ctx.User()) {
 		ctx.NotFound("HasOrgOrUserVisible", nil)
 		return
 	}
 
 	org := organization.OrgFromUser(o)
-	authorizeLevel, err := org.GetOrgUserMaxAuthorizeLevel(ctx, ctx.ContextUser.ID)
+	authorizeLevel, err := org.GetOrgUserMaxAuthorizeLevel(ctx, ctx.User().ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetOrgUserAuthorizeLevel", err)
 		return
@@ -167,7 +167,7 @@ func GetUserOrgsPermissions(ctx *context.APIContext) {
 		op.IsOwner = true
 	}
 
-	op.CanCreateRepository, err = org.CanCreateOrgRepo(ctx, ctx.ContextUser.ID)
+	op.CanCreateRepository, err = org.CanCreateOrgRepo(ctx, ctx.User().ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "CanCreateOrgRepo", err)
 		return
@@ -197,7 +197,7 @@ func GetAll(ctx *context.APIContext) {
 	//     "$ref": "#/responses/OrganizationList"
 
 	vMode := []api.VisibleType{api.VisibleTypePublic}
-	if ctx.IsSigned && !ctx.PublicOnly {
+	if ctx.IsSigned() && !ctx.PublicOnly() {
 		vMode = append(vMode, api.VisibleTypeLimited)
 		if ctx.IsUserSiteAdmin() {
 			vMode = append(vMode, api.VisibleTypePrivate)
@@ -207,7 +207,7 @@ func GetAll(ctx *context.APIContext) {
 	listOptions := utils.GetListOptions(ctx)
 
 	publicOrgs, maxResults, err := user_model.SearchUsers(ctx, &user_model.SearchUserOptions{
-		Actor:       ctx.Doer,
+		Actor:       ctx.Doer(),
 		ListOptions: listOptions,
 		Type:        user_model.UserTypeOrganization,
 		OrderBy:     db.SearchOrderByAlphabetically,
@@ -249,7 +249,7 @@ func Create(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 	form := web.GetForm(ctx).(*api.CreateOrgOption)
-	if !ctx.Doer.CanCreateOrganization() {
+	if !ctx.Doer().CanCreateOrganization() {
 		ctx.Error(http.StatusForbidden, "Create organization not allowed", nil)
 		return
 	}
@@ -271,7 +271,7 @@ func Create(ctx *context.APIContext) {
 		Visibility:                visibility,
 		RepoAdminChangeTeamAccess: form.RepoAdminChangeTeamAccess,
 	}
-	if err := organization.CreateOrganization(ctx, org, ctx.Doer); err != nil {
+	if err := organization.CreateOrganization(ctx, org, ctx.Doer()); err != nil {
 		if user_model.IsErrUserAlreadyExist(err) ||
 			db.IsErrNameReserved(err) ||
 			db.IsErrNameCharsNotAllowed(err) ||
@@ -305,15 +305,15 @@ func Get(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if !organization.HasOrgOrUserVisible(ctx, ctx.Org.Organization.AsUser(), ctx.Doer) {
+	if !organization.HasOrgOrUserVisible(ctx, ctx.Org().Organization.AsUser(), ctx.Doer()) {
 		ctx.NotFound("HasOrgOrUserVisible", nil)
 		return
 	}
 
-	org := convert.ToOrganization(ctx, ctx.Org.Organization)
+	org := convert.ToOrganization(ctx, ctx.Org().Organization)
 
 	// Don't show Mail, when User is not logged in
-	if ctx.Doer == nil {
+	if ctx.Doer() == nil {
 		org.Email = ""
 	}
 
@@ -346,7 +346,7 @@ func Rename(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 
 	form := web.GetForm(ctx).(*api.RenameOrgOption)
-	orgUser := ctx.Org.Organization.AsUser()
+	orgUser := ctx.Org().Organization.AsUser()
 	if err := user_service.RenameUser(ctx, orgUser, form.NewName); err != nil {
 		if user_model.IsErrUserAlreadyExist(err) || db.IsErrNameReserved(err) || db.IsErrNamePatternNotAllowed(err) || db.IsErrNameCharsNotAllowed(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "RenameOrg", err)
@@ -390,14 +390,14 @@ func Edit(ctx *context.APIContext) {
 
 	if form.Email != nil {
 		if *form.Email == "" {
-			err := user_model.DeletePrimaryEmailAddressOfUser(ctx, ctx.Org.Organization.ID)
+			err := user_model.DeletePrimaryEmailAddressOfUser(ctx, ctx.Org().Organization.ID)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "DeletePrimaryEmailAddressOfUser", err)
 				return
 			}
-			ctx.Org.Organization.Email = ""
+			ctx.Org().Organization.Email = ""
 		} else {
-			if err := user_service.ReplacePrimaryEmailAddress(ctx, ctx.Org.Organization.AsUser(), *form.Email); err != nil {
+			if err := user_service.ReplacePrimaryEmailAddress(ctx, ctx.Org().Organization.AsUser(), *form.Email); err != nil {
 				if validation.IsErrEmailInvalid(err) {
 					ctx.Error(http.StatusUnprocessableEntity, "ReplacePrimaryEmailAddress", err)
 				} else {
@@ -416,12 +416,12 @@ func Edit(ctx *context.APIContext) {
 		Visibility:                optional.FromNonDefault(api.VisibilityModes[form.Visibility]),
 		RepoAdminChangeTeamAccess: optional.FromPtr(form.RepoAdminChangeTeamAccess),
 	}
-	if err := user_service.UpdateUser(ctx, ctx.Org.Organization.AsUser(), opts); err != nil {
+	if err := user_service.UpdateUser(ctx, ctx.Org().Organization.AsUser(), opts); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateUser", err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToOrganization(ctx, ctx.Org.Organization))
+	ctx.JSON(http.StatusOK, convert.ToOrganization(ctx, ctx.Org().Organization))
 }
 
 // Delete an organization
@@ -443,7 +443,7 @@ func Delete(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if err := org.DeleteOrganization(ctx, ctx.Org.Organization, false); err != nil {
+	if err := org.DeleteOrganization(ctx, ctx.Org().Organization, false); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteOrganization", err)
 		return
 	}
@@ -482,12 +482,12 @@ func ListOrgActivityFeeds(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	includePrivate := false
-	if ctx.IsSigned {
+	if ctx.IsSigned() {
 		if ctx.IsUserSiteAdmin() {
 			includePrivate = true
 		} else {
-			org := organization.OrgFromUser(ctx.ContextUser)
-			isMember, err := org.IsOrgMember(ctx, ctx.Doer.ID)
+			org := organization.OrgFromUser(ctx.User())
+			isMember, err := org.IsOrgMember(ctx, ctx.Doer().ID)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "IsOrgMember", err)
 				return
@@ -499,8 +499,8 @@ func ListOrgActivityFeeds(ctx *context.APIContext) {
 	listOptions := utils.GetListOptions(ctx)
 
 	opts := activities_model.GetFeedsOptions{
-		RequestedUser:  ctx.ContextUser,
-		Actor:          ctx.Doer,
+		RequestedUser:  ctx.User(),
+		Actor:          ctx.Doer(),
 		IncludePrivate: includePrivate,
 		Date:           ctx.FormString("date"),
 		ListOptions:    listOptions,
@@ -513,7 +513,7 @@ func ListOrgActivityFeeds(ctx *context.APIContext) {
 	}
 	ctx.SetTotalCountHeader(count)
 
-	ctx.JSON(http.StatusOK, convert.ToActivities(ctx, feeds, ctx.Doer))
+	ctx.JSON(http.StatusOK, convert.ToActivities(ctx, feeds, ctx.Doer()))
 }
 
 // ListBlockedUsers list the organization's blocked users.
@@ -541,7 +541,7 @@ func ListBlockedUsers(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/BlockedUserList"
 
-	utils.ListUserBlockedUsers(ctx, ctx.ContextUser)
+	utils.ListUserBlockedUsers(ctx, ctx.User())
 }
 
 // BlockUser blocks a user from the organization.
@@ -570,12 +570,12 @@ func BlockUser(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	if ctx.ContextUser.IsOrganization() {
-		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("%s is an organization not a user", ctx.ContextUser.Name))
+	if ctx.User().IsOrganization() {
+		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("%s is an organization not a user", ctx.User().Name))
 		return
 	}
 
-	utils.BlockUser(ctx, ctx.Org.Organization.AsUser(), ctx.ContextUser)
+	utils.BlockUser(ctx, ctx.Org().Organization.AsUser(), ctx.User())
 }
 
 // UnblockUser unblocks a user from the organization.
@@ -604,10 +604,10 @@ func UnblockUser(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	if ctx.ContextUser.IsOrganization() {
-		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("%s is an organization not a user", ctx.ContextUser.Name))
+	if ctx.User().IsOrganization() {
+		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("%s is an organization not a user", ctx.User().Name))
 		return
 	}
 
-	utils.UnblockUser(ctx, ctx.Org.Organization.AsUser(), ctx.ContextUser)
+	utils.UnblockUser(ctx, ctx.Org().Organization.AsUser(), ctx.User())
 }

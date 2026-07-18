@@ -18,6 +18,7 @@ import (
 func StorageOverview(ctx *context.Context, userID int64, tpl base.TplName) {
 	if !setting.Quota.Enabled {
 		ctx.NotFound("MustEnableQuota", nil)
+		return
 	}
 	ctx.Data["Title"] = ctx.Tr("settings.storage_overview")
 	ctx.Data["PageIsStorageOverview"] = true

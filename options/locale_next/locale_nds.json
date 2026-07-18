@@ -26,7 +26,6 @@
 	"admin.config.git.mirror_timeout": "Spegel-Vernejens-Tied-Överweggahn",
 	"admin.config.git.migrate_timeout": "Umtreck-Tied-Överweggahn",
 	"admin.config.git.gc_args": "GC-Argumenten",
-	"admin.config.git.diff.max_files": "Hoogste Tahl vun Unnerscheeds-Dateien wiest",
 	"admin.config.git.diff.max_line_characters": "Hoogste Unnerscheeds-Bookstavens pro Rieg",
 	"admin.config.git.diff.max_lines": "Hoogste Unnerscheeds-Riegen pro Datei",
 	"admin.config.git.disable_diff_highlight": "Syntax-Vörheven im Unnerscheed utknipsen",
@@ -737,7 +736,6 @@
 	"repo.view.gitmodules_too_large": "De .gitmodules-Datei is to grot un word minnacht (to’n Bispööl för API-Upropen)",
 	"install.ssh_authorized_keys_inspection_error": "Kunn bestahn authorized_keys-Datei nich nakieken: %v",
 	"install.ssh_authorized_keys_unexpected_key": "SSH för Forgejo antoknipsen is nich verdragelk mit de Datei unner %s, waar bestahn SSH-Slötels drinstahn. Vörslaag: Bruuk eenen Systeem-Bruker blots för Forgejo, of knips SSH ut.",
-	"actions.secrets.creation.name_description": "De Naam vun eenem Geheemst kann blots Bookstaven, Tahlen un Unnerstreken enthollen. ’t kann nich mit FORGEJO_, GITEA_, GITHUB_ of eener Tahl begünnen. Forgejo word de Naam automatisk in Grotbookstavens umwanneln.",
 	"actions.variables.mutation.name_description": "De Naam vun eener Variaabel kann blots Bookstaven, Tahlen un Unnerstreken enthollen. ’t kann nich CI heten of mit FORGEJO_, GITEA_, GITHUB_ of eener Tahl begünnen. Forgejo word de Naam automatisk in Grotbookstavens umwanneln.",
 	"actions.secrets.creation.value_description": "De Weert vun eenem Geheemst kann elkeen Text wesen. Besünnere Tekens worden behollen. CRLF (Riegenennen na Windows-Aard) worden automatisk in LF umwannelt. Kodeer de Weert mit Base64, wenn Riegenennen behollen worden sallen.",
 	"actions.variables.mutation.value_description": "De Weert vun eener Variaabel kann elkeen Text wesen. Besünnere Tekens worden behollen. CRLF (Riegenennen na Windows-Aard) worden automatisk in LF umwannelt. Kodeer de Weert mit Base64, wenn Riegenennen behollen worden sallen.",
@@ -766,11 +764,7 @@
 	"actions.runners.edit_runner_button": "Loper bewarken",
 	"actions.runners.create_runner.page_title": "Nejen Loper maken",
 	"actions.runners.create_runner.title": "Nejen Loper maken",
-	"actions.runners.create_runner.properties_fieldset": "Eegenskuppen",
-	"actions.runners.create_runner.name_label": "Naam",
-	"actions.runners.create_runner.description_label": "Beschrieven",
 	"actions.runners.create_runner.create_button": "Maken",
-	"actions.runners.create_runner.cancel_button": "Ofbreken",
 	"actions.runners.edit_runner.page_title": "Loper %s bewarken",
 	"actions.runners.edit_runner.title": "Loper %s bewarken",
 	"actions.runners.edit_runner.properties_fieldset": "Eegenskuppen",
@@ -898,7 +892,6 @@
 	"settings.authorized_integration.claims.generic": "Regeln för allgemeene JWT",
 	"settings.authorized_integration.perms.title": "Verlöövt Künnen",
 	"settings.authorized_integration.copy_audience": "Tohörer to de Tüskenavlaag koperen",
-	"repo.pulls.status_checks_skipped": "Översprungen",
 	"repo.packages.visibility_warning": "Deeses Repositorium is privaat, aver verknüppt Paketen sünd publik (Eegner %s is publik).",
 	"settings.authorized_integration.edit": "Bewarken",
 	"settings.authorized_integration.edit_page_title": "Tolaten Integratioon <b>%s</b>",
@@ -915,5 +908,78 @@
 	"settings.authorized_integration.add": "Tolaten Integratioon hentofögen",
 	"settings.authorized_integration.delete.header": "Tolaten Integratioon lösken",
 	"settings.authorized_integration.deleted": "De tolaten Integratioon is lösket worden.",
-	"settings.authorized_integration.delete.body": "Wenn du eene tolaten Integratioon löskest, hett de verbunnen Anwennen keenen Togriep up dien Konto mehr. Dat is för all Tieden un kann nich torüggnohmen worden. Wenn du eene neje tolaten Integratioon maakst, word se nich de sülve Tohörer-Angaav (<code>aud</code>) hebben. Wiedermaken?"
+	"settings.authorized_integration.delete.body": "Wenn du eene tolaten Integratioon löskest, hett de verbunnen Anwennen keenen Togriep up dien Konto mehr. Dat is för all Tieden un kann nich torüggnohmen worden. Wenn du eene neje tolaten Integratioon maakst, word se nich de sülve Tohörer-Angaav (<code>aud</code>) hebben. Wiedermaken?",
+	"settings.authorized_integration.forgejo_actions_local.select_repo": "Utkören",
+	"settings.authorized_integration.forgejo_actions_local.select_repository": "Repositorium utkören: (Forgejo-Aktioonen mutt im Repositorium anknipst wesen)",
+	"settings.authorized_integration.forgejo_actions_local.description": "Forgejo-Aktioonen kann dann över deese tolaten Integratioon vun eenem enkelt utköört Repositorium up Forgejo togriepen, wenn dat Utföhren up de Kondiesjes passt, wat unnern fastleggt worden.",
+	"settings.authorized_integration.forgejo_actions_local.repo.required": "Quell-Repositorium för Forgejo-Aktioonen mutt utköört wesen.",
+	"settings.authorized_integration.forgejo_actions_local.workflow_file.label": "Warkwies-Datei (sünner Verteeknis):",
+	"settings.authorized_integration.forgejo_actions_local.workflow_file.help": "Wenn leeg, word elkeen Warkwies tolaten. Bekiek de <a href=\"%[1]s\">%[2]s</a>-Dokumenteren för Muster-Syntax. <br>Bispöölen: <code>testing.yml</code>, <code>test-*.yml</code>.",
+	"settings.authorized_integration.forgejo_actions_local.workflow_file.error": "Fehler bi’m Lesen vun de Warkwies-Datei: %s",
+	"settings.authorized_integration.forgejo_actions_local.git_ref.label": "Git-Nömen:",
+	"settings.authorized_integration.forgejo_actions_local.git_ref.help": "Wenn leeg, word elkeen Nömen tolaten. Bekiek de <a href=\"%[1]s\">%[2]s</a>-Dokumenteren för Muster-Syntax. <br>Bispöölen: <code>refs/heads/main</code>, <code>refs/pull/*/head</code>.",
+	"settings.authorized_integration.forgejo_actions_local.git_ref.error": "Fehler bi’m Lesen vun de Git-Nömen: %s",
+	"settings.authorized_integration.forgejo_actions_local.event.label": "Vörfall:",
+	"settings.authorized_integration.forgejo_actions_local.event.help": "Wenn keene Vörfallen utköört sünd, word elkeen Vörfall tolaten.",
+	"admin.auths.oauth2_dyn_group_maps": "Brukers as nödig to Klottjen hentofögen, je na de smaals Klottjen-Karteerens. (Wenn du willst)",
+	"admin.auths.oauth2_dyn_group_maps_removal": "Brukers as nödig ut all Klottjen wegdoon, to wat de Bruker nich dör Klottjen-Karteerens hentoföögt worden is.",
+	"migrate.in_progress.issues.progress": {
+		"one": "%[1]d Gefall umtrucken",
+		"other": "%[1]d Gefallens umtrucken"
+	},
+	"migrate.in_progress.pulls.progress": {
+		"one": "%[1]d Haalvörslag umtrucken",
+		"other": "%[1]d Haalvörslagen umtrucken"
+	},
+	"repo.settings.units.more_units_disable_hint": "De Wenk »Mehr anknipsen« kann unner <a href=\"%s\">Bruker-Instellens → Utsehn</a> utknipst worden.",
+	"actions.jobs.not_started": "nich begunnen",
+	"form.website.valid_url_schemes": "Tolaten URL-Schemata sünd: %s",
+	"pulls.status_checks.skipped": "Eenige Överprüfens sünd översprungen worden",
+	"search.match_inside_quotes": "Blots Resultaten wiesen, wat up de Utdruck in Anföhrungsteken passen",
+	"search.docs": "<a target=\"_blank\" rel=\"noopener noreferrer\" href=\"%[1]s\">Bekiek de Dokumenteren</a> för mehr Informatioonen över Söök, Operatoren un Filter.",
+	"members.invite_member": "Liddmaat inladen",
+	"members.invite_team_member": "To Klottje inladen",
+	"actions.runs.prioritized_run": "Vörtrucken",
+	"actions.runs.prioritize_run": "Utföhren vörtrecken",
+	"actions.runs.deprioritize_run": "Utföhren nich vörtrecken",
+	"actions.runs.options": "Instellens",
+	"actions.runs.prioritization_success": "Warkwies-Utföhren #%d word nu vörtrucken.",
+	"actions.runs.deprioritization_success": "Warkwies-Utföhren #%d word nich mehr vörtrucken.",
+	"actions.workflow.pre_execution_warning": "Warkwies-Wahrschauen:",
+	"actions.workflow.permissions_warning": "Upgaav <code>%[1]s</code> of hör Warkwies hett een <code>permissions</code>-Feld, wat in Forgejo nich unnerstütt word un minnacht word. Bruuk in Stee daarvun <a href=\"%[2]s\">tolaten Integratioonen</a>, um deeser Upgaav Künnen to geven.",
+	"repo.issues.context.copy_markdown": "Markdown koperen",
+	"settings.profile.dotprofile.hint": "Wiedere Profil-Anpassens, to’n Bispööl Nakiekens-Verwiesen, könen mit de Repositorium »<code>%s</code>« torechtkregen worden. <a href=\"%s\" target=\"_blank\">Mehr erfahren</a>.",
+	"repo.watching": "Beluren",
+	"repo.watch.issues": "Gefallens",
+	"repo.watch.pull_requests": "Haalvörslagen",
+	"repo.watch.releases": "Publizerens",
+	"repo.watch.releases.hint": "(blots E-Mail)",
+	"relativetime.duration.secs": {
+		"one": "%d Sekünn",
+		"other": "%d Sekünnen"
+	},
+	"relativetime.duration.mins": {
+		"one": "%d Menüüt",
+		"other": "%d Menüten"
+	},
+	"relativetime.duration.hours": {
+		"one": "%d Stünn",
+		"other": "%d Stünnen"
+	},
+	"relativetime.duration.days": {
+		"one": "%d Dag",
+		"other": "%d Dagen"
+	},
+	"relativetime.duration.weeks": {
+		"one": "%d Week",
+		"other": "%d Weken"
+	},
+	"relativetime.duration.months": {
+		"one": "%d Maant",
+		"other": "%d Maanten"
+	},
+	"relativetime.duration.years": {
+		"one": "%d Jahr",
+		"other": "%d Jahren"
+	}
 }

@@ -72,3 +72,52 @@ func TestPaginatedRepos(t *testing.T) {
 	doc := NewHTMLParser(t, body)
 	assert.Contains(t, strings.TrimSpace(doc.Find("a.item.navigation:contains('Next')").AttrOr("href", "")), fmt.Sprintf("%s?page=2", teamURL))
 }
+
+func TestDisplayInvites(t *testing.T) {
+	defer unittest.OverrideFixtures("tests/integration/fixtures/TestDisplayInvites")()
+	defer tests.PrepareTestEnv(t)()
+
+	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
+	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+
+	session := loginUser(t, user.Name)
+
+	teamURL := fmt.Sprintf("/org/%s/teams/%s", org.Name, team.LowerName)
+	body := session.MakeRequest(t, NewRequest(t, "GET", teamURL), http.StatusOK).Body
+	doc := NewHTMLParser(t, body)
+
+	// the two invited users are shown
+	assert.Equal(t, "/user31", doc.Find("a:contains('user31')").AttrOr("href", ""))
+	assert.Equal(t, 1, doc.Find("div.flex-item-main:contains('external_user@example.com')").Length())
+}
+
+func TestAddMembersByInvitations(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	defer test.MockVariableValue(&setting.Service.AddMembersByInvitations, true)()
+
+	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
+	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+
+	session := loginUser(t, user.Name)
+
+	teamURL := fmt.Sprintf("/org/%s/teams/%s", org.Name, team.LowerName)
+	body := session.MakeRequest(t, NewRequest(t, "GET", teamURL), http.StatusOK).Body
+
+	// the button to add a team member says "invite"
+	doc := NewHTMLParser(t, body)
+	doc.AssertElement(t, "button.primary:contains('Invite to team')", true)
+
+	// invite user "user31" to the team
+	req := NewRequestWithValues(t, "POST", fmt.Sprintf("%s/action/add", teamURL), map[string]string{
+		"uname": "user31",
+	})
+	resp := session.MakeRequest(t, req, http.StatusSeeOther)
+	assert.Equal(t, teamURL, resp.Header().Get("Location"))
+
+	// the invited user is listed on the team page
+	body = session.MakeRequest(t, NewRequest(t, "GET", teamURL), http.StatusOK).Body
+	doc = NewHTMLParser(t, body)
+	assert.Equal(t, "/user31", doc.Find("a:contains('user31')").AttrOr("href", ""))
+}

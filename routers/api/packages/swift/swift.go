@@ -174,10 +174,10 @@ type Resource struct {
 }
 
 type PackageVersionMetadataResponse struct {
-	ID        string                           `json:"id"`
-	Version   string                           `json:"version"`
-	Resources []Resource                       `json:"resources"`
-	Metadata  *swift_module.SoftwareSourceCode `json:"metadata"`
+	ID        string                       `json:"id"`
+	Version   string                       `json:"version"`
+	Resources []Resource                   `json:"resources"`
+	Metadata  *swift_module.PackageRelease `json:"metadata"`
 }
 
 // https://github.com/swiftlang/swift-package-manager/blob/main/Documentation/PackageRegistry/Registry.md#endpoint-2
@@ -200,7 +200,7 @@ func PackageVersionMetadata(ctx *context.Context) {
 		return
 	}
 
-	metadata := pd.Metadata.(*swift_module.Metadata)
+	metadata := pd.Metadata.(*swift_module.Package)
 
 	setResponseHeaders(ctx.Resp, &headers{})
 
@@ -214,27 +214,7 @@ func PackageVersionMetadata(ctx *context.Context) {
 				Checksum: pd.Files[0].Blob.HashSHA256,
 			},
 		},
-		Metadata: &swift_module.SoftwareSourceCode{
-			Context:        []string{"http://schema.org/"},
-			Type:           "SoftwareSourceCode",
-			Name:           pd.PackageProperties.GetByName(swift_module.PropertyName),
-			Version:        pd.Version.Version,
-			Description:    metadata.Description,
-			Keywords:       metadata.Keywords,
-			CodeRepository: metadata.RepositoryURL,
-			License:        metadata.License,
-			ProgrammingLanguage: swift_module.ProgrammingLanguage{
-				Type: "ComputerLanguage",
-				Name: "Swift",
-				URL:  "https://swift.org",
-			},
-			Author: swift_module.Person{
-				Type:       "Person",
-				GivenName:  metadata.Author.GivenName,
-				MiddleName: metadata.Author.MiddleName,
-				FamilyName: metadata.Author.FamilyName,
-			},
-		},
+		Metadata: metadata.Metadata,
 	})
 }
 
@@ -267,7 +247,7 @@ func DownloadManifest(ctx *context.Context) {
 			swiftVersion = swift_module.TrimmedVersionString(v)
 		}
 	}
-	m, ok := pd.Metadata.(*swift_module.Metadata).Manifests[swiftVersion]
+	m, ok := pd.Metadata.(*swift_module.Package).Manifests[swiftVersion]
 	if !ok {
 		setResponseHeaders(ctx.Resp, &headers{
 			Status:   http.StatusSeeOther,
@@ -370,7 +350,7 @@ func UploadPackageFile(ctx *context.Context) {
 			},
 			SemverCompatible: true,
 			Creator:          ctx.Doer,
-			Metadata:         pck.Metadata,
+			Metadata:         pck,
 			PackageProperties: map[string]string{
 				swift_module.PropertyScope: packageScope,
 				swift_module.PropertyName:  packageName,
@@ -397,7 +377,7 @@ func UploadPackageFile(ctx *context.Context) {
 		return
 	}
 
-	for _, url := range pck.RepositoryURLs {
+	for _, url := range pck.Metadata.RepositoryURLs {
 		_, err = packages_model.InsertProperty(ctx, packages_model.PropertyTypeVersion, pv.ID, swift_module.PropertyRepositoryURL, url)
 		if err != nil {
 			log.Error("InsertProperty failed: %v", err)

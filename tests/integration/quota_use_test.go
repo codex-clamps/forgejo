@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"slices"
 	"strings"
 	"testing"
 
@@ -1006,8 +1007,8 @@ func (cas convertAs) AsString() string {
 }
 
 func (env *quotaWebEnv) Cleanup() {
-	for i := len(env.cleaners) - 1; i >= 0; i-- {
-		env.cleaners[i]()
+	for _, cleaner := range slices.Backward(env.cleaners) {
+		cleaner()
 	}
 }
 

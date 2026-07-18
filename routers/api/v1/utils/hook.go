@@ -129,7 +129,7 @@ func AddOwnerHook(ctx *context.APIContext, owner *user_model.User, form *api.Cre
 
 // AddRepoHook add a hook to a repo. Writes to `ctx` accordingly
 func AddRepoHook(ctx *context.APIContext, form *api.CreateHookOption) {
-	repo := ctx.Repo
+	repo := ctx.Repo()
 	hook, ok := addHook(ctx, form, 0, repo.Repository.ID)
 	if !ok {
 		return
@@ -304,7 +304,7 @@ func EditOwnerHook(ctx *context.APIContext, owner *user_model.User, form *api.Ed
 
 // EditRepoHook edit webhook `w` according to `form`. Writes to `ctx` accordingly
 func EditRepoHook(ctx *context.APIContext, form *api.EditHookOption, hookID int64) {
-	repo := ctx.Repo
+	repo := ctx.Repo()
 	hook, err := GetRepoHook(ctx, repo.Repository.ID, hookID)
 	if err != nil {
 		return

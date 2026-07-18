@@ -153,6 +153,7 @@ func GetLatestReleaseBadge(ctx *app_context.Context) {
 			return
 		}
 		ctx.ServerError("GetLatestReleaseByRepoID", err)
+		return
 	}
 
 	if err := release.LoadAttributes(ctx); err != nil {

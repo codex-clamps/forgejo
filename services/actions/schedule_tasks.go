@@ -183,13 +183,18 @@ func CreateScheduleTask(ctx context.Context, cron *actions_model.ActionSchedule)
 		jobparser.SupportIncompleteRunsOn(),
 		jobparser.ExpandLocalReusableWorkflows(expandLocalReusableWorkflow),
 		jobparser.ExpandInstanceReusableWorkflows(expandInstanceReusableWorkflows(ctx)),
+		jobparser.WithGitContext(generateGiteaContextForRun(run)),
 	)
 	if err != nil {
 		return err
 	}
 
+	if err := ConfigureActionRunTitle(workflows, run); err != nil {
+		return err
+	}
+
 	// Insert the action run and its associated jobs into the database
-	if err := actions_model.InsertRun(ctx, run, workflows); err != nil {
+	if err := InsertRun(ctx, run, workflows); err != nil {
 		return err
 	}
 

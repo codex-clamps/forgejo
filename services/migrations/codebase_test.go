@@ -10,10 +10,28 @@ import (
 	"time"
 
 	base "forgejo.org/modules/migration"
+	"forgejo.org/modules/setting"
+	"forgejo.org/modules/test"
+	"forgejo.org/services/migrations/allowlist"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestCodebaseDownloaderBlocksLocalhost(t *testing.T) {
+	defer test.MockVariableValueWithReset(&setting.Migrations.AllowLocalNetworks, false, func() { require.NoError(t, allowlist.Init()) })()
+
+	u, _ := url.Parse("http://localhost")
+	downloader := NewCodebaseDownloader(t.Context(), u, "test_project", "test_repo", "", "")
+	// The Codebase API base URL is hardcoded to the public service; point it at localhost to verify the migration HTTP
+	// client refuses to connect.  This may seem like the entire point of SSRF protection here is invalid since the
+	// remote address is hardcoded, but, admins may have configured their restrictions to prevent this access, or DNS
+	// rebinding may be used either authoritatively or spoofed to change this address's destination.
+	downloader.baseURL = u
+	_, err := downloader.GetRepoInfo()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "can only call allowed HTTP servers")
+}
 
 func TestCodebaseDownloadRepo(t *testing.T) {
 	// Skip tests if Codebase token is not found

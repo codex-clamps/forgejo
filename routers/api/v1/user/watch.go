@@ -18,7 +18,7 @@ import (
 
 // getWatchedRepos returns the repos that the user with the specified userID is watching
 func getWatchedRepos(ctx *context.APIContext, user *user_model.User, private bool, listOptions db.ListOptions) ([]*api.Repository, int64, error) {
-	watchedRepos, total, err := repo_model.GetWatchedRepos(ctx, user.ID, private, listOptions, ctx.Reducer)
+	watchedRepos, total, err := repo_model.GetWatchedRepos(ctx, user.ID, private, listOptions, ctx.Reducer())
 	if err != nil {
 		return nil, 0, err
 	}
@@ -65,10 +65,11 @@ func GetWatchedRepos(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	private := ctx.ContextUser.ID == ctx.Doer.ID
-	repos, total, err := getWatchedRepos(ctx, ctx.ContextUser, private, utils.GetListOptions(ctx))
+	private := ctx.User().ID == ctx.Doer().ID
+	repos, total, err := getWatchedRepos(ctx, ctx.User(), private, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "getWatchedRepos", err)
+		return
 	}
 
 	ctx.SetTotalCountHeader(total)
@@ -99,9 +100,10 @@ func GetMyWatchedRepos(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	repos, total, err := getWatchedRepos(ctx, ctx.Doer, true, utils.GetListOptions(ctx))
+	repos, total, err := getWatchedRepos(ctx, ctx.Doer(), true, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "getWatchedRepos", err)
+		return
 	}
 
 	ctx.SetTotalCountHeader(total)
@@ -131,14 +133,14 @@ func IsWatching(ctx *context.APIContext) {
 	//   "404":
 	//     description: User is not watching this repo or repo do not exist
 
-	if repo_model.IsWatching(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID) {
+	if repo_model.IsWatcher(ctx, ctx.Doer().ID, ctx.Repo().Repository.ID) {
 		ctx.JSON(http.StatusOK, api.WatchInfo{
 			Subscribed:    true,
 			Ignored:       false,
 			Reason:        nil,
-			CreatedAt:     ctx.Repo.Repository.CreatedUnix.AsTime(),
-			URL:           subscriptionURL(ctx.Repo.Repository),
-			RepositoryURL: ctx.Repo.Repository.APIURL(),
+			CreatedAt:     ctx.Repo().Repository.CreatedUnix.AsTime(),
+			URL:           subscriptionURL(ctx.Repo().Repository),
+			RepositoryURL: ctx.Repo().Repository.APIURL(),
 		})
 	} else {
 		ctx.NotFound()
@@ -167,7 +169,7 @@ func Watch(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	err := repo_model.WatchRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID, true)
+	err := repo_model.WatchRepoExplicitly(ctx, ctx.Doer().ID, ctx.Repo().Repository.ID, repo_model.WatchAllSelection)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "WatchRepo", err)
 		return
@@ -176,9 +178,9 @@ func Watch(ctx *context.APIContext) {
 		Subscribed:    true,
 		Ignored:       false,
 		Reason:        nil,
-		CreatedAt:     ctx.Repo.Repository.CreatedUnix.AsTime(),
-		URL:           subscriptionURL(ctx.Repo.Repository),
-		RepositoryURL: ctx.Repo.Repository.APIURL(),
+		CreatedAt:     ctx.Repo().Repository.CreatedUnix.AsTime(),
+		URL:           subscriptionURL(ctx.Repo().Repository),
+		RepositoryURL: ctx.Repo().Repository.APIURL(),
 	})
 }
 
@@ -204,7 +206,7 @@ func Unwatch(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	err := repo_model.WatchRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID, false)
+	err := repo_model.WatchRepoExplicitly(ctx, ctx.Doer().ID, ctx.Repo().Repository.ID, repo_model.WatchNoneSelection)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "UnwatchRepo", err)
 		return

@@ -151,12 +151,15 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		return nil, nil
 	}
 
+	defer func() {
+		if ctx.Written() {
+			wikiRepo.Close()
+		}
+	}()
+
 	// Get page list.
 	entries, err := commit.ListEntries()
 	if err != nil {
-		if wikiRepo != nil {
-			wikiRepo.Close()
-		}
 		ctx.ServerError("ListEntries", err)
 		return nil, nil
 	}
@@ -169,9 +172,6 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		if err != nil {
 			if repo_model.IsErrWikiInvalidFileName(err) {
 				continue
-			}
-			if wikiRepo != nil {
-				wikiRepo.Close()
 			}
 			ctx.ServerError("WikiFilenameToName", err)
 			return nil, nil
@@ -206,8 +206,8 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 	data, entry, pageFilename, noEntry := wikiContentsByName(ctx, commit, pageName)
 	if noEntry {
 		ctx.Redirect(ctx.Repo.RepoLink + "/wiki/?action=_pages")
-	}
-	if entry == nil || ctx.Written() {
+		return nil, nil
+	} else if entry == nil {
 		if wikiRepo != nil {
 			wikiRepo.Close()
 		}
@@ -218,9 +218,6 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 	if !isSideBar {
 		sidebarContent, _, _, _ = wikiContentsByName(ctx, commit, "_Sidebar")
 		if ctx.Written() {
-			if wikiRepo != nil {
-				wikiRepo.Close()
-			}
 			return nil, nil
 		}
 	} else {
@@ -231,9 +228,6 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 	if !isFooter {
 		footerContent, _, _, _ = wikiContentsByName(ctx, commit, "_Footer")
 		if ctx.Written() {
-			if wikiRepo != nil {
-				wikiRepo.Close()
-			}
 			return nil, nil
 		}
 	} else {
@@ -270,9 +264,6 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 
 	ctx.Data["EscapeStatus"], ctx.Data["content"], err = renderFn(data)
 	if err != nil {
-		if wikiRepo != nil {
-			wikiRepo.Close()
-		}
 		ctx.ServerError("Render", err)
 		return nil, nil
 	}
@@ -291,9 +282,6 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		buf.Reset()
 		ctx.Data["sidebarEscapeStatus"], ctx.Data["sidebarContent"], err = renderFn(sidebarContent)
 		if err != nil {
-			if wikiRepo != nil {
-				wikiRepo.Close()
-			}
 			ctx.ServerError("Render", err)
 			return nil, nil
 		}
@@ -306,9 +294,6 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		buf.Reset()
 		ctx.Data["footerEscapeStatus"], ctx.Data["footerContent"], err = renderFn(footerContent)
 		if err != nil {
-			if wikiRepo != nil {
-				wikiRepo.Close()
-			}
 			ctx.ServerError("Render", err)
 			return nil, nil
 		}
@@ -336,6 +321,12 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 		return nil, nil
 	}
 
+	defer func() {
+		if ctx.Written() {
+			wikiRepo.Close()
+		}
+	}()
+
 	// get requested pagename
 	pageName := wiki_service.WebPathFromRequest(ctx.PathParamRaw("*"))
 	if len(pageName) == 0 {
@@ -355,8 +346,9 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 	data, entry, pageFilename, noEntry := wikiContentsByName(ctx, commit, pageName)
 	if noEntry {
 		ctx.Redirect(ctx.Repo.RepoLink + "/wiki/?action=_pages")
+		return nil, nil
 	}
-	if entry == nil || ctx.Written() {
+	if entry == nil {
 		if wikiRepo != nil {
 			wikiRepo.Close()
 		}
@@ -384,9 +376,6 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 			Page:     page,
 		})
 	if err != nil {
-		if wikiRepo != nil {
-			wikiRepo.Close()
-		}
 		ctx.ServerError("CommitsByFileAndRange", err)
 		return nil, nil
 	}
@@ -433,8 +422,8 @@ func renderEditPage(ctx *context.Context) {
 	data, entry, _, noEntry := wikiContentsByName(ctx, commit, pageName)
 	if noEntry {
 		ctx.Redirect(ctx.Repo.RepoLink + "/wiki/?action=_pages")
-	}
-	if entry == nil || ctx.Written() {
+		return
+	} else if entry == nil {
 		return
 	}
 

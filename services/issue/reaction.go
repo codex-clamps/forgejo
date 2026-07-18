@@ -7,6 +7,7 @@ import (
 
 	issues_model "forgejo.org/models/issues"
 	user_model "forgejo.org/models/user"
+	notify_service "forgejo.org/services/notify"
 )
 
 // CreateIssueReaction creates a reaction on issue.
@@ -20,11 +21,25 @@ func CreateIssueReaction(ctx context.Context, doer *user_model.User, issue *issu
 		return nil, user_model.ErrBlockedByUser
 	}
 
-	return issues_model.CreateReaction(ctx, &issues_model.ReactionOptions{
+	reaction, err := issues_model.CreateReaction(ctx, &issues_model.ReactionOptions{
 		Type:    content,
 		DoerID:  doer.ID,
 		IssueID: issue.ID,
 	})
+	if err != nil {
+		return nil, err
+	}
+	notify_service.NewReaction(ctx, reaction)
+	return reaction, nil
+}
+
+func DeleteIssueReaction(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, content string) error {
+	reaction, err := issues_model.DeleteIssueReaction(ctx, doer.ID, issue.ID, content)
+	if err != nil {
+		return err
+	}
+	notify_service.DeleteReaction(ctx, reaction)
+	return nil
 }
 
 // CreateCommentReaction creates a reaction on comment.
@@ -38,10 +53,24 @@ func CreateCommentReaction(ctx context.Context, doer *user_model.User, issue *is
 		return nil, user_model.ErrBlockedByUser
 	}
 
-	return issues_model.CreateReaction(ctx, &issues_model.ReactionOptions{
+	reaction, err := issues_model.CreateReaction(ctx, &issues_model.ReactionOptions{
 		Type:      content,
 		DoerID:    doer.ID,
 		IssueID:   issue.ID,
 		CommentID: comment.ID,
 	})
+	if err != nil {
+		return nil, err
+	}
+	notify_service.NewReaction(ctx, reaction)
+	return reaction, err
+}
+
+func DeleteCommentReaction(ctx context.Context, doer *user_model.User, comment *issues_model.Comment, content string) error {
+	reaction, err := issues_model.DeleteCommentReaction(ctx, doer.ID, comment.Issue.ID, comment.ID, content)
+	if err != nil {
+		return err
+	}
+	notify_service.DeleteReaction(ctx, reaction)
+	return nil
 }

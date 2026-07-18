@@ -73,7 +73,7 @@ func GetSingleCommit(ctx *context.APIContext) {
 }
 
 func getCommit(ctx *context.APIContext, identifier string, toCommitOpts convert.ToCommitOptions) {
-	commit, err := ctx.Repo.GitRepo.GetCommit(identifier)
+	commit, err := ctx.Repo().GitRepo.GetCommit(identifier)
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound(identifier)
@@ -83,7 +83,7 @@ func getCommit(ctx *context.APIContext, identifier string, toCommitOpts convert.
 		return
 	}
 
-	json, err := convert.ToCommit(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, commit, nil, toCommitOpts)
+	json, err := convert.ToCommit(ctx, ctx.Repo().Repository, ctx.Repo().GitRepo, commit, nil, toCommitOpts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "toCommit", err)
 		return
@@ -149,7 +149,7 @@ func GetAllCommits(ctx *context.APIContext) {
 	//   "409":
 	//     "$ref": "#/responses/EmptyRepository"
 
-	if ctx.Repo.Repository.IsEmpty {
+	if ctx.Repo().Repository.IsEmpty {
 		ctx.JSON(http.StatusConflict, api.APIError{
 			Message: "Git Repository is empty.",
 			URL:     setting.API.SwaggerURL,
@@ -180,20 +180,20 @@ func GetAllCommits(ctx *context.APIContext) {
 		var baseCommit *git.Commit
 		if len(sha) == 0 {
 			// no sha supplied - use default branch
-			head, err := ctx.Repo.GitRepo.GetHEADBranch()
+			head, err := ctx.Repo().GitRepo.GetHEADBranch()
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "GetHEADBranch", err)
 				return
 			}
 
-			baseCommit, err = ctx.Repo.GitRepo.GetBranchCommit(head.Name)
+			baseCommit, err = ctx.Repo().GitRepo.GetBranchCommit(head.Name)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "GetCommit", err)
 				return
 			}
 		} else {
 			// get commit specified by sha
-			baseCommit, err = ctx.Repo.GitRepo.GetCommit(sha)
+			baseCommit, err = ctx.Repo().GitRepo.GetCommit(sha)
 			if err != nil {
 				ctx.NotFoundOrServerError("GetCommit", git.IsErrNotExist, err)
 				return
@@ -201,8 +201,8 @@ func GetAllCommits(ctx *context.APIContext) {
 		}
 
 		// Total commit count
-		commitsCountTotal, err = git.CommitsCount(ctx.Repo.GitRepo.Ctx, git.CommitsCountOptions{
-			RepoPath: ctx.Repo.GitRepo.Path,
+		commitsCountTotal, err = git.CommitsCount(ctx.Repo().GitRepo.Ctx, git.CommitsCountOptions{
+			RepoPath: ctx.Repo().GitRepo.Path,
 			Not:      not,
 			Revision: []string{baseCommit.ID.String()},
 		})
@@ -219,12 +219,12 @@ func GetAllCommits(ctx *context.APIContext) {
 		}
 	} else {
 		if len(sha) == 0 {
-			sha = ctx.Repo.Repository.DefaultBranch
+			sha = ctx.Repo().Repository.DefaultBranch
 		}
 
 		commitsCountTotal, err = git.CommitsCount(ctx,
 			git.CommitsCountOptions{
-				RepoPath: ctx.Repo.GitRepo.Path,
+				RepoPath: ctx.Repo().GitRepo.Path,
 				Not:      not,
 				Revision: []string{sha},
 				RelPath:  []string{path},
@@ -238,7 +238,7 @@ func GetAllCommits(ctx *context.APIContext) {
 			return
 		}
 
-		commits, err = ctx.Repo.GitRepo.CommitsByFileAndRange(
+		commits, err = ctx.Repo().GitRepo.CommitsByFileAndRange(
 			git.CommitsByFileAndRangeOptions{
 				Revision: sha,
 				File:     path,
@@ -258,7 +258,7 @@ func GetAllCommits(ctx *context.APIContext) {
 
 	for i, commit := range commits {
 		// Create json struct
-		apiCommits[i], err = convert.ToCommit(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, commit, userCache, convert.ParseCommitOptions(ctx))
+		apiCommits[i], err = convert.ToCommit(ctx, ctx.Repo().Repository, ctx.Repo().GitRepo, commit, userCache, convert.ParseCommitOptions(ctx))
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "toCommit", err)
 			return
@@ -316,7 +316,7 @@ func DownloadCommitDiffOrPatch(ctx *context.APIContext) {
 	sha := ctx.Params(":sha")
 	diffType := git.RawDiffType(ctx.Params(":diffType"))
 
-	if err := git.GetRawDiff(ctx.Repo.GitRepo, sha, diffType, ctx.Resp); err != nil {
+	if err := git.GetRawDiff(ctx.Repo().GitRepo, sha, diffType, ctx.Resp); err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound(sha)
 			return
@@ -355,7 +355,7 @@ func GetCommitPullRequest(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	pr, err := issues_model.GetPullRequestByMergedCommit(ctx, ctx.Repo.Repository.ID, ctx.Params("ref"))
+	pr, err := issues_model.GetPullRequestByMergedCommit(ctx, ctx.Repo().Repository.ID, ctx.Params("ref"))
 	if err != nil {
 		if issues_model.IsErrPullRequestNotExist(err) {
 			ctx.Error(http.StatusNotFound, "GetPullRequestByMergedCommit", err)
@@ -373,5 +373,5 @@ func GetCommitPullRequest(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "LoadHeadRepo", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToAPIPullRequest(ctx, pr, ctx.Doer))
+	ctx.JSON(http.StatusOK, convert.ToAPIPullRequest(ctx, pr, ctx.Doer()))
 }

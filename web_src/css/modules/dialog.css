@@ -111,3 +111,28 @@ dialog .actions .ui.button.danger {
 dialog .actions .ui.button .svg {
   margin-inline-end: 5px;
 }
+
+.search-syntax-list {
+  display: grid;
+  grid-template-columns: 2fr 5fr;
+  row-gap: 0.75rem;
+  .row {
+    display: contents;
+  }
+  dt {
+    font-weight: var(--font-weight-bold);
+  }
+}
+
+@media (max-width: 639.9px) {
+  .search-syntax-list {
+    display: flex;
+    flex-direction: column;
+    row-gap: 0.75rem;
+    .row {
+      display: flex;
+      flex-direction: column;
+      row-gap: 0.33rem;
+    }
+  }
+}

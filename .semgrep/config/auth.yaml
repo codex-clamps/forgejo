@@ -6,7 +6,7 @@ rules:
       - pattern-not: |
           repo_model.SearchRepoOptions{
             ...,
-            AuthorizationReducer: ctx.Reducer,
+            AuthorizationReducer: ctx.Reducer(),
             ...
           }
     languages:
@@ -26,7 +26,7 @@ rules:
       - pattern-not: |
           organization.SearchTeamRepoOptions{
             ...,
-            AuthorizationReducer: ctx.Reducer,
+            AuthorizationReducer: ctx.Reducer(),
             ...
           }
     languages:
@@ -108,4 +108,3 @@ rules:
     paths:
       include:
         - "/routers/api/**/*.go"
-

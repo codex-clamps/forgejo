@@ -6,6 +6,7 @@ package actions
 import (
 	"testing"
 
+	"forgejo.org/models/db"
 	"forgejo.org/models/unittest"
 
 	"github.com/stretchr/testify/assert"
@@ -75,4 +76,21 @@ func TestActionTask_GetTasksByRunnerRequestKey(t *testing.T) {
 	tasks, err = GetTasksByRunnerRequestKey(t.Context(), runner, "0a7e017d-4201-4b34-8cf4-de0f431893a4")
 	require.NoError(t, err)
 	assert.Empty(t, tasks)
+}
+
+func TestActionTask_GetAvailableJobsForRunner(t *testing.T) {
+	defer unittest.OverrideFixtures("models/actions/TestActionTask_GetAvailableJobsForRunner")()
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	runner := unittest.AssertExistsAndLoadBean(t, &ActionRunner{ID: 73711})
+
+	t.Run("Priority takes precedence", func(t *testing.T) {
+		jobs, err := GetAvailableJobsForRunner(db.GetEngine(t.Context()), runner)
+		require.NoError(t, err)
+
+		assert.Len(t, jobs, 3)
+		assert.Equal(t, int64(504020), jobs[0].ID)
+		assert.Equal(t, int64(504010), jobs[1].ID)
+		assert.Equal(t, int64(504030), jobs[2].ID)
+	})
 }

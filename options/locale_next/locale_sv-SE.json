@@ -26,7 +26,6 @@
 	"admin.config.git.mirror_timeout": "Tidsfrist för spegeluppdatering",
 	"admin.config.git.migrate_timeout": "Migreringstimeout",
 	"admin.config.git.gc_args": "Skräpsamlarargument",
-	"admin.config.git.diff.max_files": "Maximalt antal diff-filer att visa",
 	"admin.config.git.diff.max_line_characters": "Maximalt antal diff-karaktärer per rad",
 	"admin.config.git.diff.max_lines": "Maximalt antal diff-rader per fil",
 	"admin.config.git.disable_diff_highlight": "Inaktivera syntaxmarkering i diffar",
@@ -422,7 +421,7 @@
 		"other": "sammanfogade %[1]d incheckningar från <code>%[2]s</code> in i <code>%[3]s</code> %[4]s"
 	},
 	"repo.pulls.title_desc": {
-		"one": "vill sammanfoga %[1]d incheckning från <code>s[2]s</code> in i <code id=\"%[4]s\">%[3]s</code>",
+		"one": "vill sammanfoga %[1]d incheckning från <code>%[2]s</code> in i <code id=\"%[4]s\">%[3]s</code>",
 		"other": "vill sammanfoga %[1]d incheckningar från <code>s[2]s</code> in i <code id=\"%[4]s\">%[3]s</code>"
 	},
 	"search.milestone_kind": "Sök milstolpar…",
@@ -722,7 +721,6 @@
 	"actions.workflow.incomplete_with_missing_output": "Misslyckades med att utvärdera `with` för jobb %[1]s: jobb %[2]s saknar utdatan %[3]s.",
 	"actions.workflow.incomplete_with_missing_matrix_dimension": "Misslyckades med att utvärdera `with` för jobb %[1]s: matrisdimensionen %[2]s existerar inte.",
 	"actions.workflow.incomplete_with_unknown_cause": "Misslyckades med att utvärdera `with` för jobb %s: okänt fel.",
-	"actions.secrets.creation.name_description": "Namnet på en hemlighet kan endast innehålla bokstäver, siffror och understreck. Det får inte börja med FORGEJO_, GITEA_, GITHUB_ eller en siffra. Forgejo kommer automatiskt att omvandla namnet till versaler.",
 	"actions.secrets.creation.value_description": "Värdet på en hemlighet kan vara vilken text som helst. Specialtecken bevaras. CRLF (Windows-radbrytningar) konverteras automatiskt till LF. Koda värdet med Base64 om radbrytningar ska bevaras.",
 	"actions.variables.mutation.name_description": "Namnet på en variabel kan endast innehålla bokstäver, siffror och understreck. Det kan inte döpas till CI eller börja med FORGEJO_, GITEA_, GITHUB_ eller en siffra. Forgejo kommer automatiskt att omvandla namnet till versaler.",
 	"actions.variables.mutation.value_description": "En variabels värde kan bestå av valfri text. Specialtecken bevaras. CRLF (radbrytningar i Windows-stil) konverteras automatiskt till LF. Koda värdet med Base64 om radbrytningarna behöver bibehållas.",
@@ -763,13 +761,9 @@
 	"actions.runners.ephemeral.yes": "Ja",
 	"actions.runners.ephemeral.no": "nej",
 	"actions.runners.edit_runner_button": "Redigera körare",
-	"actions.runners.create_runner.page_title": "Skapa ny körare",
+	"actions.runners.create_runner.page_title": "Ny körare",
 	"actions.runners.create_runner.title": "Skapa ny körare",
-	"actions.runners.create_runner.properties_fieldset": "Egenskaper",
-	"actions.runners.create_runner.name_label": "Namn",
-	"actions.runners.create_runner.description_label": "Beskrivning",
 	"actions.runners.create_runner.create_button": "Skapa",
-	"actions.runners.create_runner.cancel_button": "Avbryt",
 	"actions.runners.edit_runner.page_title": "Redigera körare %s",
 	"actions.runners.edit_runner.title": "Redigera körare %s",
 	"actions.runners.edit_runner.properties_fieldset": "Egenskaper",
@@ -891,6 +885,101 @@
 	"settings.authorized_integration.none": "Inga auktoriserade integrationer är för närvarande konfigurerade.",
 	"settings.authorized_integration.field.name": "Namn",
 	"settings.authorized_integration.field.description": "Beskrivning",
-	"settings.authorized_integration.field.description.placeholder": "Används för att publicera paket när ...",
-	"settings.authorized_integration.claims.generic": "Generiska JWT-regler"
+	"settings.authorized_integration.field.description.placeholder": "Används för att publicera paket när…",
+	"settings.authorized_integration.claims.generic": "Generiska JWT-regler",
+	"repo.packages.visibility_warning": "Detta kodförråd är privat, men länkade paket är offentliga (ägaren %s är offentlig).",
+	"settings.authorized_integration.edit": "Redigera",
+	"settings.authorized_integration.edit_page_title": "Auktoriserad integration <b>%s</b>",
+	"settings.authorized_integration.create_page_title": "Skapa auktoriserad integration",
+	"settings.authorized_integration.save": "Spara auktoriserad integration",
+	"settings.authorized_integration.create": "Skapa auktoriserad integration",
+	"settings.authorized_integration.create_success": "Skapade auktoriserad integration: %s",
+	"settings.authorized_integration.name.required": "Namn på auktoriserad integration krävs.",
+	"settings.authorized_integration.issuer.invalid": "Utfärdarvalidering misslyckades: %s",
+	"settings.authorized_integration.specified_repos_none": "Auktoriserade integrationer med angivna kodförråd måste ha minst ett kodförråd.",
+	"settings.authorized_integration.add": "Lägg till auktoriserad integration",
+	"settings.authorized_integration.delete.header": "Radera auktoriserad integration",
+	"settings.authorized_integration.deleted": "Auktoriserad integration har raderats framgångsrikt.",
+	"settings.authorized_integration.forgejo_actions_local.select_repo": "Välj",
+	"settings.authorized_integration.forgejo_actions_local.select_repository": "Välj kodförråd: (Forgejo actions måste vara aktiverade på kodförrådet)",
+	"settings.authorized_integration.forgejo_actions_local.description": "Forgejo Actions kommer att kunna komma åt Forgejo via denna auktoriserade integration från ett enda valt kodförråd, och om körningen uppfyller villkoren som definieras nedan.",
+	"settings.authorized_integration.forgejo_actions_local.repo.required": "Forgejo Actions käll kodförråd måste väljas.",
+	"settings.authorized_integration.forgejo_actions_local.workflow_file.label": "Arbetsflöde fil (utan katalog):",
+	"settings.authorized_integration.forgejo_actions_local.workflow_file.help": "Om tomt tillåts alla arbetsflöden. Se dokumentationen för <a href=\"%[1]s\">%[2]s</a> för mönstersyntax.<br>Exempel: <code>testing.yml</code>, <code>test-*.yml</code>.",
+	"settings.authorized_integration.forgejo_actions_local.workflow_file.error": "Fel vid parsning av arbetsflödesfil: %s",
+	"settings.authorized_integration.forgejo_actions_local.git_ref.label": "Git referens:",
+	"settings.authorized_integration.forgejo_actions_local.git_ref.help": "Om tomt tillåts alla referenser. Se dokumentationen för <a href=\"%[1]s\">%[2]s</a> för mönstersyntax.<br>Exempel: <code>refs/heads/main</code>, <code>refs/pull/*/head</code>.",
+	"settings.authorized_integration.forgejo_actions_local.git_ref.error": "Fel vid parsning av git-referens: %s",
+	"settings.authorized_integration.forgejo_actions_local.event.label": "Händelse:",
+	"settings.authorized_integration.forgejo_actions_local.event.help": "Om inga händelser väljs kommer alla händelser att tillåtas.",
+	"admin.auths.oauth2_dyn_group_maps": "Lägg dynamiskt till användare i team baserat på dynamiska gruppmappningar. (Valfritt)",
+	"admin.auths.oauth2_dyn_group_maps_removal": "Ta bort användare dynamiskt från alla team som användaren inte läggs till i baserat på gruppmappningar.",
+	"migrate.in_progress.issues.progress": {
+		"one": "Migrerade %[1]d ärende",
+		"other": "Migrerade %[1]d ärenden"
+	},
+	"migrate.in_progress.pulls.progress": {
+		"one": "Migrerade %[1]d ändringsförfrågan",
+		"other": "Migrerade %[1]d ändringsförfrågningar"
+	},
+	"actions.jobs.not_started": "inte påbörjad",
+	"repo.settings.units.more_units_disable_hint": "\"Aktivera fler\" tips kan inaktiveras i <a href=\"%s\">Användarinställningar > Utseende</a>.",
+	"settings.authorized_integration.field.audience": "Målgrupp (<code>aud</code> Claim)",
+	"settings.authorized_integration.field.issuer": "Utfärdare (<code>iss</code> Claim)",
+	"settings.authorized_integration.field.claim_rules": "Claim regler JSON",
+	"settings.authorized_integration.perms.title": "Förmågor tillåtet",
+	"settings.authorized_integration.copy_audience": "Kopiera målgrupp till urklipp",
+	"settings.authorized_integration.claim_rules.invalid": "Claim regler validering misslyckades: %s",
+	"settings.authorized_integration.specified_repos_and_public_only": "Auktoriserade integrationer med angivna kodförråd kan inte kombineras med det offentliga-endast omfånget.",
+	"settings.authorized_integration.specified_repos_and_invalid_scope": "Auktoriserade integrationer med angivna kodförråd kan endast användas med omfången read:issue, write:issue, read:repository och write:repository.",
+	"settings.authorized_integration.delete.body": "Om du tar bort en auktoriserad integration återkallas åtkomsten till ditt konto för den integrerande applikationen. Detta är permanent och kan inte ångras. Att skapa en ny auktoriserad integration kommer inte att ha samma anspråk på målgrupp (<code>aud</code>). Vill du fortsätta?",
+	"form.website.valid_url_schemes": "Tillåtna URL-scheman inkluderar: %s",
+	"pulls.status_checks.skipped": "Vissa kontroller hoppades över",
+	"search.match_inside_quotes": "Inkludera endast resultat som matchar termen inom citationstecken",
+	"search.docs": "<a target=\"_blank\" rel=\"noopener noreferrer\" href=\"%[1]s\">Se dokumentationen</a> för mer information om sökning, operatorer och filter.",
+	"members.invite_member": "Bjud in medlem",
+	"members.invite_team_member": "Bjud in till team",
+	"actions.runs.prioritized_run": "Prioriterad",
+	"actions.runs.prioritize_run": "Prioritera körning",
+	"actions.runs.deprioritize_run": "Prioritera inte körning",
+	"actions.runs.options": "Alternativ",
+	"actions.runs.prioritization_success": "Arbetsflöde körning #%d prioriteras nu.",
+	"actions.runs.deprioritization_success": "Arbetsflöde körning #%d kommer inte längre att prioriteras.",
+	"actions.workflow.pre_execution_warning": "Arbetsflöde varningar:",
+	"actions.workflow.permissions_warning": "Jobb <code>%[1]s</code> eller dess arbetsflöde har ett <code>behörigheter</code> fält, vilket inte stöds i Forgejo och kommer att ignoreras. Använd <a href=\"%[2]s\">Auktoriserade integrationer</a> för att ge kapabiliteter till det här jobbet istället.",
+	"repo.issues.context.copy_markdown": "Kopiera Markdown",
+	"relativetime.duration.secs": {
+		"one": "%d sekund",
+		"other": "%d sekunder"
+	},
+	"relativetime.duration.mins": {
+		"one": "%d minut",
+		"other": "%d minuter"
+	},
+	"relativetime.duration.hours": {
+		"one": "%d timme",
+		"other": "%d timmar"
+	},
+	"relativetime.duration.days": {
+		"one": "%d dag",
+		"other": "%d dagar"
+	},
+	"relativetime.duration.weeks": {
+		"one": "%d vecka",
+		"other": "%d veckor"
+	},
+	"relativetime.duration.months": {
+		"one": "%d månad",
+		"other": "%d månader"
+	},
+	"relativetime.duration.years": {
+		"one": "%d år",
+		"other": "%d flera år"
+	},
+	"settings.profile.dotprofile.hint": "Avancerad profilanpassning, inklusive verifieringslänkar, kan uppnås med <code>%s</code>kodförråd.<a href=\"%s\" target=\"_blank\">Läs mer</a>.",
+	"repo.watching": "Följa",
+	"repo.watch.issues": "Ärenden",
+	"repo.watch.pull_requests": "Ändringsförfrågningar",
+	"repo.watch.releases": "Utgåvor",
+	"repo.watch.releases.hint": "(e-post endast)"
 }

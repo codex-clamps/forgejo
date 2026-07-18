@@ -211,8 +211,7 @@ func (l *loader) Load() error {
 	tableDeleted := make(container.Set[string])
 
 	// Issue deletes first, in reverse of insertion order, to maintain foreign key constraints.
-	for i := len(l.fixtureFiles) - 1; i >= 0; i-- {
-		fixture := l.fixtureFiles[i]
+	for _, fixture := range slices.Backward(l.fixtureFiles) {
 		if !tableDeleted.Contains(fixture.name) {
 			if _, err := tx.Exec(fmt.Sprintf("DELETE FROM %s", l.quoteKeyword(fixture.name))); err != nil {
 				return fmt.Errorf("cannot delete table %s: %w", fixture.name, err)

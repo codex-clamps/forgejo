@@ -173,6 +173,7 @@ func NewFuncMap() template.FuncMap {
 			return !setting.ImportLocalPaths
 		},
 		"ThemeName": func(user *user_model.User) string {
+			// Guest user may not be nil on some pages, e.g. in org pages, so user.Theme check is also needed
 			if user == nil || user.Theme == "" {
 				return setting.UI.DefaultTheme
 			}

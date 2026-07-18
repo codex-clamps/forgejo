@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"image"
-	"io"
 	golog "log"
 	"os"
 	"path/filepath"
@@ -27,7 +26,6 @@ import (
 	"forgejo.org/modules/storage"
 	"forgejo.org/services/doctor"
 
-	exif_terminator "code.superseriousbusiness.org/exif-terminator"
 	"github.com/urfave/cli/v3"
 	"xorm.io/builder"
 )
@@ -113,8 +111,11 @@ You should back-up your database before doing this and ensure that your database
 
 func cmdAvatarStripExif() *cli.Command {
 	return &cli.Command{
-		Name:   "avatar-strip-exif",
-		Usage:  "Strip EXIF metadata from all images in the avatar storage",
+		Name:  "avatar-strip-exif",
+		Usage: "Strip EXIF metadata from all images in the avatar storage [unsupported]",
+		Description: `Stripping EXIF metadata is not currently supported. The capability was
+available in previous Forgejo releases, but has been removed. This command
+may be re-enabled in the future if the capability can be supported again.`,
 		Before: noDanglingArgs,
 		Action: runAvatarStripExif,
 	}
@@ -125,7 +126,7 @@ func cmdResizeAvatars() *cli.Command {
 		Name:  "avatar-resize",
 		Usage: "Generate resized versions of user or repository avatars",
 		Description: `Forgejo serves small versions of avatars for inclusion in the web UI.
-		
+
 Those rescaled versions are computed on-demand and cached in the avatar storage.
 
 This command pre-computes rescaled versions of avatars ahead of time.`,
@@ -326,77 +327,7 @@ func runDoctorCheck(stdCtx context.Context, ctx *cli.Command) error {
 }
 
 func runAvatarStripExif(ctx context.Context, c *cli.Command) error {
-	ctx, cancel := installSignals(ctx)
-	defer cancel()
-
-	if err := initDB(ctx); err != nil {
-		return err
-	}
-	if err := storage.Init(); err != nil {
-		return err
-	}
-
-	type HasCustomAvatarRelativePath interface {
-		CustomAvatarRelativePath() string
-	}
-
-	doExifStrip := func(obj HasCustomAvatarRelativePath, name string, target_storage storage.ObjectStorage) error {
-		if obj.CustomAvatarRelativePath() == "" {
-			return nil
-		}
-
-		log.Info("Stripping avatar for %s...", name)
-
-		avatarFile, err := target_storage.Open(obj.CustomAvatarRelativePath())
-		if err != nil {
-			return fmt.Errorf("storage.Avatars.Open: %w", err)
-		}
-		_, imgType, err := image.DecodeConfig(avatarFile)
-		if err != nil {
-			return fmt.Errorf("image.DecodeConfig: %w", err)
-		}
-
-		// reset io.Reader for exif termination scan
-		_, err = avatarFile.Seek(0, io.SeekStart)
-		if err != nil {
-			return fmt.Errorf("avatarFile.Seek: %w", err)
-		}
-
-		cleanedData, err := exif_terminator.Terminate(avatarFile, imgType)
-		if err != nil && strings.Contains(err.Error(), "cannot be processed") {
-			// expected error for an image type that isn't supported by exif_terminator
-			log.Info("... image type %s is not supported by exif_terminator, skipping.", imgType)
-			return nil
-		} else if err != nil {
-			return fmt.Errorf("error cleaning exif data: %w", err)
-		}
-
-		if err := storage.SaveFrom(target_storage, obj.CustomAvatarRelativePath(), func(w io.Writer) error {
-			_, err := io.Copy(w, cleanedData)
-			return err
-		}); err != nil {
-			return fmt.Errorf("Failed to create dir %s: %w", obj.CustomAvatarRelativePath(), err)
-		}
-
-		log.Info("... completed %s.", name)
-
-		return nil
-	}
-
-	err := db.Iterate(ctx, nil, func(ctx context.Context, user *user_model.User) error {
-		return doExifStrip(user, fmt.Sprintf("user %s", user.Name), storage.Avatars)
-	})
-	if err != nil {
-		return err
-	}
-
-	err = db.Iterate(ctx, nil, func(ctx context.Context, repo *repo_model.Repository) error {
-		return doExifStrip(repo, fmt.Sprintf("repo %s", repo.Name), storage.RepoAvatars)
-	})
-	if err != nil {
-		return err
-	}
-
+	log.Warn("avatar-strip-exif is not currently supported.")
 	return nil
 }
 

@@ -84,6 +84,7 @@ test.describe('Workflow Authenticated user2', () => {
     await expect(disableButton).toBeHidden();
     await expect(enableButton).toBeHidden();
 
+    await expect(menuOpener).toHaveAttribute('aria-label', 'More actions');
     await menuOpener.click();
 
     // The current "Enabled" state is what previous tests left, but this test is built to not care
@@ -267,5 +268,19 @@ test.describe('workflow list dynamic refresh', () => {
     await simulatePollingInterval(page);
     await expect(page.getByText('All Actors')).toBeVisible();
     await expect(page.locator('[aria-expanded="true"]')).toHaveCount(1);
+  });
+});
+
+test('check that options dropdown not overflows', async ({page}) => {
+  await page.setViewportSize({
+    width: 500,
+    height: 1440,
+  });
+  await page.goto('/user2/test_workflows/actions');
+
+  await page.locator('.run-list-item-right + details.dropdown').first().click();
+
+  await expect(page.locator('.run-list-item-right + details.dropdown > .content').first()).toBeInViewport({
+    ratio: 1,
   });
 });

@@ -48,7 +48,7 @@ func ListIssueLabels(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo().Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound()
@@ -63,7 +63,7 @@ func ListIssueLabels(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToLabelList(issue.Labels, ctx.Repo.Repository, ctx.Repo.Owner))
+	ctx.JSON(http.StatusOK, convert.ToLabelList(issue.Labels, ctx.Repo().Repository, ctx.Repo().Owner))
 }
 
 // AddIssueLabels add labels for an issue
@@ -110,7 +110,7 @@ func AddIssueLabels(ctx *context.APIContext) {
 		return
 	}
 
-	if err = issue_service.AddLabels(ctx, issue, ctx.Doer, labels); err != nil {
+	if err = issue_service.AddLabels(ctx, issue, ctx.Doer(), labels); err != nil {
 		ctx.Error(http.StatusInternalServerError, "AddLabels", err)
 		return
 	}
@@ -121,7 +121,7 @@ func AddIssueLabels(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToLabelList(labels, ctx.Repo.Repository, ctx.Repo.Owner))
+	ctx.JSON(http.StatusOK, convert.ToLabelList(labels, ctx.Repo().Repository, ctx.Repo().Owner))
 }
 
 // DeleteIssueLabel delete a label for an issue
@@ -168,7 +168,7 @@ func DeleteIssueLabel(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	form := web.GetForm(ctx).(*api.DeleteLabelsOption)
 
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo().Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound()
@@ -178,20 +178,20 @@ func DeleteIssueLabel(ctx *context.APIContext) {
 		return
 	}
 
-	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
+	if !ctx.Repo().CanWriteIssuesOrPulls(issue.IsPull) {
 		ctx.Status(http.StatusForbidden)
 		return
 	}
 
-	if err := issue_service.SetIssueUpdateDate(ctx, issue, form.Updated, ctx.Doer); err != nil {
+	if err := issue_service.SetIssueUpdateDate(ctx, issue, form.Updated, ctx.Doer()); err != nil {
 		ctx.Error(http.StatusForbidden, "SetIssueUpdateDate", err)
 		return
 	}
 
 	labelName := ctx.Params(":identifier")
-	label, err := issues_model.GetLabelInRepoByName(ctx, ctx.Repo.Repository.ID, labelName)
-	if err != nil && issues_model.IsErrRepoLabelNotExist(err) && ctx.Repo.Owner.IsOrganization() {
-		label, err = issues_model.GetLabelInOrgByName(ctx, ctx.Repo.Owner.ID, labelName)
+	label, err := issues_model.GetLabelInRepoByName(ctx, ctx.Repo().Repository.ID, labelName)
+	if err != nil && issues_model.IsErrRepoLabelNotExist(err) && ctx.Repo().Owner.IsOrganization() {
+		label, err = issues_model.GetLabelInOrgByName(ctx, ctx.Repo().Owner.ID, labelName)
 	}
 	if err != nil && (issues_model.IsErrRepoLabelNotExist(err) || issues_model.IsErrOrgLabelNotExist(err)) {
 		if labelID, parseErr := strconv.ParseInt(labelName, 10, 64); parseErr == nil {
@@ -210,13 +210,13 @@ func DeleteIssueLabel(ctx *context.APIContext) {
 		return
 	}
 
-	if err := issue_service.RemoveLabel(ctx, issue, ctx.Doer, label); err != nil {
+	if err := issue_service.RemoveLabel(ctx, issue, ctx.Doer(), label); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteIssueLabel", err)
 		return
 	}
 
 	if ctx.AcceptsGithubResponse() {
-		ctx.JSON(http.StatusOK, convert.ToLabelList([]*issues_model.Label{label}, ctx.Repo.Repository, ctx.Repo.Owner))
+		ctx.JSON(http.StatusOK, convert.ToLabelList([]*issues_model.Label{label}, ctx.Repo().Repository, ctx.Repo().Owner))
 	} else {
 		ctx.Status(http.StatusNoContent)
 	}
@@ -265,7 +265,7 @@ func ReplaceIssueLabels(ctx *context.APIContext) {
 		return
 	}
 
-	if err := issue_service.ReplaceLabels(ctx, issue, ctx.Doer, labels); err != nil {
+	if err := issue_service.ReplaceLabels(ctx, issue, ctx.Doer(), labels); err != nil {
 		ctx.Error(http.StatusInternalServerError, "ReplaceLabels", err)
 		return
 	}
@@ -276,7 +276,7 @@ func ReplaceIssueLabels(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToLabelList(labels, ctx.Repo.Repository, ctx.Repo.Owner))
+	ctx.JSON(http.StatusOK, convert.ToLabelList(labels, ctx.Repo().Repository, ctx.Repo().Owner))
 }
 
 // ClearIssueLabels delete all the labels for an issue
@@ -316,7 +316,7 @@ func ClearIssueLabels(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	form := web.GetForm(ctx).(*api.DeleteLabelsOption)
 
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo().Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound()
@@ -326,17 +326,17 @@ func ClearIssueLabels(ctx *context.APIContext) {
 		return
 	}
 
-	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
+	if !ctx.Repo().CanWriteIssuesOrPulls(issue.IsPull) {
 		ctx.Status(http.StatusForbidden)
 		return
 	}
 
-	if err := issue_service.SetIssueUpdateDate(ctx, issue, form.Updated, ctx.Doer); err != nil {
+	if err := issue_service.SetIssueUpdateDate(ctx, issue, form.Updated, ctx.Doer()); err != nil {
 		ctx.Error(http.StatusForbidden, "SetIssueUpdateDate", err)
 		return
 	}
 
-	if err := issue_service.ClearLabels(ctx, issue, ctx.Doer); err != nil {
+	if err := issue_service.ClearLabels(ctx, issue, ctx.Doer()); err != nil {
 		ctx.Error(http.StatusInternalServerError, "ClearLabels", err)
 		return
 	}
@@ -345,7 +345,7 @@ func ClearIssueLabels(ctx *context.APIContext) {
 }
 
 func prepareForReplaceOrAdd(ctx *context.APIContext, form api.IssueLabelsOption) (*issues_model.Issue, []*issues_model.Label, error) {
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo().Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound()
@@ -376,14 +376,14 @@ func prepareForReplaceOrAdd(ctx *context.APIContext, form api.IssueLabelsOption)
 		return nil, nil, errors.New("invalid labels")
 	}
 	if len(labelNames) > 0 {
-		repoLabelIDs, err := issues_model.GetLabelIDsInRepoByNames(ctx, ctx.Repo.Repository.ID, labelNames)
+		repoLabelIDs, err := issues_model.GetLabelIDsInRepoByNames(ctx, ctx.Repo().Repository.ID, labelNames)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetLabelIDsInRepoByNames", err)
 			return nil, nil, err
 		}
 		labelIDs = append(labelIDs, repoLabelIDs...)
-		if ctx.Repo.Owner.IsOrganization() {
-			orgLabelIDs, err := issues_model.GetLabelIDsInOrgByNames(ctx, ctx.Repo.Owner.ID, labelNames)
+		if ctx.Repo().Owner.IsOrganization() {
+			orgLabelIDs, err := issues_model.GetLabelIDsInOrgByNames(ctx, ctx.Repo().Owner.ID, labelNames)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "GetLabelIDsInOrgByNames", err)
 				return nil, nil, err
@@ -398,12 +398,12 @@ func prepareForReplaceOrAdd(ctx *context.APIContext, form api.IssueLabelsOption)
 		return nil, nil, err
 	}
 
-	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
+	if !ctx.Repo().CanWriteIssuesOrPulls(issue.IsPull) {
 		ctx.Status(http.StatusForbidden)
 		return nil, nil, errors.New("not issue/pull writer")
 	}
 
-	err = issue_service.SetIssueUpdateDate(ctx, issue, form.Updated, ctx.Doer)
+	err = issue_service.SetIssueUpdateDate(ctx, issue, form.Updated, ctx.Doer())
 	if err != nil {
 		ctx.Error(http.StatusForbidden, "SetIssueUpdateDate", err)
 		return nil, nil, err

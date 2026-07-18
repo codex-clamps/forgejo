@@ -133,7 +133,7 @@ func TeamsAction(ctx *context.Context) {
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				if setting.MailService != nil && validation.ValidateEmail(uname) == nil {
-					if err := org_service.CreateTeamInvite(ctx, ctx.Doer, ctx.Org.Team, uname); err != nil {
+					if err := org_service.CreateTeamInviteByEmail(ctx, ctx.Doer, ctx.Org.Team, uname); err != nil {
 						if org_model.IsErrTeamInviteAlreadyExist(err) {
 							ctx.Flash.Error(ctx.Tr("form.duplicate_invite_to_team"))
 						} else if org_model.IsErrUserEmailAlreadyAdded(err) {
@@ -162,7 +162,7 @@ func TeamsAction(ctx *context.Context) {
 		if ctx.Org.Team.IsMember(ctx, u.ID) {
 			ctx.Flash.Error(ctx.Tr("org.teams.add_duplicate_users"))
 		} else {
-			err = models.AddTeamMember(ctx, ctx.Org.Team, u.ID)
+			err = org_service.InviteOrAddTeamMember(ctx, ctx.Doer, u, ctx.Org.Team)
 		}
 
 		page = "team"
@@ -371,6 +371,7 @@ func TeamMembers(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Org.Team.Name
 	ctx.Data["PageIsOrgTeams"] = true
 	ctx.Data["PageIsOrgTeamMembers"] = true
+	ctx.Data["AddMembersByInvitations"] = setting.Service.AddMembersByInvitations
 
 	if err := shared_user.LoadHeaderCount(ctx); err != nil {
 		ctx.ServerError("LoadHeaderCount", err)
@@ -395,6 +396,12 @@ func TeamMembers(ctx *context.Context) {
 	if err != nil {
 		ctx.ServerError("GetInvitesByTeamID", err)
 		return
+	}
+	for _, invite := range invites {
+		if invite.LoadInvitedUser(ctx) != nil {
+			ctx.ServerError("LoadInvitedUser", err)
+			return
+		}
 	}
 	ctx.Data["Invites"] = invites
 	ctx.Data["IsEmailInviteEnabled"] = setting.MailService != nil
@@ -583,6 +590,12 @@ func TeamInvite(ctx *context.Context) {
 		return
 	}
 
+	linkedToUser, invitedUserID := invite.InvitedID.Get()
+	if linkedToUser && invitedUserID != ctx.Doer.ID {
+		ctx.NotFound("ErrTeamInviteNotFound", nil)
+		return
+	}
+
 	ctx.Data["Title"] = ctx.Tr("org.teams.invite_team_member", team.Name)
 	ctx.Data["Invite"] = invite
 	ctx.Data["Organization"] = org
@@ -601,6 +614,12 @@ func TeamInvitePost(ctx *context.Context) {
 		} else {
 			ctx.ServerError("getTeamInviteFromContext", err)
 		}
+		return
+	}
+
+	linkedToUser, invitedUserID := invite.InvitedID.Get()
+	if linkedToUser && invitedUserID != ctx.Doer.ID {
+		ctx.NotFound("ErrTeamInviteNotFound", nil)
 		return
 	}
 

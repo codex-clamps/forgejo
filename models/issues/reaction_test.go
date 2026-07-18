@@ -74,8 +74,10 @@ func TestIssueDeleteReaction(t *testing.T) {
 
 	addReaction(t, user1.ID, issue1ID, 0, "heart")
 
-	err := issues_model.DeleteIssueReaction(db.DefaultContext, user1.ID, issue1ID, "heart")
+	issueReaction, err := issues_model.DeleteIssueReaction(db.DefaultContext, user1.ID, issue1ID, "heart")
 	require.NoError(t, err)
+	assert.Equal(t, user1.ID, issueReaction.UserID)
+	assert.Equal(t, issue1ID, issueReaction.IssueID)
 
 	unittest.AssertNotExistsBean(t, &issues_model.Reaction{Type: "heart", UserID: user1.ID, IssueID: issue1ID})
 }
@@ -172,7 +174,11 @@ func TestIssueCommentReactionCount(t *testing.T) {
 	var comment1ID int64 = 1
 
 	addReaction(t, user1.ID, issue1ID, comment1ID, "heart")
-	require.NoError(t, issues_model.DeleteCommentReaction(db.DefaultContext, user1.ID, issue1ID, comment1ID, "heart"))
+	commentReaction, err := issues_model.DeleteCommentReaction(db.DefaultContext, user1.ID, issue1ID, comment1ID, "heart")
+	require.NoError(t, err)
+	assert.Equal(t, user1.ID, commentReaction.UserID)
+	assert.Equal(t, issue1ID, commentReaction.IssueID)
+	assert.Equal(t, comment1ID, commentReaction.CommentID)
 
 	unittest.AssertNotExistsBean(t, &issues_model.Reaction{Type: "heart", UserID: user1.ID, IssueID: issue1ID, CommentID: comment1ID})
 }

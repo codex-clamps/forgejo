@@ -32,6 +32,7 @@ import (
 	"forgejo.org/modules/timeutil"
 	"forgejo.org/modules/uri"
 	"forgejo.org/modules/util"
+	"forgejo.org/services/migrations/allowlist"
 	"forgejo.org/services/pull"
 	repo_service "forgejo.org/services/repository"
 
@@ -131,7 +132,7 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 		Releases:       opts.Releases, // if didn't get releases, then sync them from tags
 		RepoName:       g.repoName,
 		Wiki:           opts.Wiki,
-	}, NewMigrationHTTPTransport())
+	}, allowlist.NewMigrationHTTPTransport())
 
 	g.sameApp = strings.HasPrefix(repo.OriginalURL, setting.AppURL)
 	g.repo = r

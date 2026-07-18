@@ -50,8 +50,8 @@ func SigningKey(ctx *context.APIContext) {
 	//       type: string
 
 	path := ""
-	if ctx.Repo != nil && ctx.Repo.Repository != nil {
-		path = ctx.Repo.Repository.RepoPath()
+	if ctx.Repo() != nil && ctx.Repo().Repository != nil {
+		path = ctx.Repo().Repository.RepoPath()
 	}
 
 	content, err := asymkey_service.PublicSigningKey(ctx, path)

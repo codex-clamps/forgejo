@@ -15,7 +15,7 @@ import (
 	"forgejo.org/modules/setting"
 	"forgejo.org/modules/structs"
 	"forgejo.org/modules/test"
-	"forgejo.org/services/migrations"
+	migrations_allowlist "forgejo.org/services/migrations/allowlist"
 
 	"github.com/stretchr/testify/require"
 )
@@ -23,7 +23,9 @@ import (
 func TestRepoMigrateWithCredentials(t *testing.T) {
 	onApplicationRun(t, func(t *testing.T, u *url.URL) {
 		defer test.MockVariableValue(&setting.Migrations.AllowLocalNetworks, true)()
-		require.NoError(t, migrations.Init())
+		defer test.MockVariableValue(&setting.Migrations.AllowUnencrypted, true)()
+
+		require.NoError(t, migrations_allowlist.Init())
 
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		session := loginUser(t, "user2")

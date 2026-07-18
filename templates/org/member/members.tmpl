@@ -7,7 +7,12 @@
 		{{if $.IsOrganizationOwner}}
 			<div class="text right">
 				<button class="primary button" id="add-org-member-button">
-				{{svg "octicon-plus"}} {{ctx.Locale.Tr "members.add_member"}}
+				{{svg "octicon-plus"}}
+				{{if $.AddMembersByInvitations}}
+					{{ctx.Locale.Tr "members.invite_member"}}
+				{{else}}
+					{{ctx.Locale.Tr "members.add_member"}}
+				{{end}}
 				</button>
 			</div>
 			<div class="divider"></div>

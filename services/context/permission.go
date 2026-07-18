@@ -195,7 +195,7 @@ func CheckRepoScopedToken(ctx *Context, repo *repo_model.Repository, level auth_
 }
 
 func CheckRuntimeDeterminedScope(ctx *APIContext, scopeCategory auth_model.AccessTokenScopeCategory, level auth_model.AccessTokenScopeLevel, msg string) {
-	if hasScope, scope := ctx.Authentication.Scope().Get(); hasScope {
+	if hasScope, scope := ctx.Authentication().Scope().Get(); hasScope {
 		var scopeMatched bool
 
 		requiredScopes := auth_model.GetRequiredScopes(level, scopeCategory)

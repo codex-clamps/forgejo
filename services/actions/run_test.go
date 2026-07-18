@@ -199,3 +199,206 @@ func TestDeleteRun(t *testing.T) {
 		}, 1)
 	})
 }
+
+func TestPrioritizeRun(t *testing.T) {
+	t.Run("Run prioritized", func(t *testing.T) {
+		require.NoError(t, unittest.PrepareTestDatabase())
+
+		runOne := &actions_model.ActionRun{
+			ID: 408911, Index: 1, RepoID: 62, OwnerID: 2, Status: actions_model.StatusWaiting,
+			Priority: actions_model.DefaultRunPriority, Prioritize: false,
+		}
+		runTwo := &actions_model.ActionRun{
+			ID: 408912, Index: 2, RepoID: 62, OwnerID: 2, Status: actions_model.StatusWaiting, Priority: 25,
+		}
+		unittest.AssertSuccessfulInsert(t, runOne, runTwo)
+
+		err := PrioritizeRun(t.Context(), runOne)
+		require.NoError(t, err)
+
+		prioritizedRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: runOne.ID})
+		assert.True(t, prioritizedRun.Prioritize)
+		assert.Equal(t, actions_model.MaxRunPriority, prioritizedRun.Priority)
+
+		// Verify that the priority of the unrelated run has been recalculated, too.
+		waitingRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: runTwo.ID})
+		assert.False(t, waitingRun.Prioritize)
+		assert.Equal(t, actions_model.DefaultRunPriority, waitingRun.Priority)
+	})
+
+	t.Run("Nothing happens if run already prioritized", func(t *testing.T) {
+		require.NoError(t, unittest.PrepareTestDatabase())
+
+		runOne := &actions_model.ActionRun{
+			ID: 408911, Index: 1, RepoID: 62, OwnerID: 2, Status: actions_model.StatusWaiting,
+			Priority: actions_model.MaxRunPriority, Prioritize: true,
+		}
+		runTwo := &actions_model.ActionRun{
+			ID: 408912, Index: 2, RepoID: 62, OwnerID: 2, Status: actions_model.StatusWaiting, Priority: 25,
+		}
+		unittest.AssertSuccessfulInsert(t, runOne, runTwo)
+
+		err := PrioritizeRun(t.Context(), runOne)
+		require.NoError(t, err)
+
+		prioritizedRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: runOne.ID})
+		assert.True(t, prioritizedRun.Prioritize)
+		assert.Equal(t, actions_model.MaxRunPriority, prioritizedRun.Priority)
+
+		// Verify that the priority of the unrelated run not been recalculated.
+		waitingRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: runTwo.ID})
+		assert.False(t, waitingRun.Prioritize)
+		assert.Equal(t, int8(25), waitingRun.Priority)
+	})
+
+	t.Run("Completed run can be prioritized", func(t *testing.T) {
+		require.NoError(t, unittest.PrepareTestDatabase())
+
+		testRun := &actions_model.ActionRun{
+			ID:         808441,
+			Index:      1,
+			RepoID:     62,
+			OwnerID:    2,
+			Status:     actions_model.StatusSuccess,
+			Priority:   actions_model.DefaultRunPriority,
+			Prioritize: false,
+		}
+		unittest.AssertSuccessfulInsert(t, testRun)
+
+		err := PrioritizeRun(t.Context(), testRun)
+		require.NoError(t, err)
+
+		prioritizedRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: testRun.ID})
+		assert.True(t, prioritizedRun.Prioritize)
+		assert.Equal(t, actions_model.DefaultRunPriority, prioritizedRun.Priority) // Unchanged because run completed.
+	})
+
+	t.Run("Error if run is nil", func(t *testing.T) {
+		require.NoError(t, unittest.PrepareTestDatabase())
+
+		err := PrioritizeRun(t.Context(), nil)
+		require.ErrorContains(t, err, "run is nil")
+	})
+}
+
+func TestDeprioritizeRun(t *testing.T) {
+	t.Run("Run deprioritized", func(t *testing.T) {
+		require.NoError(t, unittest.PrepareTestDatabase())
+
+		runOne := &actions_model.ActionRun{
+			ID: 408911, Index: 1, RepoID: 62, OwnerID: 2, Status: actions_model.StatusWaiting,
+			Priority: actions_model.MaxRunPriority, Prioritize: true,
+		}
+		runTwo := &actions_model.ActionRun{
+			ID: 408912, Index: 2, RepoID: 62, OwnerID: 2, Status: actions_model.StatusWaiting, Priority: 25,
+		}
+		unittest.AssertSuccessfulInsert(t, runOne, runTwo)
+
+		err := DeprioritizeRun(t.Context(), runOne)
+		require.NoError(t, err)
+
+		deprioritizedRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: runOne.ID})
+		assert.False(t, deprioritizedRun.Prioritize)
+		assert.Equal(t, actions_model.DefaultRunPriority, deprioritizedRun.Priority)
+
+		// Verify that the priority of the unrelated run has been recalculated, too.
+		waitingRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: runTwo.ID})
+		assert.False(t, waitingRun.Prioritize)
+		assert.Equal(t, actions_model.DefaultRunPriority, waitingRun.Priority)
+	})
+
+	t.Run("Nothing happens if run not prioritized", func(t *testing.T) {
+		require.NoError(t, unittest.PrepareTestDatabase())
+
+		runOne := &actions_model.ActionRun{
+			ID: 408911, Index: 1, RepoID: 62, OwnerID: 2, Status: actions_model.StatusWaiting,
+			Priority: actions_model.DefaultRunPriority, Prioritize: false,
+		}
+		runTwo := &actions_model.ActionRun{
+			ID: 408912, Index: 2, RepoID: 62, OwnerID: 2, Status: actions_model.StatusWaiting, Priority: 25,
+		}
+		unittest.AssertSuccessfulInsert(t, runOne, runTwo)
+
+		err := DeprioritizeRun(t.Context(), runOne)
+		require.NoError(t, err)
+
+		deprioritizedRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: runOne.ID})
+		assert.False(t, deprioritizedRun.Prioritize)
+		assert.Equal(t, actions_model.DefaultRunPriority, deprioritizedRun.Priority)
+
+		// Verify that the priority of the unrelated run has *not* been recalculated.
+		waitingRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: runTwo.ID})
+		assert.False(t, waitingRun.Prioritize)
+		assert.Equal(t, int8(25), waitingRun.Priority)
+	})
+
+	t.Run("Completed run can be deprioritized", func(t *testing.T) {
+		require.NoError(t, unittest.PrepareTestDatabase())
+
+		testRun := &actions_model.ActionRun{
+			ID:         535681,
+			Index:      1,
+			RepoID:     62,
+			OwnerID:    2,
+			Status:     actions_model.StatusSuccess,
+			Priority:   actions_model.MaxRunPriority,
+			Prioritize: true,
+		}
+		unittest.AssertSuccessfulInsert(t, testRun)
+
+		err := DeprioritizeRun(t.Context(), testRun)
+		require.NoError(t, err)
+
+		deprioritizedRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: testRun.ID})
+		assert.False(t, deprioritizedRun.Prioritize)
+		assert.Equal(t, actions_model.MaxRunPriority, deprioritizedRun.Priority) // Unchanged because run completed.
+	})
+
+	t.Run("Error if run is nil", func(t *testing.T) {
+		require.NoError(t, unittest.PrepareTestDatabase())
+
+		err := DeprioritizeRun(t.Context(), nil)
+		require.ErrorContains(t, err, "run is nil")
+	})
+}
+
+func TestRecalculateRunPriorities(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	fixtures := []*actions_model.ActionRun{
+		{ID: 535681, Index: 1, RepoID: 62, OwnerID: 2, Status: actions_model.StatusSuccess},
+		{ID: 535682, Index: 2, RepoID: 62, OwnerID: 2, Status: actions_model.StatusRunning, Priority: actions_model.DefaultRunPriority, Prioritize: true},
+		{ID: 535683, Index: 3, RepoID: 62, OwnerID: 2, Status: actions_model.StatusWaiting, Priority: actions_model.DefaultRunPriority, Prioritize: true},
+		{ID: 535684, Index: 4, RepoID: 62, OwnerID: 2, Status: actions_model.StatusBlocked, Priority: actions_model.MaxRunPriority},
+		{ID: 535685, Index: 1, RepoID: 1, OwnerID: 2, Status: actions_model.StatusBlocked, Priority: actions_model.DefaultRunPriority, Prioritize: true},
+		{ID: 535686, Index: 5, RepoID: 62, OwnerID: 2, Status: actions_model.StatusWaiting},
+	}
+	unittest.AssertSuccessfulInsert(t, fixtures)
+
+	err := recalculateRunPriorities(t.Context(), 62)
+	require.NoError(t, err)
+
+	runOne := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: 535681})
+	assert.Equal(t, actions_model.DefaultRunPriority, runOne.Priority)
+	assert.False(t, runOne.Prioritize)
+
+	runTwo := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: 535682})
+	assert.Equal(t, actions_model.DefaultRunPriority, runTwo.Priority) // Unchanged because already running.
+	assert.True(t, runTwo.Prioritize)
+
+	runThree := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: 535683})
+	assert.Equal(t, actions_model.MaxRunPriority, runThree.Priority)
+	assert.True(t, runThree.Prioritize)
+
+	runFour := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: 535684})
+	assert.Equal(t, actions_model.DefaultRunPriority, runFour.Priority)
+	assert.False(t, runFour.Prioritize)
+
+	runFive := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: 535685})
+	assert.Equal(t, actions_model.DefaultRunPriority, runFive.Priority) // Unchanged because different repository.
+	assert.True(t, runFive.Prioritize)
+
+	runSix := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: 535686})
+	assert.Equal(t, actions_model.DefaultRunPriority, runSix.Priority)
+	assert.False(t, runSix.Prioritize)
+}

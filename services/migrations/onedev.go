@@ -16,6 +16,7 @@ import (
 	"forgejo.org/modules/log"
 	base "forgejo.org/modules/migration"
 	"forgejo.org/modules/structs"
+	"forgejo.org/services/migrations/allowlist"
 )
 
 var (
@@ -79,6 +80,8 @@ type OneDevDownloader struct {
 	maxIssueIndex int64
 	userMap       map[int64]*onedevUser
 	milestoneMap  map[int64]string
+	username      string
+	password      string
 }
 
 // SetContext set context
@@ -89,19 +92,12 @@ func (d *OneDevDownloader) SetContext(ctx context.Context) {
 // NewOneDevDownloader creates a new downloader
 func NewOneDevDownloader(ctx context.Context, baseURL *url.URL, username, password, repoName string) *OneDevDownloader {
 	downloader := &OneDevDownloader{
-		ctx:      ctx,
-		baseURL:  baseURL,
-		repoName: repoName,
-		client: &http.Client{
-			Transport: &http.Transport{
-				Proxy: func(req *http.Request) (*url.URL, error) {
-					if len(username) > 0 && len(password) > 0 {
-						req.SetBasicAuth(username, password)
-					}
-					return nil, nil
-				},
-			},
-		},
+		ctx:          ctx,
+		baseURL:      baseURL,
+		repoName:     repoName,
+		client:       allowlist.NewMigrationHTTPClient(),
+		username:     username,
+		password:     password,
 		userMap:      make(map[int64]*onedevUser),
 		milestoneMap: make(map[int64]string),
 	}
@@ -138,6 +134,9 @@ func (d *OneDevDownloader) callAPI(endpoint string, parameter map[string]string,
 	req, err := http.NewRequestWithContext(d.ctx, "GET", u.String(), nil)
 	if err != nil {
 		return err
+	}
+	if len(d.username) > 0 && len(d.password) > 0 {
+		req.SetBasicAuth(d.username, d.password)
 	}
 
 	resp, err := d.client.Do(req)

@@ -6,7 +6,6 @@ package repo
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 
 	"forgejo.org/models/organization"
@@ -56,7 +55,7 @@ func ListForks(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	forks, total, err := repo_model.GetForks(ctx, ctx.Repo.Repository, ctx.Doer, utils.GetListOptions(ctx))
+	forks, total, err := repo_model.GetForks(ctx, ctx.Repo().Repository, ctx.Doer(), utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetForks", err)
 		return
@@ -69,7 +68,7 @@ func ListForks(ctx *context.APIContext) {
 		// repo.
 		//
 		// nosemgrep: forgejo-api-use-resource-GetUserRepoPermission
-		permission, err := access_model.GetUserRepoPermission(ctx, fork, ctx.Doer)
+		permission, err := access_model.GetUserRepoPermission(ctx, fork, ctx.Doer())
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
 			return
@@ -118,10 +117,10 @@ func CreateFork(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 
 	form := web.GetForm(ctx).(*api.CreateForkOption)
-	repo := ctx.Repo.Repository
+	repo := ctx.Repo().Repository
 	var forker *user_model.User // user/org that will own the fork
 	if form.Organization == nil {
-		forker = ctx.Doer
+		forker = ctx.Doer()
 	} else {
 		org, err := organization.GetOrgByName(ctx, *form.Organization)
 		if err != nil {
@@ -131,25 +130,6 @@ func CreateFork(ctx *context.APIContext) {
 				ctx.Error(http.StatusInternalServerError, "GetOrgByName", err)
 			}
 			return
-		}
-		isMember, err := org.IsOrgMember(ctx, ctx.Doer.ID)
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "IsOrgMember", err)
-			return
-		} else if !isMember {
-			ctx.Error(http.StatusForbidden, "isMemberNot", fmt.Sprintf("User is no Member of Organisation '%s'", org.Name))
-			return
-		}
-		if !ctx.IsUserSiteAdmin() {
-			canCreate, err := org.CanCreateOrgRepo(ctx, ctx.Doer.ID)
-			if err != nil {
-				ctx.Error(http.StatusInternalServerError, "CanCreateOrgRepo", err)
-				return
-			}
-			if !canCreate {
-				ctx.Error(http.StatusForbidden, "CanCreateOrgRepo", fmt.Sprintf("User is not allowed to create repos in Organisation '%s'", org.Name))
-				return
-			}
 		}
 		forker = org.AsUser()
 	}
@@ -165,7 +145,7 @@ func CreateFork(ctx *context.APIContext) {
 		name = *form.Name
 	}
 
-	fork, err := repo_service.ForkRepositoryAndUpdates(ctx, ctx.Doer, forker, repo_service.ForkRepoOptions{
+	fork, err := repo_service.ForkRepositoryAndUpdates(ctx, ctx.Doer(), forker, repo_service.ForkRepoOptions{
 		BaseRepo:    repo,
 		Name:        name,
 		Description: repo.Description,

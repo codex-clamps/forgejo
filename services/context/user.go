@@ -36,11 +36,11 @@ func UserIDAssignmentAPI() func(ctx *APIContext) {
 	return func(ctx *APIContext) {
 		userID := ctx.ParamsInt64(":user-id")
 
-		if ctx.IsSigned && ctx.Doer.ID == userID {
-			ctx.ContextUser = ctx.Doer
+		if ctx.IsSigned() && ctx.Doer().ID == userID {
+			ctx.SetUser(ctx.Doer())
 		} else {
 			var err error
-			ctx.ContextUser, err = user_model.GetUserByID(ctx, userID)
+			user, err := user_model.GetUserByID(ctx, userID)
 			if err != nil {
 				if user_model.IsErrUserNotExist(err) {
 					ctx.Error(http.StatusNotFound, "GetUserByID", err)
@@ -48,6 +48,7 @@ func UserIDAssignmentAPI() func(ctx *APIContext) {
 					ctx.Error(http.StatusInternalServerError, "GetUserByID", err)
 				}
 			}
+			ctx.SetUser(user)
 		}
 	}
 }
@@ -55,7 +56,7 @@ func UserIDAssignmentAPI() func(ctx *APIContext) {
 // UserAssignmentAPI returns a middleware to handle context-user assignment for api routes
 func UserAssignmentAPI() func(ctx *APIContext) {
 	return func(ctx *APIContext) {
-		ctx.ContextUser = userAssignment(ctx.Base, ctx.Doer, ctx.Error)
+		ctx.SetUser(userAssignment(ctx.Base, ctx.Doer(), ctx.Error))
 	}
 }
 

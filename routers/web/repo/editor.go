@@ -417,6 +417,7 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 			}
 			ctx.RenderWithErr(flashError, tplEditFile, &form)
 		}
+		return
 	}
 
 	if ctx.Repo.Repository.IsEmpty {
@@ -464,7 +465,7 @@ func DiffPreviewPost(ctx *context.Context) {
 		return
 	}
 
-	if diff.NumFiles == 0 {
+	if len(diff.Files) == 0 {
 		ctx.PlainText(http.StatusOK, ctx.Locale.TrString("repo.editor.no_changes_to_show"))
 		return
 	}

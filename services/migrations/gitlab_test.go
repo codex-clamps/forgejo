@@ -15,6 +15,9 @@ import (
 	"forgejo.org/models/unittest"
 	"forgejo.org/modules/json"
 	base "forgejo.org/modules/migration"
+	"forgejo.org/modules/setting"
+	"forgejo.org/modules/test"
+	"forgejo.org/services/migrations/allowlist"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -22,6 +25,8 @@ import (
 )
 
 func TestGitlabDownloadRepo(t *testing.T) {
+	defer test.MockVariableValueWithReset(&setting.Migrations.AllowLocalNetworks, true, func() { require.NoError(t, allowlist.Init()) })()
+
 	// If a GitLab access token is provided, this test will make HTTP requests to the live gitlab.com instance.
 	// When doing so, the responses from gitlab.com will be saved as test data files.
 	// If no access token is available, those cached responses will be used instead.
@@ -484,6 +489,8 @@ func TestGitlabDownloadRepo(t *testing.T) {
 }
 
 func TestGitlabSkippedIssueNumber(t *testing.T) {
+	defer test.MockVariableValueWithReset(&setting.Migrations.AllowLocalNetworks, true, func() { require.NoError(t, allowlist.Init()) })()
+
 	// If a GitLab access token is provided, this test will make HTTP requests to the live gitlab.com instance.
 	// When doing so, the responses from gitlab.com will be saved as test data files.
 	// If no access token is available, those cached responses will be used instead.
@@ -841,6 +848,8 @@ func TestCommentBodyParser(t *testing.T) {
 }
 
 func TestGitlabConfidential(t *testing.T) {
+	defer test.MockVariableValueWithReset(&setting.Migrations.AllowLocalNetworks, true, func() { require.NoError(t, allowlist.Init()) })()
+
 	// If a GitLab access token is provided, this test will make HTTP requests to the live gitlab.com instance.
 	// When doing so, the responses from gitlab.com will be saved as test data files.
 	// If no access token is available, those cached responses will be used instead.

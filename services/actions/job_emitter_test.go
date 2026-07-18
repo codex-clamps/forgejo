@@ -69,8 +69,8 @@ func Test_jobStatusResolver_Resolve(t *testing.T) {
 			},
 			want: map[int64]actions_model.Status{
 				// Resolve() does only one update pass and does not update jobs recursively. Therefore, job 3, which
-				// depends on 2, is not marked as skipped. It would only be marked as skipped if it depended on job 1.
-				2: actions_model.StatusSkipped,
+				// depends on 2, is not marked as waiting. It would only be marked as waiting if it depended on job 1.
+				2: actions_model.StatusWaiting,
 			},
 		},
 		{
@@ -136,7 +136,9 @@ jobs:
       - run: echo "should be skipped"
 `)},
 			},
-			want: map[int64]actions_model.Status{2: actions_model.StatusSkipped},
+			// Status goes to waiting for `prepareJobForEmitting` to evaluate `if`, even in default condition, so one
+			// codepath always handles this consistently.
+			want: map[int64]actions_model.Status{2: actions_model.StatusWaiting},
 		},
 		{
 			name: "unblocked workflow call outer job with success",
@@ -379,7 +381,7 @@ func (m *mockNotifier) ActionRunNowDone(ctx context.Context, run *actions_model.
 	m.calls = append(m.calls, &callArgsActionRunNowDone{run, priorStatus, lastRun})
 }
 
-func Test_tryHandleIncompleteMatrix(t *testing.T) {
+func Test_prepareJobForEmitting(t *testing.T) {
 	// Shouldn't get any decoding errors during this test -- pop them up from a log warning to a test fatal error.
 	defer test.MockVariableValue(&model.OnDecodeNodeError, func(node yaml.Node, out any, err error) {
 		t.Fatalf("Failed to decode node %v into %T: %v", node, out, err)
@@ -406,10 +408,6 @@ func Test_tryHandleIncompleteMatrix(t *testing.T) {
 		actionRunStatusChange         actions_model.Status
 	}{
 		{
-			name:     "not incomplete",
-			runJobID: 600,
-		},
-		{
 			name:        "matrix expanded to 3 new jobs",
 			runJobID:    601,
 			consumed:    true,
@@ -424,7 +422,7 @@ func Test_tryHandleIncompleteMatrix(t *testing.T) {
 		{
 			name:        "needs an incomplete job",
 			runJobID:    603,
-			errContains: "jobStatusResolver attempted to tryHandleIncompleteMatrix for a job (id=603) with an incomplete 'needs' job (id=604)",
+			errContains: "jobStatusResolver attempted to prepareJobForEmitting for a job (id=603) with an incomplete 'needs' job (id=604)",
 		},
 		{
 			name:                     "missing needs for strategy.matrix evaluation",
@@ -665,7 +663,7 @@ func Test_tryHandleIncompleteMatrix(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			defer unittest.OverrideFixtures("services/actions/Test_tryHandleIncompleteMatrix")()
+			defer unittest.OverrideFixtures("services/actions/Test_prepareJobForEmitting")()
 			require.NoError(t, unittest.PrepareTestDatabase())
 
 			notifier := &mockNotifier{}
@@ -706,7 +704,7 @@ func Test_tryHandleIncompleteMatrix(t *testing.T) {
 			jobsInRun, err := db.Find[actions_model.ActionRunJob](t.Context(), actions_model.FindRunJobOptions{RunID: blockedJob.RunID})
 			require.NoError(t, err)
 
-			behaviour, err := tryHandleIncompleteMatrix(t.Context(), blockedJob, jobsInRun)
+			behaviour, err := prepareJobForEmitting(t.Context(), blockedJob, jobsInRun)
 
 			if tt.errContains != "" {
 				require.ErrorContains(t, err, tt.errContains)
@@ -887,7 +885,7 @@ on:
     inputs:
       argument:
         type: string
-        
+
 jobs:
   reusable:
     runs-on: ubuntu-latest

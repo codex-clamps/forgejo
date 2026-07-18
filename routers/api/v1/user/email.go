@@ -32,7 +32,7 @@ func ListEmails(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	emails, err := user_model.GetEmailAddresses(ctx, ctx.Doer.ID)
+	emails, err := user_model.GetEmailAddresses(ctx, ctx.Doer().ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetEmailAddresses", err)
 		return
@@ -72,7 +72,7 @@ func AddEmail(ctx *context.APIContext) {
 		return
 	}
 
-	if err := user_service.AddEmailAddresses(ctx, ctx.Doer, form.Emails); err != nil {
+	if err := user_service.AddEmailAddresses(ctx, ctx.Doer(), form.Emails); err != nil {
 		if user_model.IsErrEmailAlreadyUsed(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", "Email address has been used: "+err.(user_model.ErrEmailAlreadyUsed).Email)
 		} else if validation.IsErrEmailInvalid(err) {
@@ -89,7 +89,7 @@ func AddEmail(ctx *context.APIContext) {
 		return
 	}
 
-	emails, err := user_model.GetEmailAddresses(ctx, ctx.Doer.ID)
+	emails, err := user_model.GetEmailAddresses(ctx, ctx.Doer().ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetEmailAddresses", err)
 		return
@@ -130,7 +130,7 @@ func DeleteEmail(ctx *context.APIContext) {
 		return
 	}
 
-	if err := user_service.DeleteEmailAddresses(ctx, ctx.Doer, form.Emails); err != nil {
+	if err := user_service.DeleteEmailAddresses(ctx, ctx.Doer(), form.Emails); err != nil {
 		if user_model.IsErrEmailAddressNotExist(err) {
 			ctx.Error(http.StatusNotFound, "DeleteEmailAddresses", err)
 		} else {

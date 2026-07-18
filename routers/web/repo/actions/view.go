@@ -169,20 +169,21 @@ type ViewState struct {
 }
 
 type ViewRunInfo struct {
-	Link              string        `json:"link"`
-	Title             string        `json:"title"`
-	TitleHTML         template.HTML `json:"titleHTML"`
-	Status            string        `json:"status"`
-	Description       string        `json:"description"`
-	CanCancel         bool          `json:"canCancel"`
-	CanApprove        bool          `json:"canApprove"` // the run needs an approval and the doer has permission to approve
-	CanRerun          bool          `json:"canRerun"`
-	CanDeleteArtifact bool          `json:"canDeleteArtifact"`
-	CanDelete         bool          `json:"canDelete"`
-	Done              bool          `json:"done"`
-	Jobs              []*ViewJob    `json:"jobs"`
-	Commit            ViewCommit    `json:"commit"`
-	PreExecutionError string        `json:"preExecutionError"`
+	Link                 string        `json:"link"`
+	Title                string        `json:"title"`
+	TitleHTML            template.HTML `json:"titleHTML"`
+	Status               string        `json:"status"`
+	Description          string        `json:"description"`
+	CanCancel            bool          `json:"canCancel"`
+	CanApprove           bool          `json:"canApprove"` // the run needs an approval and the doer has permission to approve
+	CanRerun             bool          `json:"canRerun"`
+	CanDeleteArtifact    bool          `json:"canDeleteArtifact"`
+	CanDelete            bool          `json:"canDelete"`
+	Done                 bool          `json:"done"`
+	Jobs                 []*ViewJob    `json:"jobs"`
+	Commit               ViewCommit    `json:"commit"`
+	PreExecutionError    string        `json:"preExecutionError"`
+	PreExecutionWarnings []string      `json:"preExecutionWarnings"`
 }
 
 type ViewCurrentJob struct {
@@ -303,6 +304,7 @@ func getViewResponse(ctx *app_context.Context, req *ViewRequest, runIndex, jobIn
 	resp.State.Run.Jobs = make([]*ViewJob, 0, len(jobs)) // marshal to '[]' instead of 'null' in json
 	resp.State.Run.Status = run.Status.String()
 	resp.State.Run.PreExecutionError = actions_model.TranslatePreExecutionError(ctx.Locale, run)
+	resp.State.Run.PreExecutionWarnings = actions_model.TranslatePreExecutionWarning(ctx.Locale, run)
 	resp.State.Run.Description = runDescription
 
 	// It's possible for the run to be marked with a finalized status (eg. failure) because of a  single job within the
@@ -907,4 +909,62 @@ func statusDiagnostics(status actions_model.Status, job *actions_model.ActionRun
 	}
 
 	return diagnostics
+}
+
+func PrioritizeRun(ctx *app_context.Context) { //nolint:dupl
+	run, err := actions_model.GetRunByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64("run"))
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.Error(http.StatusNotFound, err.Error())
+			return
+		}
+
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	if err = actions_service.PrioritizeRun(ctx, run); err != nil {
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	actor := ctx.FormInt64("actor")
+	page := ctx.FormInt("page")
+	status := ctx.FormInt("status")
+	selectedWorkflow := url.QueryEscape(ctx.FormString("workflow"))
+
+	redirectURL := fmt.Sprintf("%s/actions?actor=%d&page=%d&status=%d&workflow=%s",
+		ctx.Repo.RepoLink, actor, page, status, selectedWorkflow)
+
+	ctx.Flash.Success(ctx.Locale.Tr("actions.runs.prioritization_success", run.Index))
+	ctx.Redirect(redirectURL)
+}
+
+func DeprioritizeRun(ctx *app_context.Context) { //nolint:dupl
+	run, err := actions_model.GetRunByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64("run"))
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.Error(http.StatusNotFound, err.Error())
+			return
+		}
+
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	if err = actions_service.DeprioritizeRun(ctx, run); err != nil {
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	actor := ctx.FormInt64("actor")
+	page := ctx.FormInt("page")
+	status := ctx.FormInt("status")
+	selectedWorkflow := url.QueryEscape(ctx.FormString("workflow"))
+
+	redirectURL := fmt.Sprintf("%s/actions?actor=%d&page=%d&status=%d&workflow=%s",
+		ctx.Repo.RepoLink, actor, page, status, selectedWorkflow)
+
+	ctx.Flash.Success(ctx.Locale.Tr("actions.runs.deprioritization_success", run.Index))
+	ctx.Redirect(redirectURL)
 }

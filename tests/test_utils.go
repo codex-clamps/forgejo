@@ -376,6 +376,10 @@ var inTestEnv atomic.Bool
 func PrepareTestEnv(t testing.TB, skip ...int) func() {
 	deferFn := PrepareTestEnvWithPackageData(t, skip...)
 	PrepareCleanPackageData(t)
+
+	giteaRoot := base.SetupGiteaRoot()
+	setting.AppWorkPath = giteaRoot
+
 	return deferFn
 }
 

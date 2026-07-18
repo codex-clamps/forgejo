@@ -54,6 +54,7 @@ func ServNoCommand(ctx *context.PrivateContext) {
 		ctx.JSON(http.StatusBadRequest, private.Response{
 			UserMsg: fmt.Sprintf("Bad key id: %d", keyID),
 		})
+		return
 	}
 	results := private.KeyAndOwner{}
 

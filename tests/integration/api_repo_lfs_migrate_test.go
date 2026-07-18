@@ -14,7 +14,7 @@ import (
 	"forgejo.org/modules/lfs"
 	"forgejo.org/modules/setting"
 	api "forgejo.org/modules/structs"
-	"forgejo.org/services/migrations"
+	migrations_allowlist "forgejo.org/services/migrations/allowlist"
 	"forgejo.org/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -28,7 +28,7 @@ func TestAPIRepoLFSMigrateLocal(t *testing.T) {
 	oldAllowLocalNetworks := setting.Migrations.AllowLocalNetworks
 	setting.ImportLocalPaths = true
 	setting.Migrations.AllowLocalNetworks = true
-	require.NoError(t, migrations.Init())
+	require.NoError(t, migrations_allowlist.Init())
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	session := loginUser(t, user.Name)
@@ -51,5 +51,5 @@ func TestAPIRepoLFSMigrateLocal(t *testing.T) {
 
 	setting.ImportLocalPaths = oldImportLocalPaths
 	setting.Migrations.AllowLocalNetworks = oldAllowLocalNetworks
-	require.NoError(t, migrations.Init()) // reset old migration settings
+	require.NoError(t, migrations_allowlist.Init()) // reset old migration settings
 }

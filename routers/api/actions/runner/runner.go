@@ -166,27 +166,30 @@ func (s *Service) FetchTask(
 		// if the task version in request is not equal to the version in db,
 		// it means there may still be some tasks not be assigned.
 		// try to pick a task for the runner that send the request.
-		if t, ok, err := actions_service.PickTask(ctx, runner, requestKey, nil); err != nil {
-			log.Error("pick task failed: %v", err)
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("pick task: %w", err))
-		} else if ok {
+		if t, err := actions_service.PickTask(ctx, runner, requestKey, nil); err != nil {
+			if !(actions_service.IsNoTaskAvailable(err)) {
+				log.Error("pick task failed: %v", err)
+				return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("pick task: %w", err))
+			}
+		} else {
 			task = t
 
 			taskCapacity := req.Msg.GetTaskCapacity()
 			taskCapacity-- // remove 1 for the task already fetched as `task`
 			for taskCapacity > 0 {
-				if t, ok, err := actions_service.PickTask(ctx, runner, requestKey, nil); err != nil {
-					// Don't return an error to the client/runner -- we've already assigned one-or-more tasks to the runner
-					// and if we don't return them, they can't be picked up by another runner and will become zombie tasks.
-					// Log the error and return the tasks we've assigned so far.
-					log.Error("pick task failed: %v", err)
-					break
-				} else if ok {
-					additionalTasks = append(additionalTasks, t)
-					taskCapacity--
-				} else {
+				t, err := actions_service.PickTask(ctx, runner, requestKey, nil)
+				if err != nil {
+					if !(actions_service.IsNoTaskAvailable(err)) {
+						// Don't return an error to the client/runner -- we've already assigned one-or-more tasks to the runner
+						// and if we don't return them, they can't be picked up by another runner and will become zombie tasks.
+						// Log the error and return the tasks we've assigned so far.
+						log.Error("pick task failed: %v", err)
+					}
 					break
 				}
+
+				additionalTasks = append(additionalTasks, t)
+				taskCapacity--
 			}
 		}
 	}
@@ -233,10 +236,12 @@ func (s *Service) FetchSingleTask(
 			handle = req.Msg.Handle
 		}
 
-		if t, ok, err := actions_service.PickTask(ctx, runner, requestKey, handle); err != nil {
-			log.Error("pick task failed: %v", err)
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("pick task: %w", err))
-		} else if ok {
+		if t, err := actions_service.PickTask(ctx, runner, requestKey, handle); err != nil {
+			if !(actions_service.IsNoTaskAvailable(err)) {
+				log.Error("pick task failed: %v", err)
+				return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("pick task: %w", err))
+			}
+		} else {
 			task = t
 		}
 	}

@@ -44,6 +44,7 @@ export async function initRepositoryActionView() {
       viewingOutOfDateRun: el.getAttribute('data-locale-viewing-out-of-date-run'),
       viewMostRecentRun: el.getAttribute('data-locale-view-most-recent-run'),
       preExecutionError: el.getAttribute('data-locale-pre-execution-error'),
+      preExecutionWarning: el.getAttribute('data-locale-pre-execution-warning'),
       status: {
         unknown: el.getAttribute('data-locale-status-unknown'),
         waiting: el.getAttribute('data-locale-status-waiting'),

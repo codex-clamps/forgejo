@@ -98,7 +98,11 @@ func InitCfgProvider(file string) {
 
 func MustInstalled() {
 	if !InstallLock {
-		log.Fatal(`Unable to load config file for a installed Forgejo instance, you should either use "--config" to set your config file (app.ini), or run "forgejo web" command to install Forgejo.`)
+		log.Fatal(`
+Unable to load a config file for an installed Forgejo instance.
+If you have installed Forgejo already, you might need to provide the path to your config file via the "--config" option.
+If you haven't installed Forgejo already, please run "forgejo web" command first to finish the installation.
+`)
 	}
 }
 

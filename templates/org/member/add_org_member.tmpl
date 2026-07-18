@@ -11,7 +11,13 @@
 
 <dialog id="add-member-modal">
 	<article>
-		<header>{{ctx.Locale.Tr "members.add_member"}}</header>
+		<header>
+			{{if $.AddMembersByInvitations}}
+				{{ctx.Locale.Tr "members.invite_member"}}
+			{{else}}
+				{{ctx.Locale.Tr "members.add_member"}}
+			{{end}}
+		</header>
 		<form class="ui add-member form ignore-dirty" action="{{$.OrgLink}}/members/action/add" method="post">
 			<input type="hidden" name="uid" value="{{.SignedUser.ID}}">
 			<div class="content">
@@ -49,7 +55,13 @@
 				{{svg "octicon-x"}}
 				{{ctx.Locale.Tr "cancel"}}
 			</button>
-			<button class="primary ok button" type="submit">{{ctx.Locale.Tr "members.add_member"}}</button>
+			<button class="primary ok button" type="submit">
+				{{if $.AddMembersByInvitations}}
+					{{ctx.Locale.Tr "members.invite_member"}}
+				{{else}}
+					{{ctx.Locale.Tr "members.add_member"}}
+				{{end}}
+			</button>
 		</div>
 	</article>
 </dialog>

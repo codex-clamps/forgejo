@@ -76,5 +76,6 @@
 	"notification.unread": "Непрочитано",
 	"notification.read": "Прочитано",
 	"notification.no_unread": "Нема непрочитани нотификации.",
-	"notification.no_read": "Нема прочитени нотификации."
+	"notification.no_read": "Нема прочитени нотификации.",
+	"repo.files.filename": "Име на фајл"
 }

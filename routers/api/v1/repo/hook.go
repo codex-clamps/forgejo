@@ -55,7 +55,7 @@ func ListHooks(ctx *context.APIContext) {
 
 	opts := &webhook.ListWebhookOptions{
 		ListOptions: utils.GetListOptions(ctx),
-		RepoID:      ctx.Repo.Repository.ID,
+		RepoID:      ctx.Repo().Repository.ID,
 	}
 
 	hooks, count, err := db.FindAndCount[webhook.Webhook](ctx, opts)
@@ -66,7 +66,7 @@ func ListHooks(ctx *context.APIContext) {
 
 	apiHooks := make([]*api.Hook, len(hooks))
 	for i := range hooks {
-		apiHooks[i], err = webhook_service.ToHook(ctx.Repo.RepoLink, hooks[i])
+		apiHooks[i], err = webhook_service.ToHook(ctx.Repo().RepoLink, hooks[i])
 		if err != nil {
 			ctx.InternalServerError(err)
 			return
@@ -107,7 +107,7 @@ func GetHook(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	repo := ctx.Repo
+	repo := ctx.Repo()
 	hookID := ctx.ParamsInt64(":id")
 	hook, err := utils.GetRepoHook(ctx, repo.Repository.ID, hookID)
 	if err != nil {
@@ -156,37 +156,37 @@ func TestHook(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if ctx.Repo.Commit == nil {
+	if ctx.Repo().Commit == nil {
 		// if repo does not have any commits, then don't send a webhook
 		ctx.Status(http.StatusNoContent)
 		return
 	}
 
-	ref := git.BranchPrefix + ctx.Repo.Repository.DefaultBranch
+	ref := git.BranchPrefix + ctx.Repo().Repository.DefaultBranch
 	if r := ctx.FormTrim("ref"); r != "" {
 		ref = r
 	}
 
 	hookID := ctx.ParamsInt64(":id")
-	hook, err := utils.GetRepoHook(ctx, ctx.Repo.Repository.ID, hookID)
+	hook, err := utils.GetRepoHook(ctx, ctx.Repo().Repository.ID, hookID)
 	if err != nil {
 		return
 	}
 
-	commit := convert.ToPayloadCommit(ctx, ctx.Repo.Repository, ctx.Repo.Commit)
+	commit := convert.ToPayloadCommit(ctx, ctx.Repo().Repository, ctx.Repo().Commit)
 
-	commitID := ctx.Repo.Commit.ID.String()
+	commitID := ctx.Repo().Commit.ID.String()
 	if err := webhook_service.PrepareTestWebhook(ctx, hook, &api.PushPayload{
 		Ref:          ref,
 		Before:       commitID,
 		After:        commitID,
-		CompareURL:   setting.AppURL + ctx.Repo.Repository.ComposeCompareURL(commitID, commitID),
+		CompareURL:   setting.AppURL + ctx.Repo().Repository.ComposeCompareURL(commitID, commitID),
 		Commits:      []*api.PayloadCommit{commit},
 		TotalCommits: 1,
 		HeadCommit:   commit,
-		Repo:         convert.ToRepo(ctx, ctx.Repo.Repository, access_model.Permission{AccessMode: perm.AccessModeNone}),
-		Pusher:       convert.ToUserWithAccessMode(ctx, ctx.Doer, perm.AccessModeNone),
-		Sender:       convert.ToUserWithAccessMode(ctx, ctx.Doer, perm.AccessModeNone),
+		Repo:         convert.ToRepo(ctx, ctx.Repo().Repository, access_model.Permission{AccessMode: perm.AccessModeNone}),
+		Pusher:       convert.ToUserWithAccessMode(ctx, ctx.Doer(), perm.AccessModeNone),
+		Sender:       convert.ToUserWithAccessMode(ctx, ctx.Doer(), perm.AccessModeNone),
 	}); err != nil {
 		ctx.Error(http.StatusInternalServerError, "PrepareWebhook: ", err)
 		return
@@ -295,7 +295,7 @@ func DeleteHook(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	if err := webhook.DeleteWebhookByRepoID(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":id")); err != nil {
+	if err := webhook.DeleteWebhookByRepoID(ctx, ctx.Repo().Repository.ID, ctx.ParamsInt64(":id")); err != nil {
 		if webhook.IsErrWebhookNotExist(err) {
 			ctx.NotFound()
 		} else {

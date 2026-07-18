@@ -148,7 +148,7 @@ func actionsTrustTestRequireRun(t *testing.T, repo *repo_model.Repository, modif
 
 	actionRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: repo.ID, CommitSHA: modifiedFiles.Commit.SHA})
 	require.Equal(t, actions_module.GithubEventPullRequest, actionRun.TriggerEvent)
-	require.Equal(t, actions_model.StatusWaiting.String(), actionRun.Status.String())
+	require.Equal(t, actions_model.StatusBlocked.String(), actionRun.Status.String())
 	unittest.BeanExists(t, &actions_model.ActionRunJob{RunID: actionRun.ID, RepoID: repo.ID})
 }
 
@@ -625,7 +625,7 @@ func TestActionsPullRequestTrustPushCancel(t *testing.T) {
 		{
 			actionRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: baseRepo.ID, CommitSHA: addFileToForkedResp.Commit.SHA})
 			assert.True(t, actionRun.NeedApproval)
-			assert.Equal(t, actions_model.StatusWaiting, actionRun.Status)
+			assert.Equal(t, actions_model.StatusBlocked, actionRun.Status)
 			actionRunJob := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: actionRun.ID, RepoID: baseRepo.ID})
 			assert.Equal(t, actions_model.StatusBlocked, actionRunJob.Status)
 		}
@@ -645,7 +645,7 @@ func TestActionsPullRequestTrustPushCancel(t *testing.T) {
 
 			otherActionRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: baseRepo.ID, CommitSHA: otherFileInForkResp.Commit.SHA})
 			assert.True(t, otherActionRun.NeedApproval)
-			assert.Equal(t, actions_model.StatusWaiting, otherActionRun.Status)
+			assert.Equal(t, actions_model.StatusBlocked, otherActionRun.Status)
 			otherActionRunJob := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: otherActionRun.ID, RepoID: baseRepo.ID})
 			assert.Equal(t, actions_model.StatusBlocked, otherActionRunJob.Status)
 		}

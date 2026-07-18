@@ -1,4 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
+// Copyright 2024 The Forgejo Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package integration
@@ -52,6 +53,14 @@ func TestOrgRepos(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestPublicOrgHome(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	// Verify that in org pages, default theme get properly assigned to guest users
+	page := NewHTMLParser(t, MakeRequest(t, NewRequest(t, "GET", "/org41"), http.StatusOK).Body)
+	page.AssertElement(t, "html head link[rel='stylesheet'][href^='/assets/css/theme-forgejo-auto.css']", true)
 }
 
 func TestLimitedOrg(t *testing.T) {

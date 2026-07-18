@@ -284,23 +284,31 @@ func TestAPIGetComment(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: comment.Issue.RepoID})
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
-	token := getUserToken(t, repoOwner.Name, auth_model.AccessTokenScopeReadIssue)
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/comments/%d", repoOwner.Name, repo.Name, comment.ID)
-	MakeRequest(t, req, http.StatusOK)
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/comments/%d", repoOwner.Name, repo.Name, comment.ID).
-		AddTokenAuth(token)
-	resp := MakeRequest(t, req, http.StatusOK)
 
-	var apiComment api.Comment
-	DecodeJSON(t, resp, &apiComment)
+	t.Run("Poster is a known user", func(t *testing.T) {
+		resp := MakeRequest(t, req, http.StatusOK)
 
-	require.NoError(t, comment.LoadPoster(db.DefaultContext))
-	expect := convert.ToAPIComment(db.DefaultContext, repo, comment)
+		var apiComment api.Comment
+		DecodeJSON(t, resp, &apiComment)
 
-	assert.Equal(t, expect.ID, apiComment.ID)
-	assert.Equal(t, expect.Poster.FullName, apiComment.Poster.FullName)
-	assert.Equal(t, expect.Body, apiComment.Body)
-	assert.Equal(t, expect.Created.Unix(), apiComment.Created.Unix())
+		require.NoError(t, comment.LoadPoster(db.DefaultContext))
+		expect := convert.ToAPIComment(db.DefaultContext, repo, comment)
+
+		assert.Equal(t, expect.ID, apiComment.ID)
+		assert.Equal(t, expect.Poster.FullName, apiComment.Poster.FullName)
+		assert.Equal(t, expect.Body, apiComment.Body)
+		assert.Equal(t, expect.Created.Unix(), apiComment.Created.Unix())
+	})
+
+	t.Run("Poster is Ghost because the user was deleted", func(t *testing.T) {
+		unittest.AssertSuccessfulDelete(t, &user_model.User{ID: comment.PosterID})
+		resp := MakeRequest(t, req, http.StatusOK)
+		var apiComment api.Comment
+		DecodeJSON(t, resp, &apiComment)
+		ghostUser := user_model.NewGhostUser()
+		assert.Equal(t, ghostUser.ID, apiComment.Poster.ID)
+	})
 }
 
 func TestAPIGetSystemUserComment(t *testing.T) {

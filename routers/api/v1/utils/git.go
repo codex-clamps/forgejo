@@ -36,12 +36,12 @@ func ResolveRefOrSha(ctx *context.APIContext, ref string) string {
 		}
 	}
 
-	sha = MustConvertToSHA1(ctx, ctx.Repo, sha)
+	sha = MustConvertToSHA1(ctx, ctx.Repo(), sha)
 
-	if ctx.Repo.GitRepo != nil {
-		err := ctx.Repo.GitRepo.AddLastCommitCache(ctx.Repo.Repository.GetCommitsCountCacheKey(ref, ref != sha), ctx.Repo.Repository.FullName(), sha)
+	if ctx.Repo().GitRepo != nil {
+		err := ctx.Repo().GitRepo.AddLastCommitCache(ctx.Repo().Repository.GetCommitsCountCacheKey(ref, ref != sha), ctx.Repo().Repository.FullName(), sha)
 		if err != nil {
-			log.Error("Unable to get commits count for %s in %s. Error: %v", sha, ctx.Repo.Repository.FullName(), err)
+			log.Error("Unable to get commits count for %s in %s. Error: %v", sha, ctx.Repo().Repository.FullName(), err)
 		}
 	}
 
@@ -50,13 +50,13 @@ func ResolveRefOrSha(ctx *context.APIContext, ref string) string {
 
 // GetGitRefs return git references based on filter
 func GetGitRefs(ctx *context.APIContext, filter string) ([]*git.Reference, string, error) {
-	if ctx.Repo.GitRepo == nil {
+	if ctx.Repo().GitRepo == nil {
 		return nil, "", errors.New("no open git repo found in context")
 	}
 	if len(filter) > 0 {
 		filter = "refs/" + filter
 	}
-	refs, err := ctx.Repo.GitRepo.GetRefsFiltered(filter)
+	refs, err := ctx.Repo().GitRepo.GetRefsFiltered(filter)
 	return refs, "GetRefsFiltered", err
 }
 

@@ -644,19 +644,9 @@ func (repo *Repository) getCommitFromBatchReader(rd *bufio.Reader, id ObjectID) 
 	}
 }
 
-// ConvertToGitID returns a GitHash object from a potential ID string
+// ConvertToGitID returns a ObjectID object from a potential ID string
+// The resulting ObjectID is guaranteed to exist.
 func (repo *Repository) ConvertToGitID(commitID string) (ObjectID, error) {
-	objectFormat, err := repo.GetObjectFormat()
-	if err != nil {
-		return nil, err
-	}
-	if len(commitID) == objectFormat.FullLength() && objectFormat.IsValid(commitID) {
-		ID, err := NewIDFromString(commitID)
-		if err == nil {
-			return ID, nil
-		}
-	}
-
 	wr, rd, cancel, err := repo.CatFileBatchCheck(repo.Ctx)
 	if err != nil {
 		return nil, err

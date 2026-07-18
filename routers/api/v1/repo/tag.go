@@ -57,7 +57,7 @@ func ListTags(ctx *context.APIContext) {
 	listOpts := utils.GetListOptions(ctx)
 	listOpts.SetDefaultValues()
 
-	tags, total, err := ctx.Repo.GitRepo.GetTagInfos(listOpts.Page, listOpts.PageSize)
+	tags, total, err := ctx.Repo().GitRepo.GetTagInfos(listOpts.Page, listOpts.PageSize)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetTags", err)
 		return
@@ -65,7 +65,7 @@ func ListTags(ctx *context.APIContext) {
 
 	apiTags := make([]*api.Tag, len(tags))
 	for i := range tags {
-		convertedTag, err := convert.ToTag(ctx, ctx.Repo.Repository, tags[i])
+		convertedTag, err := convert.ToTag(ctx, ctx.Repo().Repository, tags[i])
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "ToTag", err)
 			return
@@ -114,15 +114,16 @@ func GetAnnotatedTag(ctx *context.APIContext) {
 		return
 	}
 
-	if tag, err := ctx.Repo.GitRepo.GetAnnotatedTag(sha); err != nil {
+	if tag, err := ctx.Repo().GitRepo.GetAnnotatedTag(sha); err != nil {
 		ctx.Error(http.StatusBadRequest, "GetAnnotatedTag", err)
 	} else {
-		commit, err := tag.Commit(ctx.Repo.GitRepo)
+		commit, err := tag.Commit(ctx.Repo().GitRepo)
 		if err != nil {
 			ctx.Error(http.StatusBadRequest, "GetAnnotatedTag", err)
+			return
 		}
 
-		convertedAnnotatedTag, err := convert.ToAnnotatedTag(ctx, ctx.Repo.GitRepo, ctx.Repo.Repository, tag, commit)
+		convertedAnnotatedTag, err := convert.ToAnnotatedTag(ctx, ctx.Repo().GitRepo, ctx.Repo().Repository, tag, commit)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "ToAnnotatedTag", err)
 			return
@@ -162,13 +163,13 @@ func GetTag(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	tagName := ctx.Params("*")
 
-	tag, err := ctx.Repo.GitRepo.GetTag(tagName)
+	tag, err := ctx.Repo().GitRepo.GetTag(tagName)
 	if err != nil {
 		ctx.NotFound(tagName)
 		return
 	}
 
-	convertedTag, err := convert.ToTag(ctx, ctx.Repo.Repository, tag)
+	convertedTag, err := convert.ToTag(ctx, ctx.Repo().Repository, tag)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ToTag", err)
 		return
@@ -218,16 +219,16 @@ func CreateTag(ctx *context.APIContext) {
 
 	// If target is not provided use default branch
 	if len(form.Target) == 0 {
-		form.Target = ctx.Repo.Repository.DefaultBranch
+		form.Target = ctx.Repo().Repository.DefaultBranch
 	}
 
-	commit, err := ctx.Repo.GitRepo.GetCommit(form.Target)
+	commit, err := ctx.Repo().GitRepo.GetCommit(form.Target)
 	if err != nil {
 		ctx.Error(http.StatusNotFound, "target not found", fmt.Errorf("target not found: %w", err))
 		return
 	}
 
-	if err := release_service.CreateNewTag(ctx, ctx.Doer, ctx.Repo.Repository, commit.ID.String(), form.TagName, form.Message); err != nil {
+	if err := release_service.CreateNewTag(ctx, ctx.Doer(), ctx.Repo().Repository, commit.ID.String(), form.TagName, form.Message); err != nil {
 		if models.IsErrTagAlreadyExists(err) {
 			ctx.Error(http.StatusConflict, "tag exist", err)
 			return
@@ -241,13 +242,13 @@ func CreateTag(ctx *context.APIContext) {
 		return
 	}
 
-	tag, err := ctx.Repo.GitRepo.GetTag(form.TagName)
+	tag, err := ctx.Repo().GitRepo.GetTag(form.TagName)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
 
-	convertedTag, err := convert.ToTag(ctx, ctx.Repo.Repository, tag)
+	convertedTag, err := convert.ToTag(ctx, ctx.Repo().Repository, tag)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ToTag", err)
 		return
@@ -294,7 +295,7 @@ func DeleteTag(ctx *context.APIContext) {
 	//     "$ref": "#/responses/repoArchivedError"
 	tagName := ctx.Params("*")
 
-	tag, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, tagName)
+	tag, err := repo_model.GetRelease(ctx, ctx.Repo().Repository.ID, tagName)
 	if err != nil {
 		if repo_model.IsErrReleaseNotExist(err) {
 			ctx.NotFound()
@@ -309,7 +310,7 @@ func DeleteTag(ctx *context.APIContext) {
 		return
 	}
 
-	if err = release_service.DeleteReleaseByID(ctx, ctx.Repo.Repository, tag, ctx.Doer, true); err != nil {
+	if err = release_service.DeleteReleaseByID(ctx, ctx.Repo().Repository, tag, ctx.Doer(), true); err != nil {
 		if models.IsErrProtectedTagName(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "delTag", "user not allowed to delete protected tag")
 			return
@@ -343,7 +344,7 @@ func ListTagProtection(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/TagProtectionList"
 
-	repo := ctx.Repo.Repository
+	repo := ctx.Repo().Repository
 	pts, err := git_model.GetProtectedTags(ctx, repo.ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetProtectedTags", err)
@@ -387,7 +388,7 @@ func GetTagProtection(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	repo := ctx.Repo.Repository
+	repo := ctx.Repo().Repository
 	id := ctx.ParamsInt64(":id")
 	pt, err := git_model.GetProtectedTagByID(ctx, id)
 	if err != nil {
@@ -440,7 +441,7 @@ func CreateTagProtection(ctx *context.APIContext) {
 	//     "$ref": "#/responses/repoArchivedError"
 
 	form := web.GetForm(ctx).(*api.CreateTagProtectionOption)
-	repo := ctx.Repo.Repository
+	repo := ctx.Repo().Repository
 
 	namePattern := strings.TrimSpace(form.NamePattern)
 	if namePattern == "" {
@@ -550,7 +551,7 @@ func EditTagProtection(ctx *context.APIContext) {
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
 
-	repo := ctx.Repo.Repository
+	repo := ctx.Repo().Repository
 	form := web.GetForm(ctx).(*api.EditTagProtectionOption)
 
 	id := ctx.ParamsInt64(":id")
@@ -648,7 +649,7 @@ func DeleteTagProtection(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	repo := ctx.Repo.Repository
+	repo := ctx.Repo().Repository
 	id := ctx.ParamsInt64(":id")
 	pt, err := git_model.GetProtectedTagByID(ctx, id)
 	if err != nil {

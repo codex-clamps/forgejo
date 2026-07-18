@@ -40,7 +40,7 @@ func UpdateAvatar(ctx *context.APIContext) {
 		return
 	}
 
-	err = user_service.UploadAvatar(ctx, ctx.Doer, content)
+	err = user_service.UploadAvatar(ctx, ctx.Doer(), content)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "UploadAvatar", err)
 		return
@@ -63,7 +63,7 @@ func DeleteAvatar(ctx *context.APIContext) {
 	//     "$ref": "#/responses/unauthorized"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
-	err := user_service.DeleteAvatar(ctx, ctx.Doer)
+	err := user_service.DeleteAvatar(ctx, ctx.Doer())
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteAvatar", err)
 		return

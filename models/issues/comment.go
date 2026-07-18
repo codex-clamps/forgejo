@@ -1424,7 +1424,8 @@ func DeleteComment(ctx context.Context, comment *Comment) error {
 		return err
 	}
 
-	return DeleteReaction(ctx, &ReactionOptions{CommentID: comment.ID})
+	_, err := DeleteReaction(ctx, &ReactionOptions{CommentID: comment.ID})
+	return err
 }
 
 // UpdateCommentsMigrationsByType updates comments' migrations information via given git service type and original id and poster id

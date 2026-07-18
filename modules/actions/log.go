@@ -173,7 +173,12 @@ func TransferLogs(ctx context.Context, filename string) (func(), error) {
 	return remove, nil
 }
 
+// RemoveLogs deletes the log file with the given filename. Returns an error if filename is empty.
 func RemoveLogs(ctx context.Context, inStorage bool, filename string) error {
+	if filename == "" {
+		return errors.New("cannot remove logs because filename is empty")
+	}
+
 	if !inStorage {
 		name := DBFSPrefix + filename
 		err := dbfs.Remove(ctx, name)

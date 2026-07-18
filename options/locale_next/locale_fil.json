@@ -26,7 +26,6 @@
 	"admin.config.git.mirror_timeout": "Timeout ng pag-update ng mirror",
 	"admin.config.git.migrate_timeout": "Timeout ng paglipat",
 	"admin.config.git.gc_args": "Mga argument ng GC",
-	"admin.config.git.diff.max_files": "Pinakamataas na mga diff file na ipapakita",
 	"admin.config.git.diff.max_line_characters": "Pinakamataas na mga character ng diff bawat linya",
 	"admin.config.git.diff.max_lines": "Pinakamataas na mga linya ng diff bawat file",
 	"admin.config.git.disable_diff_highlight": "I-disable ang diff syntax highlighting",
@@ -729,7 +728,6 @@
 	"repo.view.gitmodules_too_large": "Masyadong malaki ang .gitmodules file at hindi ito papansinin (hal. para sa API call)",
 	"install.ssh_authorized_keys_inspection_error": "Nabigong suriin ang umiiral na authroized_keys file: %v",
 	"install.ssh_authorized_keys_unexpected_key": "Sumasalungat sa file na nakalagay sa %s ng mga umiiral na SSH key ang pag-enable ng SSH para sa Forgejo. Mga mungkahi: gumamit ng dedikadong system user para sa Forgejo, o I-disable ang SSH.",
-	"actions.secrets.creation.name_description": "Maaari lamang maglaman ng mga letra, numero, at underscore ang pangalan. Hindi maaaring magsimula sa FORGEJO_, GITEA_, GITHUB_, o isang numero. Awtomatikong iko-convert ng Forgejo sa uppercase.",
 	"actions.secrets.creation.value_description": "Maaaring anumang teksto ang value ng sikreto. Pinapanatili ang mga espesyal na karakter. Awtomatikong kino-convert ang mga CRLF (Windows-style na line break) sa LF. I-encode ang value sa Base64 kung dapat panatilihin ang mga line break.",
 	"actions.variables.mutation.name_description": "Maaari lamang maglaman ng mga letra, numero, at underscore ang pangalan ng variable. Hindi maaaring magsimula sa FORGEJO_, GITEA_, GITHUB_, o isang numero. Awtomatikong iko-convert ng Forgejo sa uppercase.",
 	"actions.variables.mutation.value_description": "Maaaring anumang teksto ang value ng variable. Pinapanatili ang mga espesyal na karakter. Awtomatikong kino-convert ang mga CRLF (Windows-style na line break) sa LF. I-encode ang value sa Base64 kung dapat panatilihin ang mga line break.",
@@ -786,11 +784,7 @@
 	"actions.runners.edit_runner_button": "I-edit ang runner",
 	"actions.runners.create_runner.page_title": "Gumawa ng bagong runner",
 	"actions.runners.create_runner.title": "Gumawa ng bagong runner",
-	"actions.runners.create_runner.properties_fieldset": "Mga property",
-	"actions.runners.create_runner.name_label": "Pangalan",
-	"actions.runners.create_runner.description_label": "Paglalarawan",
 	"actions.runners.create_runner.create_button": "Gumawa",
-	"actions.runners.create_runner.cancel_button": "Kanselahin",
 	"actions.runners.edit_runner.page_title": "I-edit ang runner na %s",
 	"actions.runners.edit_runner.title": "I-edit ang runner na %s",
 	"actions.runners.edit_runner.properties_fieldset": "Mga property",
@@ -802,5 +796,14 @@
 	"actions.runners.edit_runner.save_button": "I-save",
 	"actions.runners.edit_runner.cancel_button": "Kanselahin",
 	"actions.runners.runner_setup.title": "I-set up ang runner na %s",
-	"actions.runners.show_registration_token": "Ipakita ang token ng pagrehistro"
+	"actions.runners.show_registration_token": "Ipakita ang token ng pagrehistro",
+	"repo.files.caption": "Mga file sa repositoryo (pinakabagong commit muna)",
+	"repo.files.filename": "Pangalan ng file",
+	"repo.files.last_commit_message": "Pinakabagong commit message",
+	"repo.files.last_commit_date": "Petsa ng pinakabagong commit",
+	"repo.packages.visibility_warning": "Pribado ang repositoryong ito, pero publiko ang mga naka-link na package (publiko ang %s).",
+	"migrate.in_progress.issues.progress": {
+		"one": "Na-migrate ang %[1] isyu",
+		"other": "Na-migrate ang %[1] (na) isyu"
+	}
 }

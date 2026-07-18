@@ -5414,7 +5414,7 @@
           },
           {
             "type": "boolean",
-            "description": "include template repositories this user has access to (defaults to true)",
+            "description": "show only template, non-template or all repositories (defaults to all)",
             "name": "template",
             "in": "query"
           },
@@ -8339,6 +8339,20 @@
             "name": "basehead",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "boolean",
+            "default": true,
+            "description": "include verification status for each commit",
+            "name": "verification",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "default": true,
+            "description": "include which files changed by a commit",
+            "name": "files",
+            "in": "query"
           }
         ],
         "responses": {
@@ -25306,7 +25320,7 @@
           "x-go-name": "Description"
         },
         "gitignores": {
-          "description": "Gitignores to use",
+          "description": "Gitignores to use, separated by commas",
           "type": "string",
           "x-go-name": "Gitignores"
         },

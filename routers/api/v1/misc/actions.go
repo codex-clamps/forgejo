@@ -26,7 +26,7 @@ func GetActionsRun(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ActionRun"
-	hasTaskID, taskID := ctx.Authentication.ActionsTaskID().Get()
+	hasTaskID, taskID := ctx.Authentication().ActionsTaskID().Get()
 	if !hasTaskID {
 		ctx.Error(http.StatusForbidden, "", "must use an automatic actions token")
 		return
@@ -48,5 +48,5 @@ func GetActionsRun(ctx *context.APIContext) {
 		ctx.ServerError("LoadAttributes", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToActionRun(ctx, task.Job.Run, ctx.Doer))
+	ctx.JSON(http.StatusOK, convert.ToActionRun(ctx, task.Job.Run, ctx.Doer()))
 }

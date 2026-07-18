@@ -130,6 +130,7 @@ func generateIDToken(ctx *IDTokenContext) {
 	err := json.Unmarshal(inrec, &claims)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "Error generating token")
+		return
 	}
 	now := time.Now()
 
@@ -143,6 +144,7 @@ func generateIDToken(ctx *IDTokenContext) {
 	signedToken, err := jwtSigningKey.JWT(claims)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "Error signing token")
+		return
 	}
 
 	resp := IDTokenResponse{

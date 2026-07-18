@@ -4,12 +4,14 @@
 package actions
 
 import (
+	"context"
 	"testing"
 	"time"
 
 	actions_model "forgejo.org/models/actions"
 	"forgejo.org/models/unit"
 	"forgejo.org/models/unittest"
+	"forgejo.org/modules/test"
 	"forgejo.org/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
@@ -57,6 +59,12 @@ func TestRerun_RerunAllJobs(t *testing.T) {
 		defer unittest.OverrideFixtures("services/actions/TestRerun_RerunAllJobs")()
 		require.NoError(t, unittest.PrepareTestDatabase())
 
+		var recalculateRepoTarget *int64
+		defer test.MockVariableValue(&recalculateRunPriorities, func(_ context.Context, repoID int64) error {
+			recalculateRepoTarget = &repoID
+			return nil
+		})()
+
 		run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: 455620})
 
 		unittest.AssertCount(t, &actions_model.ActionArtifact{RunID: run.ID}, 1)
@@ -67,12 +75,16 @@ func TestRerun_RerunAllJobs(t *testing.T) {
 		rerunJobs, err := RerunAllJobs(t.Context(), run)
 		require.NoError(t, err)
 
+		assert.Equal(t, &run.RepoID, recalculateRepoTarget)
+
 		run = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: 455620})
 
 		assert.Equal(t, actions_model.StatusWaiting, run.Status)
 		assert.Equal(t, timeutil.TimeStamp(0), run.Started)
 		assert.Equal(t, timeutil.TimeStamp(0), run.Stopped)
 		assert.Equal(t, 11*time.Second, run.PreviousDuration)
+		assert.Equal(t, actions_model.DefaultRunPriority, run.Priority)
+		assert.False(t, run.Prioritize)
 
 		assert.Len(t, rerunJobs, 2)
 		assert.Equal(t, int64(683880), rerunJobs[0].ID)
@@ -170,6 +182,12 @@ func TestRerun_RerunJob(t *testing.T) {
 		defer unittest.OverrideFixtures("services/actions/TestRerun_RerunJob")()
 		require.NoError(t, unittest.PrepareTestDatabase())
 
+		var recalculateRepoTarget *int64
+		defer test.MockVariableValue(&recalculateRunPriorities, func(_ context.Context, repoID int64) error {
+			recalculateRepoTarget = &repoID
+			return nil
+		})()
+
 		job := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: 683910})
 		run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: job.RunID})
 
@@ -183,11 +201,11 @@ func TestRerun_RerunJob(t *testing.T) {
 		}, 0)
 
 		rerunJobs, err := RerunJob(t.Context(), job)
-
 		require.NoError(t, err)
 
 		assert.Len(t, rerunJobs, 1)
 		assert.Equal(t, job.ID, rerunJobs[0].ID)
+		assert.Equal(t, &run.RepoID, recalculateRepoTarget)
 
 		job = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: 683910})
 		run = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: job.RunID})
@@ -201,6 +219,8 @@ func TestRerun_RerunJob(t *testing.T) {
 		assert.Zero(t, run.Started)
 		assert.Zero(t, run.Stopped)
 		assert.Equal(t, 86*time.Second, run.PreviousDuration)
+		assert.Equal(t, actions_model.DefaultRunPriority, run.Priority)
+		assert.False(t, run.Prioritize)
 
 		unittest.AssertCount(t, &actions_model.ActionArtifact{
 			RunID: job.RunID, Status: int64(actions_model.ArtifactStatusPendingDeletion),
@@ -406,5 +426,7 @@ func TestRerun_RerunJob(t *testing.T) {
 		assert.Equal(t, timeutil.TimeStamp(1776331635), run.Started)
 		assert.Zero(t, run.Stopped)
 		assert.Zero(t, run.PreviousDuration)
+		assert.Equal(t, actions_model.MaxRunPriority, run.Priority)
+		assert.True(t, run.Prioritize)
 	})
 }

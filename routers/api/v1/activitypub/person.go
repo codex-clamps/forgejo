@@ -38,7 +38,7 @@ func Person(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/ActivityPub"
 
-	person, err := convert.ToActivityPubPerson(ctx, ctx.ContextUser)
+	person, err := convert.ToActivityPubPerson(ctx, ctx.User())
 	if err != nil {
 		ctx.ServerError("convert.ToActivityPubPerson", err)
 		return
@@ -76,7 +76,7 @@ func PersonInbox(ctx *context.APIContext) {
 
 	form := web.GetForm(ctx)
 	activity := form.(*ap.Activity)
-	result, err := federation.ProcessPersonInbox(ctx, ctx.ContextUser, activity)
+	result, err := federation.ProcessPersonInbox(ctx, ctx.User(), activity)
 	if err != nil {
 		ctx.Error(federation.HTTPStatus(err), "PersonInbox", err)
 		return
@@ -107,15 +107,15 @@ func PersonFeed(ctx *context.APIContext) {
 	opts := activities.GetFollowingFeedsOptions{
 		ListOptions: listOptions,
 	}
-	items, count, err := activities.GetFollowingFeeds(ctx, ctx.ContextUser.ID, opts)
+	items, count, err := activities.GetFollowingFeeds(ctx, ctx.User().ID, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetFollowingFeeds", err)
 		return
 	}
 	ctx.SetTotalCountHeader(count)
 
-	feed := ap.OrderedCollectionNew(ap.IRI(ctx.ContextUser.APActorID() + "/outbox"))
-	feed.AttributedTo = ap.IRI(ctx.ContextUser.APActorID())
+	feed := ap.OrderedCollectionNew(ap.IRI(ctx.User().APActorID() + "/outbox"))
+	feed.AttributedTo = ap.IRI(ctx.User().APActorID())
 	for _, item := range items {
 		if err := feed.OrderedItems.Append(convert.ToActivityPubPersonFeedItem(item)); err != nil {
 			ctx.Error(http.StatusInternalServerError, "OrderedItems.Append", err)
@@ -143,7 +143,7 @@ func getActivity(ctx *context.APIContext, id int64) (*forgefed.ForgeUserActivity
 		return nil, err
 	}
 
-	if action.UserID != action.ActUserID || action.ActUserID != ctx.ContextUser.ID {
+	if action.UserID != action.ActUserID || action.ActUserID != ctx.User().ID {
 		ctx.NotFound()
 		return nil, err
 	}

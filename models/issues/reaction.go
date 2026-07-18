@@ -270,7 +270,7 @@ func CreateReaction(ctx context.Context, opts *ReactionOptions) (*Reaction, erro
 }
 
 // DeleteReaction deletes reaction for issue or comment.
-func DeleteReaction(ctx context.Context, opts *ReactionOptions) error {
+func DeleteReaction(ctx context.Context, opts *ReactionOptions) (*Reaction, error) {
 	reaction := &Reaction{
 		Type:      opts.Type,
 		UserID:    opts.DoerID,
@@ -285,11 +285,11 @@ func DeleteReaction(ctx context.Context, opts *ReactionOptions) error {
 	}
 
 	_, err := sess.Delete(reaction)
-	return err
+	return reaction, err
 }
 
 // DeleteIssueReaction deletes a reaction on issue.
-func DeleteIssueReaction(ctx context.Context, doerID, issueID int64, content string) error {
+func DeleteIssueReaction(ctx context.Context, doerID, issueID int64, content string) (*Reaction, error) {
 	return DeleteReaction(ctx, &ReactionOptions{
 		Type:      content,
 		DoerID:    doerID,
@@ -299,7 +299,7 @@ func DeleteIssueReaction(ctx context.Context, doerID, issueID int64, content str
 }
 
 // DeleteCommentReaction deletes a reaction on comment.
-func DeleteCommentReaction(ctx context.Context, doerID, issueID, commentID int64, content string) error {
+func DeleteCommentReaction(ctx context.Context, doerID, issueID, commentID int64, content string) (*Reaction, error) {
 	return DeleteReaction(ctx, &ReactionOptions{
 		Type:      content,
 		DoerID:    doerID,

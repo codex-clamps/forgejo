@@ -41,7 +41,7 @@ func QuotaGroupAssignmentAPI() func(ctx *APIContext) {
 			ctx.NotFound()
 			return
 		}
-		ctx.QuotaGroup = group
+		ctx.quotaGroup = group
 	}
 }
 
@@ -58,7 +58,7 @@ func QuotaRuleAssignmentAPI() func(ctx *APIContext) {
 			ctx.NotFound()
 			return
 		}
-		ctx.QuotaRule = rule
+		ctx.quotaRule = rule
 	}
 }
 
@@ -168,11 +168,11 @@ func (ctx *Context) GetQuotaTargetUserName(target QuotaTargetType) string {
 func (ctx *APIContext) GetQuotaTargetUserID(target QuotaTargetType) int64 {
 	switch target {
 	case QuotaTargetUser:
-		return ctx.Doer.ID
+		return ctx.Doer().ID
 	case QuotaTargetRepo:
-		return ctx.Repo.Repository.OwnerID
+		return ctx.Repo().Repository.OwnerID
 	case QuotaTargetOrg:
-		return ctx.Org.Organization.ID
+		return ctx.Org().Organization.ID
 	default:
 		return 0
 	}
@@ -181,11 +181,11 @@ func (ctx *APIContext) GetQuotaTargetUserID(target QuotaTargetType) int64 {
 func (ctx *APIContext) GetQuotaTargetUserName(target QuotaTargetType) string {
 	switch target {
 	case QuotaTargetUser:
-		return ctx.Doer.Name
+		return ctx.Doer().Name
 	case QuotaTargetRepo:
-		return ctx.Repo.Repository.Owner.Name
+		return ctx.Repo().Repository.Owner.Name
 	case QuotaTargetOrg:
-		return ctx.Org.Organization.Name
+		return ctx.Org().Organization.Name
 	default:
 		return ""
 	}

@@ -17,6 +17,8 @@
   previous_duration: 0
   created: 1776263479
   updated: 1776279265
+  priority: 127
+  prioritize: true
 
 - id: 455630
   title: Running workflow

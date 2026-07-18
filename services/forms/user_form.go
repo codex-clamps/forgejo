@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	auth_model "forgejo.org/models/auth"
-	"forgejo.org/modules/setting"
 	"forgejo.org/modules/structs"
 	"forgejo.org/modules/validation"
 	"forgejo.org/modules/web/middleware"
@@ -289,20 +288,6 @@ type UpdateThemeForm struct {
 func (f *UpdateThemeForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
-// IsThemeExists checks if the theme is available in the config.
-func (f UpdateThemeForm) IsThemeExists() bool {
-	var exists bool
-
-	for _, v := range setting.UI.Themes {
-		if strings.EqualFold(v, f.Theme) {
-			exists = true
-			break
-		}
-	}
-
-	return exists
 }
 
 // ChangePasswordForm form for changing password

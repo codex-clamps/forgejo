@@ -22,3 +22,21 @@ test('toAbsoluteLocaleDate', () => {
   expect(new Date('2024-03-15').toLocaleString('en-US')).toEqual('3/14/2024, 8:00:00 PM');
   expect(toAbsoluteLocaleDate('2024-03-15', 'en-US')).toEqual('3/15/2024, 12:00:00 AM');
 });
+
+test('absolute-date structure', () => {
+  const element = document.createElement('absolute-date');
+  element.setAttribute('date', '2026-06-16T00:00:00Z');
+  element.setAttribute('year', 'numeric');
+
+  document.body.append(element);
+
+  const shadowRoot = element.shadowRoot;
+  const childSpan = shadowRoot.querySelector('span');
+
+  expect(shadowRoot).toBeTruthy(); // verifies if isolated open shadow root exists
+  expect(childSpan).toBeTruthy(); // verifies that a clean <span> tag was spawned
+  expect(childSpan.getAttribute('part')).toBe('absolute-date'); // verifies the CSS styling hook bridge
+  expect(childSpan.textContent).toContain('2026'); // verifies that the date string outputs
+
+  element.remove();// clean up DOM env
+});

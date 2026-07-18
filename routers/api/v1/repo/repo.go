@@ -90,7 +90,7 @@ func Search(ctx *context.APIContext) {
 	//   type: boolean
 	// - name: template
 	//   in: query
-	//   description: include template repositories this user has access to (defaults to true)
+	//   description: show only template, non-template or all repositories (defaults to all)
 	//   type: boolean
 	// - name: archived
 	//   in: query
@@ -134,14 +134,14 @@ func Search(ctx *context.APIContext) {
 
 	// Note that ctx.Resource's `RepoFilter()` will be added below, which may implement a PAT's scope to only display
 	// public repos regardless of the request for private repos in the API call.
-	private := ctx.IsSigned && (ctx.FormString("private") == "" || ctx.FormBool("private"))
-	if ctx.PublicOnly {
+	private := ctx.IsSigned() && (ctx.FormString("private") == "" || ctx.FormBool("private"))
+	if ctx.PublicOnly() {
 		private = false
 	}
 
 	opts := &repo_model.SearchRepoOptions{
 		ListOptions:        utils.GetListOptions(ctx),
-		Actor:              ctx.Doer,
+		Actor:              ctx.Doer(),
 		Keyword:            ctx.FormTrim("q"),
 		OwnerID:            ctx.FormInt64("uid"),
 		PriorityOwnerID:    ctx.FormInt64("priority_owner_id"),
@@ -153,7 +153,7 @@ func Search(ctx *context.APIContext) {
 		StarredByID:        ctx.FormInt64("starredBy"),
 		IncludeDescription: ctx.FormBool("includeDesc"),
 
-		AuthorizationReducer: ctx.Reducer,
+		AuthorizationReducer: ctx.Reducer(),
 	}
 
 	if ctx.FormString("template") != "" {
@@ -228,7 +228,7 @@ func Search(ctx *context.APIContext) {
 			})
 			return
 		}
-		permission, err := access_model.GetUserRepoPermissionWithReducer(ctx, repo, ctx.Doer, ctx.Reducer)
+		permission, err := access_model.GetUserRepoPermissionWithReducer(ctx, repo, ctx.Doer(), ctx.Reducer())
 		if err != nil {
 			ctx.JSON(http.StatusInternalServerError, api.SearchError{
 				OK:    false,
@@ -265,7 +265,7 @@ func CreateUserRepo(ctx *context.APIContext, owner *user_model.User, opt api.Cre
 		return
 	}
 
-	repo, err := repo_service.CreateRepository(ctx, ctx.Doer, owner, repo_service.CreateRepoOptions{
+	repo, err := repo_service.CreateRepository(ctx, ctx.Doer(), owner, repo_service.CreateRepoOptions{
 		Name:             opt.Name,
 		Description:      opt.Description,
 		IssueLabels:      opt.IssueLabels,
@@ -296,6 +296,7 @@ func CreateUserRepo(ctx *context.APIContext, owner *user_model.User, opt api.Cre
 	repo, err = repo_model.GetRepositoryByID(ctx, repo.ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetRepositoryByID", err)
+		return
 	}
 
 	ctx.JSON(http.StatusCreated, convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeOwner}))
@@ -331,12 +332,12 @@ func Create(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 	opt := web.GetForm(ctx).(*api.CreateRepoOption)
-	if ctx.Doer.IsOrganization() {
+	if ctx.Doer().IsOrganization() {
 		// Shouldn't reach this condition, but just in case.
 		ctx.Error(http.StatusUnprocessableEntity, "", "not allowed creating repository for organization")
 		return
 	}
-	CreateUserRepo(ctx, ctx.Doer, *opt)
+	CreateUserRepo(ctx, ctx.Doer(), *opt)
 }
 
 // Generate Create a repository using a template
@@ -378,12 +379,12 @@ func Generate(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	form := web.GetForm(ctx).(*api.GenerateRepoOption)
 
-	if !ctx.Repo.Repository.IsTemplate {
+	if !ctx.Repo().Repository.IsTemplate {
 		ctx.Error(http.StatusUnprocessableEntity, "", "this is not a template repo")
 		return
 	}
 
-	if ctx.Doer.IsOrganization() {
+	if ctx.Doer().IsOrganization() {
 		ctx.Error(http.StatusUnprocessableEntity, "", "not allowed creating repository for organization")
 		return
 	}
@@ -407,7 +408,7 @@ func Generate(ctx *context.APIContext) {
 		return
 	}
 
-	targetOwner := ctx.Doer
+	targetOwner := ctx.Doer()
 	var err error
 	if form.Owner != targetOwner.Name {
 		targetOwner, err = user_model.GetUserByName(ctx, form.Owner)
@@ -429,7 +430,7 @@ func Generate(ctx *context.APIContext) {
 		}
 
 		if !ctx.IsUserSiteAdmin() {
-			canCreate, err := organization.OrgFromUser(targetOwner).CanCreateOrgRepo(ctx, ctx.Doer.ID)
+			canCreate, err := organization.OrgFromUser(targetOwner).CanCreateOrgRepo(ctx, ctx.Doer().ID)
 			if err != nil {
 				ctx.ServerError("CanCreateOrgRepo", err)
 				return
@@ -454,7 +455,7 @@ func Generate(ctx *context.APIContext) {
 		return
 	}
 
-	repo, err := repo_service.GenerateRepository(ctx, ctx.Doer, targetOwner, ctx.Repo.Repository, opts)
+	repo, err := repo_service.GenerateRepository(ctx, ctx.Doer(), targetOwner, ctx.Repo().Repository, opts)
 	if err != nil {
 		if repo_model.IsErrRepoAlreadyExist(err) {
 			ctx.Error(http.StatusConflict, "", "The repository with the same name already exists.")
@@ -543,13 +544,13 @@ func CreateOrgRepo(ctx *context.APIContext) {
 		return
 	}
 
-	if !organization.HasOrgOrUserVisible(ctx, org.AsUser(), ctx.Doer) {
+	if !organization.HasOrgOrUserVisible(ctx, org.AsUser(), ctx.Doer()) {
 		ctx.NotFound("HasOrgOrUserVisible", nil)
 		return
 	}
 
 	if !ctx.IsUserSiteAdmin() {
-		canCreate, err := org.CanCreateOrgRepo(ctx, ctx.Doer.ID)
+		canCreate, err := org.CanCreateOrgRepo(ctx, ctx.Doer().ID)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "CanCreateOrgRepo", err)
 			return
@@ -585,12 +586,12 @@ func Get(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if err := ctx.Repo.Repository.LoadAttributes(ctx); err != nil {
+	if err := ctx.Repo().Repository.LoadAttributes(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "Repository.LoadAttributes", err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToRepo(ctx, ctx.Repo.Repository, ctx.Repo.Permission))
+	ctx.JSON(http.StatusOK, convert.ToRepo(ctx, ctx.Repo().Repository, ctx.Repo().Permission))
 }
 
 // GetByID returns a single Repository
@@ -623,7 +624,7 @@ func GetByID(ctx *context.APIContext) {
 		return
 	}
 
-	permission, err := access_model.GetUserRepoPermissionWithReducer(ctx, repo, ctx.Doer, ctx.Reducer)
+	permission, err := access_model.GetUserRepoPermissionWithReducer(ctx, repo, ctx.Doer(), ctx.Reducer())
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserRepoPermissionWithReducer", err)
 		return
@@ -673,7 +674,7 @@ func Edit(ctx *context.APIContext) {
 		return
 	}
 
-	if err := updateRepoUnits(ctx, ctx.Repo.Owner.Name, ctx.Repo.Repository, opts); err != nil {
+	if err := updateRepoUnits(ctx, ctx.Repo().Owner.Name, ctx.Repo().Repository, opts); err != nil {
 		return
 	}
 
@@ -689,13 +690,13 @@ func Edit(ctx *context.APIContext) {
 		}
 	}
 
-	repo, err := repo_model.GetRepositoryByID(ctx, ctx.Repo.Repository.ID)
+	repo, err := repo_model.GetRepositoryByID(ctx, ctx.Repo().Repository.ID)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToRepo(ctx, repo, ctx.Repo.Permission))
+	ctx.JSON(http.StatusOK, convert.ToRepo(ctx, repo, ctx.Repo().Permission))
 }
 
 // Convert converts a mirror to a normal repo
@@ -730,26 +731,26 @@ func Convert(ctx *context.APIContext) {
 		return
 	}
 
-	repo, err := repo_model.GetRepositoryByID(ctx, ctx.Repo.Repository.ID)
+	repo, err := repo_model.GetRepositoryByID(ctx, ctx.Repo().Repository.ID)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToRepo(ctx, repo, ctx.Repo.Permission))
+	ctx.JSON(http.StatusOK, convert.ToRepo(ctx, repo, ctx.Repo().Permission))
 }
 
 // updateBasicProperties updates the basic properties of a repo: Name, Description, Website and Visibility
 func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) error {
-	owner := ctx.Repo.Owner
-	repo := ctx.Repo.Repository
+	owner := ctx.Repo().Owner
+	repo := ctx.Repo().Repository
 	newRepoName := repo.Name
 	if opts.Name != nil {
 		newRepoName = *opts.Name
 	}
 	// Check if repository name has been changed and not just a case change
 	if repo.LowerName != strings.ToLower(newRepoName) {
-		if err := repo_service.ChangeRepositoryName(ctx, ctx.Doer, repo, newRepoName); err != nil {
+		if err := repo_service.ChangeRepositoryName(ctx, ctx.Doer(), repo, newRepoName); err != nil {
 			switch {
 			case repo_model.IsErrRepoAlreadyExist(err):
 				ctx.Error(http.StatusUnprocessableEntity, fmt.Sprintf("repo name is already taken [name: %s]", newRepoName), err)
@@ -763,7 +764,7 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 			return err
 		}
 
-		log.Trace("Repository name changed: %s/%s -> %s", ctx.Repo.Owner.Name, repo.Name, newRepoName)
+		log.Trace("Repository name changed: %s/%s -> %s", ctx.Repo().Owner.Name, repo.Name, newRepoName)
 	}
 	// Update the name in the repo object for the response
 	repo.Name = newRepoName
@@ -803,20 +804,20 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 		repo.IsTemplate = *opts.Template
 	}
 
-	if ctx.Repo.GitRepo == nil && !repo.IsEmpty {
+	if ctx.Repo().GitRepo == nil && !repo.IsEmpty {
 		var err error
-		ctx.Repo.GitRepo, err = gitrepo.OpenRepository(ctx, repo)
+		ctx.Repo().GitRepo, err = gitrepo.OpenRepository(ctx, repo)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "Unable to OpenRepository", err)
 			return err
 		}
-		defer ctx.Repo.GitRepo.Close()
+		defer ctx.Repo().GitRepo.Close()
 	}
 
 	// Default branch only updated if changed and exist or the repository is empty
-	if opts.DefaultBranch != nil && repo.DefaultBranch != *opts.DefaultBranch && (repo.IsEmpty || ctx.Repo.GitRepo.IsBranchExist(*opts.DefaultBranch)) {
+	if opts.DefaultBranch != nil && repo.DefaultBranch != *opts.DefaultBranch && (repo.IsEmpty || ctx.Repo().GitRepo.IsBranchExist(*opts.DefaultBranch)) {
 		if !repo.IsEmpty {
-			if err := gitrepo.SetDefaultBranch(ctx, ctx.Repo.Repository, *opts.DefaultBranch); err != nil {
+			if err := gitrepo.SetDefaultBranch(ctx, ctx.Repo().Repository, *opts.DefaultBranch); err != nil {
 				ctx.Error(http.StatusInternalServerError, "SetDefaultBranch", err)
 				return err
 			}
@@ -1115,7 +1116,7 @@ func updateRepoUnits(ctx *context.APIContext, owner string, repo *repo_model.Rep
 
 // updateRepoArchivedState updates repo's archive state
 func updateRepoArchivedState(ctx *context.APIContext, opts api.EditRepoOption) error {
-	repo := ctx.Repo.Repository
+	repo := ctx.Repo().Repository
 	// archive / un-archive
 	if opts.Archived != nil {
 		if repo.IsMirror {
@@ -1130,21 +1131,21 @@ func updateRepoArchivedState(ctx *context.APIContext, opts api.EditRepoOption) e
 				return err
 			}
 			if err := actions_service.CleanRepoScheduleTasks(ctx, repo, true); err != nil {
-				log.Error("CleanRepoScheduleTasks for archived repo %s/%s: %v", ctx.Repo.Owner.Name, repo.Name, err)
+				log.Error("CleanRepoScheduleTasks for archived repo %s/%s: %v", ctx.Repo().Owner.Name, repo.Name, err)
 			}
-			log.Trace("Repository was archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
+			log.Trace("Repository was archived: %s/%s", ctx.Repo().Owner.Name, repo.Name)
 		} else {
 			if err := repo_model.SetArchiveRepoState(ctx, repo, *opts.Archived); err != nil {
 				log.Error("Tried to un-archive a repo: %s", err)
 				ctx.Error(http.StatusInternalServerError, "ArchiveRepoState", err)
 				return err
 			}
-			if ctx.Repo.Repository.UnitEnabled(ctx, unit_model.TypeActions) {
+			if ctx.Repo().Repository.UnitEnabled(ctx, unit_model.TypeActions) {
 				if err := actions_service.DetectAndHandleSchedules(ctx, repo); err != nil {
-					log.Error("DetectAndHandleSchedules for un-archived repo %s/%s: %v", ctx.Repo.Owner.Name, repo.Name, err)
+					log.Error("DetectAndHandleSchedules for un-archived repo %s/%s: %v", ctx.Repo().Owner.Name, repo.Name, err)
 				}
 			}
-			log.Trace("Repository was un-archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
+			log.Trace("Repository was un-archived: %s/%s", ctx.Repo().Owner.Name, repo.Name)
 		}
 	}
 	return nil
@@ -1152,7 +1153,7 @@ func updateRepoArchivedState(ctx *context.APIContext, opts api.EditRepoOption) e
 
 // updateMirror updates a repo's mirror Interval and EnablePrune
 func updateMirror(ctx *context.APIContext, opts api.EditRepoOption) error {
-	repo := ctx.Repo.Repository
+	repo := ctx.Repo().Repository
 
 	// Skip this update if the repo is not a mirror, do not return error.
 	// Because reporting errors only makes the logic more complex&fragile, it doesn't really help end users.
@@ -1209,7 +1210,7 @@ func updateMirror(ctx *context.APIContext, opts api.EditRepoOption) error {
 
 // convertMirrorToNormalRepository converts a mirror to a normal repo
 func convertMirrorToNormalRepo(ctx *context.APIContext) error {
-	repo := ctx.Repo.Repository
+	repo := ctx.Repo().Repository
 
 	if !repo.IsMirror {
 		err := errors.New("Repository is not a mirror")
@@ -1252,10 +1253,10 @@ func Delete(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	owner := ctx.Repo.Owner
-	repo := ctx.Repo.Repository
+	owner := ctx.Repo().Owner
+	repo := ctx.Repo().Repository
 
-	canDelete, err := repo_module.CanUserDelete(ctx, repo, ctx.Doer)
+	canDelete, err := repo_module.CanUserDelete(ctx, repo, ctx.Doer())
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "CanUserDelete", err)
 		return
@@ -1264,11 +1265,11 @@ func Delete(ctx *context.APIContext) {
 		return
 	}
 
-	if ctx.Repo.GitRepo != nil {
-		ctx.Repo.GitRepo.Close()
+	if ctx.Repo().GitRepo != nil {
+		ctx.Repo().GitRepo.Close()
 	}
 
-	if err := repo_service.DeleteRepository(ctx, ctx.Doer, repo, true); err != nil {
+	if err := repo_service.DeleteRepository(ctx, ctx.Doer(), repo, true); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteRepository", err)
 		return
 	}
@@ -1300,7 +1301,7 @@ func GetIssueTemplates(ctx *context.APIContext) {
 	//     "$ref": "#/responses/IssueTemplates"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	ret, _ := issue.GetTemplatesFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
+	ret, _ := issue.GetTemplatesFromDefaultBranch(ctx.Repo().Repository, ctx.Repo().GitRepo)
 	ctx.JSON(http.StatusOK, ret)
 }
 
@@ -1327,7 +1328,7 @@ func GetIssueConfig(ctx *context.APIContext) {
 	//     "$ref": "#/responses/RepoIssueConfig"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	issueConfig, _ := issue.GetTemplateConfigFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
+	issueConfig, _ := issue.GetTemplateConfigFromDefaultBranch(ctx.Repo().Repository, ctx.Repo().GitRepo)
 	ctx.JSON(http.StatusOK, issueConfig)
 }
 
@@ -1354,7 +1355,7 @@ func ValidateIssueConfig(ctx *context.APIContext) {
 	//     "$ref": "#/responses/RepoIssueConfigValidation"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	_, err := issue.GetTemplateConfigFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
+	_, err := issue.GetTemplateConfigFromDefaultBranch(ctx.Repo().Repository, ctx.Repo().GitRepo)
 
 	if err == nil {
 		ctx.JSON(http.StatusOK, api.IssueConfigValidation{Valid: true, Message: ""})
@@ -1402,9 +1403,9 @@ func ListRepoActivityFeeds(ctx *context.APIContext) {
 	listOptions := utils.GetListOptions(ctx)
 
 	opts := activities_model.GetFeedsOptions{
-		RequestedRepo:        ctx.Repo.Repository,
+		RequestedRepo:        ctx.Repo().Repository,
 		OnlyPerformedByActor: true,
-		Actor:                ctx.Doer,
+		Actor:                ctx.Doer(),
 		IncludePrivate:       true,
 		Date:                 ctx.FormString("date"),
 		ListOptions:          listOptions,
@@ -1417,5 +1418,5 @@ func ListRepoActivityFeeds(ctx *context.APIContext) {
 	}
 	ctx.SetTotalCountHeader(count)
 
-	ctx.JSON(http.StatusOK, convert.ToActivities(ctx, feeds, ctx.Doer))
+	ctx.JSON(http.StatusOK, convert.ToActivities(ctx, feeds, ctx.Doer()))
 }

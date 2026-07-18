@@ -34,6 +34,10 @@ func (info *FuncInfo) String() string {
 	return fmt.Sprintf("%s:%d(%s)", info.shortFile, info.line, info.shortName)
 }
 
+func GetFuncShortName(fn any) string {
+	return GetFuncInfo(fn).shortName
+}
+
 // GetFuncInfo returns the FuncInfo for a provided function and friendlyname
 func GetFuncInfo(fn any, friendlyName ...string) *FuncInfo {
 	// ptr represents the memory position of the function passed in as v.

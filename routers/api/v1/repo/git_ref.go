@@ -90,11 +90,11 @@ func getGitRefsInternal(ctx *context.APIContext, filter string) {
 	for i := range refs {
 		apiRefs[i] = &api.Reference{
 			Ref: refs[i].Name,
-			URL: ctx.Repo.Repository.APIURL() + "/git/" + util.PathEscapeSegments(refs[i].Name),
+			URL: ctx.Repo().Repository.APIURL() + "/git/" + util.PathEscapeSegments(refs[i].Name),
 			Object: &api.GitObject{
 				SHA:  refs[i].Object.String(),
 				Type: refs[i].Type,
-				URL:  ctx.Repo.Repository.APIURL() + "/git/" + url.PathEscape(refs[i].Type) + "s/" + url.PathEscape(refs[i].Object.String()),
+				URL:  ctx.Repo().Repository.APIURL() + "/git/" + url.PathEscape(refs[i].Type) + "s/" + url.PathEscape(refs[i].Object.String()),
 			},
 		}
 	}

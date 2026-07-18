@@ -29,6 +29,7 @@ import (
 	"forgejo.org/services/convert"
 	"forgejo.org/services/forms"
 	"forgejo.org/services/migrations"
+	migrations_allowlist "forgejo.org/services/migrations/allowlist"
 	notify_service "forgejo.org/services/notify"
 	repo_service "forgejo.org/services/repository"
 )
@@ -71,7 +72,7 @@ func Migrate(ctx *context.APIContext) {
 	} else if form.RepoOwnerID != 0 {
 		repoOwner, err = user_model.GetUserByID(ctx, form.RepoOwnerID)
 	} else {
-		repoOwner = ctx.Doer
+		repoOwner = ctx.Doer()
 	}
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
@@ -92,14 +93,14 @@ func Migrate(ctx *context.APIContext) {
 	}
 
 	if !ctx.IsUserSiteAdmin() {
-		if !repoOwner.IsOrganization() && ctx.Doer.ID != repoOwner.ID {
+		if !repoOwner.IsOrganization() && ctx.Doer().ID != repoOwner.ID {
 			ctx.Error(http.StatusForbidden, "", "Given user is not an organization.")
 			return
 		}
 
 		if repoOwner.IsOrganization() {
 			// Check ownership of organization.
-			isOwner, err := organization.OrgFromUser(repoOwner).IsOwnedBy(ctx, ctx.Doer.ID)
+			isOwner, err := organization.OrgFromUser(repoOwner).IsOwnedBy(ctx, ctx.Doer().ID)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "IsOwnedBy", err)
 				return
@@ -112,7 +113,7 @@ func Migrate(ctx *context.APIContext) {
 
 	remoteAddr, err := forms.ParseRemoteAddr(form.CloneAddr, form.AuthUsername, form.AuthPassword)
 	if err == nil {
-		err = migrations.IsMigrateURLAllowed(remoteAddr, ctx.Doer)
+		err = migrations_allowlist.IsMigrateURLAllowed(remoteAddr, ctx.Doer())
 	}
 	if err != nil {
 		handleRemoteAddrError(ctx, err)
@@ -139,7 +140,7 @@ func Migrate(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "", ctx.Tr("repo.migrate.invalid_lfs_endpoint"))
 			return
 		}
-		err = migrations.IsMigrateURLAllowed(ep.String(), ctx.Doer)
+		err = migrations_allowlist.IsMigrateURLAllowed(ep.String(), ctx.Doer())
 		if err != nil {
 			handleRemoteAddrError(ctx, err)
 			return
@@ -176,7 +177,7 @@ func Migrate(ctx *context.APIContext) {
 		opts.Releases = false
 	}
 
-	repo, err := repo_service.CreateRepositoryDirectly(ctx, ctx.Doer, repoOwner, repo_service.CreateRepoOptions{
+	repo, err := repo_service.CreateRepositoryDirectly(ctx, ctx.Doer(), repoOwner, repo_service.CreateRepoOptions{
 		Name:           opts.RepoName,
 		Description:    opts.Description,
 		OriginalURL:    form.CloneAddr,
@@ -200,7 +201,7 @@ func Migrate(ctx *context.APIContext) {
 		}
 
 		if err == nil {
-			notify_service.MigrateRepository(ctx, ctx.Doer, repoOwner, repo)
+			notify_service.MigrateRepository(ctx, ctx.Doer(), repoOwner, repo)
 			return
 		}
 
@@ -211,7 +212,7 @@ func Migrate(ctx *context.APIContext) {
 		}
 	}()
 
-	if repo, err = migrations.MigrateRepository(graceful.GetManager().HammerContext(), ctx.Doer, repoOwner.Name, opts, nil); err != nil {
+	if repo, err = migrations.MigrateRepository(graceful.GetManager().HammerContext(), ctx.Doer(), repoOwner.Name, opts, nil); err != nil {
 		handleMigrateError(ctx, repoOwner, err)
 		return
 	}

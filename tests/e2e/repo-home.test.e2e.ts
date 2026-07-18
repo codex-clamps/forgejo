@@ -58,7 +58,7 @@ test('Branch selector commit icon', async ({page}) => {
   await expect(page.locator('.branch-dropdown-button')).toHaveText('65f1bf27bc');
 });
 
-test('Star button focus retention', async ({page}) => {
+test('Star and unstar', async ({page}) => {
   const response = await page.goto('/user2/repo1');
   expect(response?.status()).toBe(200);
 
@@ -68,4 +68,51 @@ test('Star button focus retention', async ({page}) => {
   await expect(
     page.locator('button[aria-label="Star"]:focus, button[aria-label="Unstar"]:focus'),
   ).toBeVisible();
+
+  expect(page.url()).not.toContain('/star');
+  expect(page.url()).not.toContain('/unstar');
+
+  await starButton.click();
+  expect(page.url()).not.toContain('/star');
+  expect(page.url()).not.toContain('/unstar');
+});
+
+test('Watch/unwatch button URL retention', async ({page}) => {
+  const response = await page.goto('/user2/repo1');
+  expect(response?.status()).toBe(200);
+
+  const watchDropdown = page.locator('details.dropdown#watch-button');
+  const watchSummary = watchDropdown.locator('summary');
+  const watchMenu = watchDropdown.locator('.content');
+
+  // Open the dropdown
+  await watchSummary.click();
+  await expect(watchMenu).toBeVisible();
+
+  // Select PRs
+  const prsCheckbox = watchMenu.locator('input[name="watch_pull_requests"]');
+  await prsCheckbox.click();
+
+  // Save
+  const saveButton = watchMenu.locator('button:has-text("Save")');
+  await saveButton.isVisible();
+  await saveButton.click();
+
+  // Wait for menu to disappear
+  await expect(watchMenu).toBeHidden();
+  expect(page.url()).not.toContain('/watch');
+  expect(page.url()).not.toContain('/unwatch');
+
+  // Open the dropdown once more
+  await watchSummary.click();
+  await expect(watchMenu).toBeVisible();
+
+  // Unwatch
+  const unwatchButton = watchMenu.locator('button:has-text("Unwatch")');
+  await unwatchButton.click();
+
+  // Wait for menu to disappear
+  await expect(watchMenu).toBeHidden();
+  expect(page.url()).not.toContain('/watch');
+  expect(page.url()).not.toContain('/unwatch');
 });

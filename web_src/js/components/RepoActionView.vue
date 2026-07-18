@@ -90,6 +90,7 @@ export default {
         canDelete: false,
         done: false,
         preExecutionError: '',
+        preExecutioWarnings: [], // array of strings
         jobs: [
           // {
           //   id: 0,
@@ -201,6 +202,10 @@ export default {
         return this.viewingAttempt.status_diagnostics;
       }
       return this.currentJob.details;
+    },
+
+    hasWarnings() {
+      return this.run.preExecutionWarnings && this.run.preExecutionWarnings.length > 0;
     },
   },
 
@@ -519,6 +524,13 @@ export default {
           {{ locale.preExecutionError }}
         </div>
         {{ run.preExecutionError }}
+      </div>
+      <div class="ui warning message pre-execution-error" v-if="hasWarnings">
+        <div class="header">
+          {{ locale.preExecutionWarning }}
+        </div>
+        <!-- eslint-disable-next-line vue/no-v-html -->
+        <div v-for="warning in run.preExecutionWarnings" :key="warning" v-html="warning"/>
       </div>
     </div>
     <div class="action-view-body">

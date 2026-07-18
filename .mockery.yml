@@ -7,6 +7,9 @@ packages:
   forgejo.org/services/auth:
     config:
       filename: mocks.go # make mocks public so that external packages can use
+  forgejo.org/services/notify:
+    config:
+      filename: mocks.go # make mocks public so that external packages can use
   forgejo.org/services/authz:
     config:
       filename: authorization_reducer_mock.go # make mocks public so that external packages can use

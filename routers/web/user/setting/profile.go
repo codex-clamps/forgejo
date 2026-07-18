@@ -355,7 +355,7 @@ func UpdateUIThemePost(ctx *context.Context) {
 		return
 	}
 
-	if !form.IsThemeExists() {
+	if !user_model.IsThemeValid(form.Theme) {
 		ctx.Flash.Error(ctx.Tr("settings.theme_update_error"))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
 		return
@@ -365,7 +365,7 @@ func UpdateUIThemePost(ctx *context.Context) {
 		Theme: optional.Some(form.Theme),
 	}
 	if err := user_service.UpdateUser(ctx, ctx.Doer, opts); err != nil {
-		ctx.Flash.Error(ctx.Tr("settings.theme_update_error"))
+		ctx.Flash.Error("UpdateUser err")
 	} else {
 		ctx.Flash.Success(ctx.Tr("settings.theme_update_success"))
 	}

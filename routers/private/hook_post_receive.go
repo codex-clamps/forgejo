@@ -189,6 +189,7 @@ func HookPostReceive(ctx *app_context.PrivateContext) {
 			ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
 				Err: fmt.Sprintf("Failed to Update: %s/%s Error: %v", ownerName, repoName, err),
 			})
+			return
 		}
 	}
 

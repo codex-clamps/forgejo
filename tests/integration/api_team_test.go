@@ -17,7 +17,10 @@ import (
 	"forgejo.org/models/unit"
 	"forgejo.org/models/unittest"
 	user_model "forgejo.org/models/user"
+	"forgejo.org/modules/optional"
+	"forgejo.org/modules/setting"
 	api "forgejo.org/modules/structs"
+	"forgejo.org/modules/test"
 	"forgejo.org/services/convert"
 	"forgejo.org/tests"
 
@@ -483,4 +486,40 @@ func TestAPIGetTeamRepoAccessTokenResources(t *testing.T) {
 			MakeRequest(t, req, http.StatusNotFound)
 		})
 	})
+}
+
+func TestAPIAddMemberDirectly(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	defer test.MockVariableValue(&setting.Service.AddMembersByInvitations, false)()
+	token := getUserToken(t, "user1", auth_model.AccessTokenScopeWriteOrganization)
+
+	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
+	user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+
+	req := NewRequestf(t, "PUT", "/api/v1/teams/%d/members/%s", team.ID, user5.Name).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNoContent)
+
+	isMember, err := organization.IsTeamMember(db.DefaultContext, team.OrgID, team.ID, user5.ID)
+	require.NoError(t, err)
+	assert.True(t, isMember)
+}
+
+func TestAPIAddMemberGeneratesInvite(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	defer test.MockVariableValue(&setting.Service.AddMembersByInvitations, true)()
+
+	token := getUserToken(t, "user1", auth_model.AccessTokenScopeWriteOrganization)
+
+	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
+	user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+
+	req := NewRequestf(t, "PUT", "/api/v1/teams/%d/members/%s", team.ID, user5.Name).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNoContent)
+
+	isMember, err := organization.IsTeamMember(db.DefaultContext, team.OrgID, team.ID, user5.ID)
+	require.NoError(t, err)
+	assert.False(t, isMember)
+	unittest.AssertExistsAndLoadBean(t, &organization.TeamInvite{TeamID: team.ID, InviterID: 1, InvitedID: optional.Some(user5.ID)})
 }

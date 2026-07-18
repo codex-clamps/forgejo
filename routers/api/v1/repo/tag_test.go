@@ -23,10 +23,10 @@ func TestListTagsSetsLinkHeader(t *testing.T) {
 	contexttest.LoadGitRepo(t, ctx)
 
 	// Ensure at least two tags exist for pagination
-	commit, err := ctx.Repo.GitRepo.GetBranchCommit("master")
+	commit, err := ctx.Repo().GitRepo.GetBranchCommit("master")
 	require.NoError(t, err)
-	_ = ctx.Repo.GitRepo.CreateTag("listtags-linkheader-a", commit.ID.String())
-	_ = ctx.Repo.GitRepo.CreateTag("listtags-linkheader-b", commit.ID.String())
+	_ = ctx.Repo().GitRepo.CreateTag("listtags-linkheader-a", commit.ID.String())
+	_ = ctx.Repo().GitRepo.CreateTag("listtags-linkheader-b", commit.ID.String())
 
 	ListTags(ctx)
 

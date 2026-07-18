@@ -50,7 +50,7 @@ func ListTopics(ctx *context.APIContext) {
 
 	opts := &repo_model.FindTopicOptions{
 		ListOptions: utils.GetListOptions(ctx),
-		RepoID:      ctx.Repo.Repository.ID,
+		RepoID:      ctx.Repo().Repository.ID,
 	}
 
 	topics, total, err := repo_model.FindTopics(ctx, opts)
@@ -120,7 +120,7 @@ func UpdateTopics(ctx *context.APIContext) {
 		return
 	}
 
-	err := repo_model.SaveTopics(ctx, ctx.Repo.Repository.ID, validTopics...)
+	err := repo_model.SaveTopics(ctx, ctx.Repo().Repository.ID, validTopics...)
 	if err != nil {
 		log.Error("SaveTopics failed: %v", err)
 		ctx.InternalServerError(err)
@@ -173,7 +173,7 @@ func AddTopic(ctx *context.APIContext) {
 
 	// Prevent adding more topics than allowed to repo
 	count, err := repo_model.CountTopics(ctx, &repo_model.FindTopicOptions{
-		RepoID: ctx.Repo.Repository.ID,
+		RepoID: ctx.Repo().Repository.ID,
 	})
 	if err != nil {
 		log.Error("CountTopics failed: %v", err)
@@ -187,7 +187,7 @@ func AddTopic(ctx *context.APIContext) {
 		return
 	}
 
-	_, err = repo_model.AddTopic(ctx, ctx.Repo.Repository.ID, topicName)
+	_, err = repo_model.AddTopic(ctx, ctx.Repo().Repository.ID, topicName)
 	if err != nil {
 		log.Error("AddTopic failed: %v", err)
 		ctx.InternalServerError(err)
@@ -238,7 +238,7 @@ func DeleteTopic(ctx *context.APIContext) {
 		return
 	}
 
-	topic, err := repo_model.DeleteTopic(ctx, ctx.Repo.Repository.ID, topicName)
+	topic, err := repo_model.DeleteTopic(ctx, ctx.Repo().Repository.ID, topicName)
 	if err != nil {
 		log.Error("DeleteTopic failed: %v", err)
 		ctx.InternalServerError(err)

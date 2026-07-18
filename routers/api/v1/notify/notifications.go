@@ -24,7 +24,7 @@ func NewAvailable(ctx *context.APIContext) {
 	//     "$ref": "#/responses/NotificationCount"
 
 	total, err := db.Count[activities_model.Notification](ctx, activities_model.FindNotificationOptions{
-		UserID: ctx.Doer.ID,
+		UserID: ctx.Doer().ID,
 		Status: []activities_model.NotificationStatus{activities_model.NotificationStatusUnread},
 	})
 	if err != nil {
@@ -43,7 +43,7 @@ func getFindNotificationOptions(ctx *context.APIContext) *activities_model.FindN
 	}
 	opts := &activities_model.FindNotificationOptions{
 		ListOptions:       utils.GetListOptions(ctx),
-		UserID:            ctx.Doer.ID,
+		UserID:            ctx.Doer().ID,
 		UpdatedBeforeUnix: before,
 		UpdatedAfterUnix:  since,
 	}

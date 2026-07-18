@@ -125,7 +125,7 @@ func MainTest(m *testing.M) {
 		os.Exit(1)
 	}
 	setting.AppWorkPath = giteaRoot
-	setting.AppPath = path.Join(giteaRoot, "gitea_migrations-should-not-need-a-binary") // use WrapMainAppPath if a binary is needed
+	setting.AppPath = path.Join(giteaRoot, "gitea_migrations-should-not-need-a-binary") // use RunMainAppWithStdin if a binary is needed
 
 	giteaConf := os.Getenv("GITEA_CONF")
 	if giteaConf == "" {

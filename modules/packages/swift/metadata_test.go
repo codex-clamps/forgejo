@@ -9,18 +9,19 @@ import (
 	"strings"
 	"testing"
 
+	"forgejo.org/modules/util"
+
 	"github.com/hashicorp/go-version"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 const (
-	packageName          = "gitea"
-	packageVersion       = "1.0.1"
 	packageDescription   = "Package Description"
 	packageRepositoryURL = "https://gitea.io/gitea/gitea"
 	packageAuthor        = "KN4CK3R"
-	packageLicense       = "MIT"
+	packageEmail         = "example@example.com"
+	packageLicense       = "https://opensource.org/license/mit"
 )
 
 func TestParsePackage(t *testing.T) {
@@ -67,12 +68,12 @@ func TestParsePackage(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.NotNil(t, p.Metadata)
-		assert.Empty(t, p.RepositoryURLs)
-		assert.Len(t, p.Metadata.Manifests, 2)
-		m := p.Metadata.Manifests[""]
+		assert.Empty(t, p.Metadata.RepositoryURLs)
+		assert.Len(t, p.Manifests, 2)
+		m := p.Manifests[""]
 		assert.Equal(t, "5.7", m.ToolsVersion)
 		assert.Equal(t, content1, m.Content)
-		m = p.Metadata.Manifests["5.5"]
+		m = p.Manifests["5.5"]
 		assert.Equal(t, "5.6", m.ToolsVersion)
 		assert.Equal(t, content2, m.Content)
 	})
@@ -85,22 +86,34 @@ func TestParsePackage(t *testing.T) {
 		p, err := ParsePackage(
 			data,
 			data.Size(),
-			strings.NewReader(`{"name":"`+packageName+`","version":"`+packageVersion+`","description":"`+packageDescription+`","keywords":["swift","package"],"license":"`+packageLicense+`","codeRepository":"`+packageRepositoryURL+`","author":{"givenName":"`+packageAuthor+`"},"repositoryURLs":["`+packageRepositoryURL+`"]}`),
+			strings.NewReader(`{"description":"`+packageDescription+`","licenseURL":"`+packageLicense+`","author":{"name":"`+packageAuthor+`"},"repositoryURLs":["`+packageRepositoryURL+`"]}`),
 		)
 		assert.NotNil(t, p)
 		require.NoError(t, err)
 
 		assert.NotNil(t, p.Metadata)
-		assert.Len(t, p.Metadata.Manifests, 1)
-		m := p.Metadata.Manifests[""]
+		assert.Len(t, p.Manifests, 1)
+		m := p.Manifests[""]
 		assert.Equal(t, "5.7", m.ToolsVersion)
 
 		assert.Equal(t, packageDescription, p.Metadata.Description)
-		assert.ElementsMatch(t, []string{"swift", "package"}, p.Metadata.Keywords)
-		assert.Equal(t, packageLicense, p.Metadata.License)
-		assert.Equal(t, packageAuthor, p.Metadata.Author.GivenName)
-		assert.Equal(t, packageRepositoryURL, p.Metadata.RepositoryURL)
-		assert.ElementsMatch(t, []string{packageRepositoryURL}, p.RepositoryURLs)
+		assert.Equal(t, packageLicense, p.Metadata.LicenseURL)
+		assert.Equal(t, packageAuthor, p.Metadata.Author.Name)
+		assert.ElementsMatch(t, []string{packageRepositoryURL}, p.Metadata.RepositoryURLs)
+	})
+
+	t.Run("WithInvalidMetadata", func(t *testing.T) {
+		data := createArchive(map[string][]byte{
+			"Package.swift": []byte("// swift-tools-version:5.7\n//\n//  Package.swift"),
+		})
+
+		p, err := ParsePackage(
+			data,
+			data.Size(),
+			strings.NewReader(`{"description":"`+packageDescription+`","licenseURL":"`+packageLicense+`","author":{"email":"`+packageEmail+`"},"repositoryURLs":["`+packageRepositoryURL+`"]}`),
+		)
+		assert.Nil(t, p)
+		require.ErrorIs(t, err, util.ErrInvalidArgument)
 	})
 }
 

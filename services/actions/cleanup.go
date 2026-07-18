@@ -111,6 +111,10 @@ func CleanupLogs(ctx context.Context) error {
 			return fmt.Errorf("find old tasks: %w", err)
 		}
 		for _, task := range tasks {
+			if !task.HasLogs() {
+				continue
+			}
+
 			if err := actions_module.RemoveLogs(ctx, task.LogInStorage, task.LogFilename); err != nil && !errors.Is(err, os.ErrNotExist) {
 				log.Error("Failed to remove log %s (in storage %v) of task %v: %v", task.LogFilename, task.LogInStorage, task.ID, err)
 				// do not return error here, continue to next task

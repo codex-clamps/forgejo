@@ -104,7 +104,7 @@ func DelIssueSubscription(ctx *context.APIContext) {
 }
 
 func setIssueSubscription(ctx *context.APIContext, watch bool) {
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo().Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound()
@@ -127,8 +127,8 @@ func setIssueSubscription(ctx *context.APIContext, watch bool) {
 	}
 
 	// only admin and user for itself can change subscription
-	if user.ID != ctx.Doer.ID && !ctx.IsUserSiteAdmin() {
-		ctx.Error(http.StatusForbidden, "User", fmt.Errorf("%s is not permitted to change subscriptions for %s", ctx.Doer.Name, user.Name))
+	if user.ID != ctx.Doer().ID && !ctx.IsUserSiteAdmin() {
+		ctx.Error(http.StatusForbidden, "User", fmt.Errorf("%s is not permitted to change subscriptions for %s", ctx.Doer().Name, user.Name))
 		return
 	}
 
@@ -185,7 +185,7 @@ func CheckIssueSubscription(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo().Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound()
@@ -196,7 +196,7 @@ func CheckIssueSubscription(ctx *context.APIContext) {
 		return
 	}
 
-	watching, err := issues_model.CheckIssueWatch(ctx, ctx.Doer, issue)
+	watching, err := issues_model.CheckIssueWatch(ctx, ctx.Doer(), issue)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -207,7 +207,7 @@ func CheckIssueSubscription(ctx *context.APIContext) {
 		Reason:        nil,
 		CreatedAt:     issue.CreatedUnix.AsTime(),
 		URL:           issue.APIURL(ctx) + "/subscriptions",
-		RepositoryURL: ctx.Repo.Repository.APIURL(),
+		RepositoryURL: ctx.Repo().Repository.APIURL(),
 	})
 }
 
@@ -251,7 +251,7 @@ func GetIssueSubscribers(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo().Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound()
@@ -280,7 +280,7 @@ func GetIssueSubscribers(ctx *context.APIContext) {
 	}
 	apiUsers := make([]*api.User, 0, len(users))
 	for _, v := range users {
-		apiUsers = append(apiUsers, convert.ToUser(ctx, v, ctx.Doer))
+		apiUsers = append(apiUsers, convert.ToUser(ctx, v, ctx.Doer()))
 	}
 
 	count, err := issues_model.CountIssueWatchers(ctx, issue.ID)

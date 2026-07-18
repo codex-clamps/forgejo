@@ -45,7 +45,7 @@ func GetReleaseByTag(ctx *context.APIContext) {
 
 	tag := ctx.Params(":tag")
 
-	release, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, tag)
+	release, err := repo_model.GetRelease(ctx, ctx.Repo().Repository.ID, tag)
 	if err != nil {
 		if repo_model.IsErrReleaseNotExist(err) {
 			ctx.NotFound()
@@ -61,7 +61,7 @@ func GetReleaseByTag(ctx *context.APIContext) {
 	}
 
 	if release.IsDraft {
-		if !ctx.IsSigned || !ctx.Repo.CanWrite(unit_model.TypeReleases) {
+		if !ctx.IsSigned() || !ctx.Repo().CanWrite(unit_model.TypeReleases) {
 			ctx.NotFound()
 			return
 		}
@@ -71,7 +71,7 @@ func GetReleaseByTag(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToAPIRelease(ctx, ctx.Repo.Repository, release, ctx.AcceptsGithubResponse()))
+	ctx.JSON(http.StatusOK, convert.ToAPIRelease(ctx, ctx.Repo().Repository, release, ctx.AcceptsGithubResponse()))
 }
 
 // DeleteReleaseByTag delete a release from a repository by tag name
@@ -105,7 +105,7 @@ func DeleteReleaseByTag(ctx *context.APIContext) {
 
 	tag := ctx.Params(":tag")
 
-	release, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, tag)
+	release, err := repo_model.GetRelease(ctx, ctx.Repo().Repository.ID, tag)
 	if err != nil {
 		if repo_model.IsErrReleaseNotExist(err) {
 			ctx.NotFound()
@@ -120,7 +120,7 @@ func DeleteReleaseByTag(ctx *context.APIContext) {
 		return
 	}
 
-	if err = release_service.DeleteReleaseByID(ctx, ctx.Repo.Repository, release, ctx.Doer, false); err != nil {
+	if err = release_service.DeleteReleaseByID(ctx, ctx.Repo().Repository, release, ctx.Doer(), false); err != nil {
 		if models.IsErrProtectedTagName(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "delTag", "user not allowed to delete protected tag")
 			return

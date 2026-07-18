@@ -53,6 +53,7 @@ func FlushQueues(ctx *context.PrivateContext) {
 		ctx.JSON(http.StatusRequestTimeout, private.Response{
 			UserMsg: fmt.Sprintf("%v", err),
 		})
+		return
 	}
 	ctx.PlainText(http.StatusOK, "success")
 }

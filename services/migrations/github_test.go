@@ -15,6 +15,9 @@ import (
 	"forgejo.org/models/unittest"
 	"forgejo.org/modules/log"
 	base "forgejo.org/modules/migration"
+	"forgejo.org/modules/setting"
+	"forgejo.org/modules/test"
+	"forgejo.org/services/migrations/allowlist"
 
 	"github.com/google/go-github/v81/github"
 	"github.com/stretchr/testify/assert"
@@ -22,6 +25,8 @@ import (
 )
 
 func TestGithubDownloaderFilterComments(t *testing.T) {
+	defer test.MockVariableValueWithReset(&setting.Migrations.AllowLocalNetworks, true, func() { require.NoError(t, allowlist.Init()) })()
+
 	GithubLimitRateRemaining = 3 // Wait at 3 remaining since we could have 3 CI in //
 
 	token := os.Getenv("GITHUB_READ_TOKEN")
@@ -125,6 +130,7 @@ func ratelimitInjectHandler(handler http.Handler, urlpattern *regexp.Regexp, eve
 }
 
 func TestGitHubDownloadRepo(t *testing.T) {
+	defer test.MockVariableValueWithReset(&setting.Migrations.AllowLocalNetworks, true, func() { require.NoError(t, allowlist.Init()) })()
 	GithubLimitRateRemaining = 3 // Wait at 3 remaining since we could have 3 CI in //
 
 	token := os.Getenv("GITHUB_READ_TOKEN")
@@ -309,6 +315,15 @@ func TestGitHubDownloadRepo(t *testing.T) {
 		},
 	}, issues)
 
+	t.Run("Stop condition", func(t *testing.T) {
+		// matching total issues count with perPage variable
+		downloader.githubPagingInfo.After = ""
+		issues, isEnd, err = downloader.GetIssues(1, 7)
+		require.NoError(t, err)
+		assert.True(t, isEnd)
+		assert.Len(t, issues, 5) // Two are PRs who get filtered out.
+	})
+
 	// downloader.GetComments()
 	comments, _, err := downloader.GetComments(&base.Issue{Number: 2, ForeignIndex: 2})
 	require.NoError(t, err)
@@ -489,6 +504,7 @@ func TestGithubMultiToken(t *testing.T) {
 }
 
 func TestGithubIssuePagination(t *testing.T) {
+	defer test.MockVariableValueWithReset(&setting.Migrations.AllowLocalNetworks, true, func() { require.NoError(t, allowlist.Init()) })()
 	GithubLimitRateRemaining = 3 // Wait at 3 remaining since we could have 3 CI in //
 
 	token := os.Getenv("GITHUB_READ_TOKEN_NIGOROLL")

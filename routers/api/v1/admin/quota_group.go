@@ -153,12 +153,12 @@ func ListUsersInQuotaGroup(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	users, err := quota_model.ListUsersInGroup(ctx, ctx.QuotaGroup.Name)
+	users, err := quota_model.ListUsersInGroup(ctx, ctx.QuotaGroup().Name)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "quota_model.ListUsersInGroup", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToUsers(ctx, ctx.Doer, users))
+	ctx.JSON(http.StatusOK, convert.ToUsers(ctx, ctx.Doer(), users))
 }
 
 // AddUserToQuotaGroup adds a user to a quota group
@@ -193,7 +193,7 @@ func AddUserToQuotaGroup(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	err := ctx.QuotaGroup.AddUserByID(ctx, ctx.ContextUser.ID)
+	err := ctx.QuotaGroup().AddUserByID(ctx, ctx.User().ID)
 	if err != nil {
 		if quota_model.IsErrUserAlreadyInGroup(err) {
 			ctx.Error(http.StatusConflict, "", err)
@@ -233,7 +233,7 @@ func RemoveUserFromQuotaGroup(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	err := ctx.QuotaGroup.RemoveUserByID(ctx, ctx.ContextUser.ID)
+	err := ctx.QuotaGroup().RemoveUserByID(ctx, ctx.User().ID)
 	if err != nil {
 		if quota_model.IsErrUserNotInGroup(err) {
 			ctx.NotFound()
@@ -278,7 +278,7 @@ func SetUserQuotaGroups(ctx *context.APIContext) {
 
 	form := web.GetForm(ctx).(*api.SetUserQuotaGroupsOptions)
 
-	err := quota_model.SetUserGroups(ctx, ctx.ContextUser.ID, form.Groups)
+	err := quota_model.SetUserGroups(ctx, ctx.User().ID, form.Groups)
 	if err != nil {
 		if quota_model.IsErrGroupNotFound(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
@@ -314,7 +314,7 @@ func DeleteQuotaGroup(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	err := quota_model.DeleteGroupByName(ctx, ctx.QuotaGroup.Name)
+	err := quota_model.DeleteGroupByName(ctx, ctx.QuotaGroup().Name)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "quota_model.DeleteGroupByName", err)
 		return
@@ -346,7 +346,7 @@ func GetQuotaGroup(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	ctx.JSON(http.StatusOK, convert.ToQuotaGroup(*ctx.QuotaGroup, true))
+	ctx.JSON(http.StatusOK, convert.ToQuotaGroup(*ctx.QuotaGroup(), true))
 }
 
 // AddRuleToQuotaGroup adds a rule to a quota group
@@ -381,7 +381,7 @@ func AddRuleToQuotaGroup(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	err := ctx.QuotaGroup.AddRuleByName(ctx, ctx.QuotaRule.Name)
+	err := ctx.QuotaGroup().AddRuleByName(ctx, ctx.QuotaRule().Name)
 	if err != nil {
 		if quota_model.IsErrRuleAlreadyInGroup(err) {
 			ctx.Error(http.StatusConflict, "", err)
@@ -423,7 +423,7 @@ func RemoveRuleFromQuotaGroup(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	err := ctx.QuotaGroup.RemoveRuleByName(ctx, ctx.QuotaRule.Name)
+	err := ctx.QuotaGroup().RemoveRuleByName(ctx, ctx.QuotaRule().Name)
 	if err != nil {
 		if quota_model.IsErrRuleNotInGroup(err) {
 			ctx.NotFound()

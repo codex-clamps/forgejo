@@ -108,7 +108,7 @@ func AdoptRepository(ctx *context.APIContext) {
 		ctx.NotFound()
 		return
 	}
-	if _, err := repo_service.AdoptRepository(ctx, ctx.Doer, ctxUser, repo_service.CreateRepoOptions{
+	if _, err := repo_service.AdoptRepository(ctx, ctx.Doer(), ctxUser, repo_service.CreateRepoOptions{
 		Name:      repoName,
 		IsPrivate: true,
 	}); err != nil {
@@ -171,7 +171,7 @@ func DeleteUnadoptedRepository(ctx *context.APIContext) {
 		return
 	}
 
-	if err := repo_service.DeleteUnadoptedRepository(ctx, ctx.Doer, ctxUser, repoName); err != nil {
+	if err := repo_service.DeleteUnadoptedRepository(ctx, ctx.Doer(), ctxUser, repoName); err != nil {
 		ctx.InternalServerError(err)
 		return
 	}

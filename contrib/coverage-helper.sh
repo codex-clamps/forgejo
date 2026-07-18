@@ -8,8 +8,9 @@ PS4='${BASH_SOURCE[0]}:$LINENO: ${FUNCNAME[0]}:  '
 # Those must be explicitly required and are excluded from the full list of packages because they
 # would interfere with the testing fixtures.
 #
-excluded+='forgejo.org/models/gitea_migrations|'                # must be run before database specific tests
-excluded+='forgejo.org/models/forgejo_migrations_legacy|'        # must be run before database specific tests
+excluded+='forgejo.org/models/gitea_migrations|'          # must be run before database specific tests
+excluded+='forgejo.org/models/forgejo_migrations|'        # must be run before database specific tests
+excluded+='forgejo.org/models/forgejo_migrations_legacy|' # must be run before database specific tests
 excluded+='forgejo.org/tests/integration/migration-test|' # must be run before database specific tests
 excluded+='forgejo.org/tests|'                            # only tests, no coverage to get there
 excluded+='forgejo.org/tests/e2e|'                        # JavaScript is not in scope here and if it adds coverage it should not be counted
@@ -38,7 +39,9 @@ function run_test() {
   # -race cannot be used because it requires -covermode atomic which is
   # different from the end-to-end tests and would cause issues wen merging
   #
-  $GO test -timeout=20m -tags='sqlite sqlite_unlock_notify' -cover $package -coverpkg $COVERED_PACKAGES $COVERAGE_TEST_ARGS -args -test.gocoverdir=$coverage |& grep -v 'warning: no packages being tested depend on matches for pattern'
+  set -o pipefail
+  $GO test -timeout=40m -tags='sqlite sqlite_unlock_notify' -cover $package -coverpkg $COVERED_PACKAGES $COVERAGE_TEST_ARGS -args -test.gocoverdir=$coverage |& grep -v 'warning: no packages being tested depend on matches for pattern'
+  set +o pipefail
 }
 
 function test_packages() {

@@ -5,6 +5,7 @@ package pull
 
 import (
 	"context"
+	"slices"
 
 	issues_model "forgejo.org/models/issues"
 	repo_model "forgejo.org/models/repo"
@@ -53,8 +54,8 @@ func getCommitIDsFromRepo(ctx context.Context, repo *repo_model.Repository, oldC
 	}
 
 	commitIDs = make([]string, 0, len(commits))
-	for i := len(commits) - 1; i >= 0; i-- {
-		commitIDs = append(commitIDs, commits[i].ID.String())
+	for _, c := range slices.Backward(commits) {
+		commitIDs = append(commitIDs, c.ID.String())
 	}
 
 	return commitIDs, isForcePush, err

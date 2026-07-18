@@ -106,7 +106,7 @@ func ListRepoNotifications(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	opts.RepoID = ctx.Repo.Repository.ID
+	opts.RepoID = ctx.Repo().Repository.ID
 
 	totalCount, err := db.Count[activities_model.Notification](ctx, opts)
 	if err != nil {
@@ -192,8 +192,8 @@ func ReadRepoNotifications(ctx *context.APIContext) {
 	}
 
 	opts := &activities_model.FindNotificationOptions{
-		UserID:            ctx.Doer.ID,
-		RepoID:            ctx.Repo.Repository.ID,
+		UserID:            ctx.Doer().ID,
+		RepoID:            ctx.Repo().Repository.ID,
 		UpdatedBeforeUnix: lastRead,
 	}
 
@@ -215,7 +215,7 @@ func ReadRepoNotifications(ctx *context.APIContext) {
 	changed := make([]*structs.NotificationThread, 0, len(nl))
 
 	for _, n := range nl {
-		notif, err := activities_model.SetNotificationStatus(ctx, n.ID, ctx.Doer, targetStatus)
+		notif, err := activities_model.SetNotificationStatus(ctx, n.ID, ctx.Doer(), targetStatus)
 		if err != nil {
 			ctx.InternalServerError(err)
 			return

@@ -22,6 +22,7 @@ import (
 	"forgejo.org/modules/log"
 	base "forgejo.org/modules/migration"
 	"forgejo.org/modules/structs"
+	"forgejo.org/services/migrations/allowlist"
 
 	gitlab "gitlab.com/gitlab-org/api/client-go"
 )
@@ -99,12 +100,12 @@ type GitlabDownloader struct {
 //	Use either a username/password, personal token entered into the username field, or anonymous/public access
 //	Note: Public access only allows very basic access
 func NewGitlabDownloader(ctx context.Context, baseURL, repoPath, username, password, token string) (*GitlabDownloader, error) {
-	gitlabClient, err := gitlab.NewClient(token, gitlab.WithBaseURL(baseURL), gitlab.WithHTTPClient(NewMigrationHTTPClient()))
+	gitlabClient, err := gitlab.NewClient(token, gitlab.WithBaseURL(baseURL), gitlab.WithHTTPClient(allowlist.NewMigrationHTTPClient()))
 	// Only use basic auth if token is blank and password is NOT
 	// Basic auth will fail with empty strings, but empty token will allow anonymous public API usage
 	if token == "" && password != "" {
 		//nolint // SA1019 gitlab.NewBasicAuthClient is deprecated: GitLab recommends against using this authentication method
-		gitlabClient, err = gitlab.NewBasicAuthClient(username, password, gitlab.WithBaseURL(baseURL), gitlab.WithHTTPClient(NewMigrationHTTPClient()))
+		gitlabClient, err = gitlab.NewBasicAuthClient(username, password, gitlab.WithBaseURL(baseURL), gitlab.WithHTTPClient(allowlist.NewMigrationHTTPClient()))
 	}
 
 	if err != nil {
@@ -333,7 +334,7 @@ func (g *GitlabDownloader) convertGitlabRelease(rel *gitlab.Release) *base.Relea
 		PublisherName:   rel.Author.Username,
 	}
 
-	httpClient := NewMigrationHTTPClient()
+	httpClient := allowlist.NewMigrationHTTPClient()
 
 	for _, asset := range rel.Assets.Links {
 		assetID := asset.ID // Don't optimize this, for closure we need a local variable

@@ -30,14 +30,14 @@ import (
 	"xorm.io/builder"
 )
 
-// deleteUser deletes models associated to an user.
+// deleteUser deletes models associated to a user.
 func deleteUser(ctx context.Context, u *user_model.User, purge bool) (err error) {
 	e := db.GetEngine(ctx)
 
 	// ***** START: Watch *****
 	watchedRepoIDs, err := db.FindIDs(ctx, "watch", "watch.repo_id",
 		builder.Eq{"watch.user_id": u.ID}.
-			And(builder.Neq{"watch.mode": repo_model.WatchModeDont}))
+			And(repo_model.BuilderWatchAnything()))
 	if err != nil {
 		return fmt.Errorf("get all watches: %w", err)
 	}
@@ -88,6 +88,8 @@ func deleteUser(ctx context.Context, u *user_model.User, purge bool) (err error)
 		&user_model.UserOpenID{UID: u.ID},
 		&issues_model.Reaction{UserID: u.ID},
 		&organization.TeamUser{UID: u.ID},
+		&organization.TeamInvite{InviterID: u.ID},
+		&organization.TeamInvite{InvitedID: optional.Some(u.ID)},
 		&issues_model.Stopwatch{UserID: u.ID},
 		&user_model.Setting{UserID: u.ID},
 		&user_model.UserBadge{UserID: u.ID},
@@ -100,6 +102,7 @@ func deleteUser(ctx context.Context, u *user_model.User, purge bool) (err error)
 		&user_model.BlockedUser{UserID: u.ID},
 		&actions_model.ActionRunnerToken{OwnerID: optional.Some(u.ID)},
 		&auth_model.AuthorizationToken{UID: u.ID},
+		&auth_model.AuthorizedIntegration{UserID: u.ID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %w", err)
 	}
@@ -135,7 +138,7 @@ func deleteUser(ctx context.Context, u *user_model.User, purge bool) (err error)
 		}
 
 		// Delete Reactions
-		if err = issues_model.DeleteReaction(ctx, &issues_model.ReactionOptions{DoerID: u.ID}); err != nil {
+		if _, err = issues_model.DeleteReaction(ctx, &issues_model.ReactionOptions{DoerID: u.ID}); err != nil {
 			return err
 		}
 	}

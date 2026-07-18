@@ -85,7 +85,7 @@ func ListDeployKeys(ctx *context.APIContext) {
 
 	opts := asymkey_model.ListDeployKeysOptions{
 		ListOptions: utils.GetListOptions(ctx),
-		RepoID:      ctx.Repo.Repository.ID,
+		RepoID:      ctx.Repo().Repository.ID,
 		KeyID:       ctx.FormInt64("key_id"),
 		Fingerprint: ctx.FormString("fingerprint"),
 	}
@@ -96,7 +96,7 @@ func ListDeployKeys(ctx *context.APIContext) {
 		return
 	}
 
-	apiLink := composeDeployKeysAPILink(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
+	apiLink := composeDeployKeysAPILink(ctx.Repo().Owner.Name, ctx.Repo().Repository.Name)
 	apiKeys := make([]*api.DeployKey, len(keys))
 	for i := range keys {
 		if err := keys[i].GetContent(ctx); err != nil {
@@ -104,8 +104,8 @@ func ListDeployKeys(ctx *context.APIContext) {
 			return
 		}
 		apiKeys[i] = convert.ToDeployKey(apiLink, keys[i])
-		if ctx.IsUserSiteAdmin() || ((ctx.Repo.Repository.ID == keys[i].RepoID) && (ctx.Doer.ID == ctx.Repo.Owner.ID)) {
-			apiKeys[i], _ = appendPrivateInformation(ctx, apiKeys[i], keys[i], ctx.Repo.Repository)
+		if ctx.IsUserSiteAdmin() || ((ctx.Repo().Repository.ID == keys[i].RepoID) && (ctx.Doer().ID == ctx.Repo().Owner.ID)) {
+			apiKeys[i], _ = appendPrivateInformation(ctx, apiKeys[i], keys[i], ctx.Repo().Repository)
 		}
 	}
 
@@ -154,7 +154,7 @@ func GetDeployKey(ctx *context.APIContext) {
 	}
 
 	// this check make it more consistent
-	if key.RepoID != ctx.Repo.Repository.ID {
+	if key.RepoID != ctx.Repo().Repository.ID {
 		ctx.NotFound()
 		return
 	}
@@ -164,10 +164,10 @@ func GetDeployKey(ctx *context.APIContext) {
 		return
 	}
 
-	apiLink := composeDeployKeysAPILink(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
+	apiLink := composeDeployKeysAPILink(ctx.Repo().Owner.Name, ctx.Repo().Repository.Name)
 	apiKey := convert.ToDeployKey(apiLink, key)
-	if ctx.IsUserSiteAdmin() || ((ctx.Repo.Repository.ID == key.RepoID) && (ctx.Doer.ID == ctx.Repo.Owner.ID)) {
-		apiKey, _ = appendPrivateInformation(ctx, apiKey, key, ctx.Repo.Repository)
+	if ctx.IsUserSiteAdmin() || ((ctx.Repo().Repository.ID == key.RepoID) && (ctx.Doer().ID == ctx.Repo().Owner.ID)) {
+		apiKey, _ = appendPrivateInformation(ctx, apiKey, key, ctx.Repo().Repository)
 	}
 	ctx.JSON(http.StatusOK, apiKey)
 }
@@ -238,14 +238,14 @@ func CreateDeployKey(ctx *context.APIContext) {
 		return
 	}
 
-	key, err := asymkey_model.AddDeployKey(ctx, ctx.Repo.Repository.ID, form.Title, content, form.ReadOnly)
+	key, err := asymkey_model.AddDeployKey(ctx, ctx.Repo().Repository.ID, form.Title, content, form.ReadOnly)
 	if err != nil {
 		HandleAddKeyError(ctx, err)
 		return
 	}
 
 	key.Content = content
-	apiLink := composeDeployKeysAPILink(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
+	apiLink := composeDeployKeysAPILink(ctx.Repo().Owner.Name, ctx.Repo().Repository.Name)
 	ctx.JSON(http.StatusCreated, convert.ToDeployKey(apiLink, key))
 }
 
@@ -279,7 +279,7 @@ func DeleteDeploykey(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if err := asymkey_service.DeleteDeployKey(ctx, ctx.ParamsInt64(":id"), ctx.Repo.Repository.ID); err != nil {
+	if err := asymkey_service.DeleteDeployKey(ctx, ctx.ParamsInt64(":id"), ctx.Repo().Repository.ID); err != nil {
 		if asymkey_model.IsErrKeyAccessDenied(err) {
 			ctx.Error(http.StatusForbidden, "", "You do not have access to this key")
 		} else {

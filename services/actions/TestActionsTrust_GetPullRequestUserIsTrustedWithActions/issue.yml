@@ -82,3 +82,37 @@
   created_unix: 946684820
   updated_unix: 978307180
   is_locked: false
+
+-
+  id: 86000
+  repo_id: 10
+  index: 6000
+  poster_id: 0 # no poster set
+  original_author_id: 0
+  name: pr6000
+  content: pull request
+  milestone_id: 0
+  priority: 0
+  is_closed: false
+  is_pull: true
+  num_comments: 0
+  created_unix: 946684820
+  updated_unix: 978307180
+  is_locked: false
+
+-
+  id: 87000
+  repo_id: 10
+  index: 7000
+  poster_id: 666 # poster does not exist
+  original_author_id: 0
+  name: pr7000
+  content: pull request
+  milestone_id: 0
+  priority: 0
+  is_closed: false
+  is_pull: true
+  num_comments: 0
+  created_unix: 946684820
+  updated_unix: 978307180
+  is_locked: false

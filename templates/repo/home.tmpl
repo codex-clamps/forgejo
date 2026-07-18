@@ -13,7 +13,7 @@
 		</div>
 		<div class="repo-topics tw-my-2" id="repo-topics">
 			{{range .Topics}}
-				<a class="repo-topic ui large label" href="{{AppSubUrl}}/explore/repos?q={{.Name}}&topic=1">{{.Name}}</a>
+				<a class="repo-topic ui large label" href="{{AppSubUrl}}/explore/repos?q={{.}}&topic=1">{{.}}</a>
 			{{end}}
 			{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}
 				<button id="manage_topic" class="btn interact-fg tw-text-12">{{ctx.Locale.Tr "repo.topic.manage_topics"}}</button>
@@ -22,13 +22,8 @@
 		{{end}}
 		{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}
 		<div class="ui form tw-hidden tw-flex tw-gap-2 tw-my-2" id="topic_edit">
-			<div class="ui fluid multiple search selection dropdown tw-flex-wrap tw-flex-1">
-				<input type="hidden" name="topics" value="{{range $i, $v := .Topics}}{{.Name}}{{if Eval $i "+" 1 "<" (len $.Topics)}},{{end}}{{end}}">
-				{{range .Topics}}
-					{{/* keep the same layout as Fomantic UI generated labels */}}
-					<a class="ui label transition visible tw-cursor-default tw-inline-block" data-value="{{.Name}}">{{.Name}}{{svg "octicon-x" 16 "delete icon"}}</a>
-				{{end}}
-				<div class="text"></div>
+			<div class="tw-flex-1">
+				<input type="text" id="topic-input" name="topics" value="{{StringUtils.Join .Topics ","}}">
 			</div>
 			<div>
 				<button class="ui basic button" id="cancel_topic_edit">{{ctx.Locale.Tr "cancel"}}</button>

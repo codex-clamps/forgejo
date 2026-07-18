@@ -1,36 +1,95 @@
-import $ from 'jquery';
-import {stripTags} from '../utils.js';
-import {hideElem, queryElemChildren, showElem} from '../utils/dom.js';
-import {POST} from '../modules/fetch.js';
+import {hideElem, showElem} from '../utils/dom.js';
+import {GET, POST} from '../modules/fetch.js';
 import {showErrorToast} from '../modules/toast.js';
+import {createTomSelect} from '../modules/tom-select.ts';
 
 const {appSubUrl} = window.config;
 
-export function initRepoTopicBar() {
+export async function initRepoTopicBar() {
   const mgrBtn = document.getElementById('manage_topic');
   if (!mgrBtn) return;
 
   const editDiv = document.getElementById('topic_edit');
   const viewDiv = document.getElementById('repo-topics');
-  const topicDropdown = editDiv.querySelector('.ui.dropdown');
+  const inputEl = editDiv.querySelector('input[name=topics]');
   let lastErrorToast;
+  let tomSelect;
 
-  mgrBtn.addEventListener('click', () => {
+  // Store original topics for cancel functionality
+  const getOriginalTopics = () => {
+    return Array.from(viewDiv.querySelectorAll('.repo-topic'), (el) => el.textContent.trim());
+  };
+
+  mgrBtn.addEventListener('click', async () => {
     hideElem(viewDiv);
     showElem(editDiv);
-    topicDropdown.querySelector('input.search').focus();
+
+    // Lazy initialize Tom Select on first click
+    if (!tomSelect) {
+      const originalTopics = getOriginalTopics();
+
+      tomSelect = await createTomSelect(inputEl, {
+        plugins: ['remove_button'],
+        persist: false,
+        createOnBlur: true,
+        loadThrottle: 500,
+        valueField: 'topic_name',
+        labelField: 'topic_name',
+        searchField: 'topic_name',
+        items: originalTopics,
+        render: {
+          no_results: () => null,
+        },
+        async load(query, callback) {
+          if (!query.length) return callback([]);
+          try {
+            const response = await GET(`${appSubUrl}/explore/topics/search?q=${encodeURIComponent(query)}`);
+            const data = await response.json();
+            // Filter out already selected topics
+            const current = this.getValue();
+            const filtered = (data.topics || []).filter((t) => !current.includes(t.topic_name));
+            callback(filtered);
+          } catch {
+            callback([]);
+          }
+        },
+        create(input) {
+          return {topic_name: input.toLowerCase().trim()};
+        },
+      });
+    }
+
+    tomSelect.focus();
   });
 
   document.querySelector('#cancel_topic_edit').addEventListener('click', () => {
     lastErrorToast?.hideToast();
     hideElem(editDiv);
     showElem(viewDiv);
+
+    // Reset to original values
+    if (tomSelect) {
+      const originalTopics = getOriginalTopics();
+      tomSelect.clear(true);
+      for (const topic of originalTopics) {
+        tomSelect.addItem(topic, true);
+      }
+    }
+
     mgrBtn.focus();
   });
 
   document.getElementById('save_topic').addEventListener('click', async (e) => {
     lastErrorToast?.hideToast();
-    const topics = editDiv.querySelector('input[name=topics]').value;
+
+    // Clear any previous invalid state
+    if (tomSelect) {
+      for (const item of tomSelect.wrapper.querySelectorAll('.item.invalid')) {
+        item.classList.remove('invalid');
+      }
+    }
+
+    const topics = inputEl.value;
 
     const data = new FormData();
     data.append('topics', topics);
@@ -40,7 +99,10 @@ export function initRepoTopicBar() {
     if (response.ok) {
       const responseData = await response.json();
       if (responseData.status === 'ok') {
-        queryElemChildren(viewDiv, '.repo-topic', (el) => el.remove());
+        // Update view with new topics
+        for (const el of viewDiv.querySelectorAll('.repo-topic')) {
+          el.remove();
+        }
         if (topics.length) {
           const topicArray = topics.split(',');
           topicArray.sort();
@@ -60,88 +122,17 @@ export function initRepoTopicBar() {
       // how to test: input topic like " invalid topic " (with spaces), and select it from the list, then "Save"
       const responseData = await response.json();
       lastErrorToast = showErrorToast(responseData.message, {duration: 5000});
-      if (responseData.invalidTopics && responseData.invalidTopics.length > 0) {
+      if (responseData.invalidTopics?.length > 0) {
         const {invalidTopics} = responseData;
-        const topicLabels = queryElemChildren(topicDropdown, 'a.ui.label');
-        for (const [index, value] of topics.split(',').entries()) {
+        // Mark invalid topics in Tom Select
+        const items = tomSelect.wrapper.querySelectorAll('.ts-control .item');
+        const values = topics.split(',');
+        for (const [index, value] of values.entries()) {
           if (invalidTopics.includes(value)) {
-            topicLabels[index].classList.remove('green');
-            topicLabels[index].classList.add('red');
+            items[index]?.classList.add('invalid');
           }
         }
       }
     }
-  });
-
-  $(topicDropdown).dropdown({
-    allowAdditions: true,
-    forceSelection: false,
-    fullTextSearch: 'exact',
-    fields: {name: 'description', value: 'data-value'},
-    saveRemoteData: false,
-    label: {
-      transition: 'horizontal flip',
-      duration: 200,
-      variation: false,
-    },
-    apiSettings: {
-      url: `${appSubUrl}/explore/topics/search?q={query}`,
-      throttle: 500,
-      cache: false,
-      onResponse(res) {
-        const formattedResponse = {
-          success: false,
-          results: [],
-        };
-        const query = stripTags(this.urlData.query.trim());
-        let found_query = false;
-        const current_topics = [];
-        for (const el of queryElemChildren(topicDropdown, 'a.ui.label.visible')) {
-          current_topics.push(el.getAttribute('data-value'));
-        }
-
-        if (res.topics) {
-          let found = false;
-          for (let i = 0; i < res.topics.length; i++) {
-            // skip currently added tags
-            if (current_topics.includes(res.topics[i].topic_name)) {
-              continue;
-            }
-
-            if (res.topics[i].topic_name.toLowerCase() === query.toLowerCase()) {
-              found_query = true;
-            }
-            formattedResponse.results.push({description: res.topics[i].topic_name, 'data-value': res.topics[i].topic_name});
-            found = true;
-          }
-          formattedResponse.success = found;
-        }
-
-        if (query.length > 0 && !found_query) {
-          formattedResponse.success = true;
-          formattedResponse.results.unshift({description: query, 'data-value': query});
-        } else if (query.length > 0 && found_query) {
-          formattedResponse.results.sort((a, b) => {
-            if (a.description.toLowerCase() === query.toLowerCase()) return -1;
-            if (b.description.toLowerCase() === query.toLowerCase()) return 1;
-            if (a.description > b.description) return -1;
-            if (a.description < b.description) return 1;
-            return 0;
-          });
-        }
-
-        return formattedResponse;
-      },
-    },
-    onLabelCreate(value) {
-      value = value.toLowerCase().trim();
-      this.attr('data-value', value).contents().first().replaceWith(value);
-      return $(this);
-    },
-    onAdd(addedValue, _addedText, $addedChoice) {
-      addedValue = addedValue.toLowerCase().trim();
-      $addedChoice[0].setAttribute('data-value', addedValue);
-      $addedChoice[0].setAttribute('data-text', addedValue);
-    },
   });
 }

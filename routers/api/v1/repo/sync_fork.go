@@ -12,12 +12,12 @@ import (
 )
 
 func getSyncForkInfo(ctx *context.APIContext, branch string) {
-	if !ctx.Repo.Repository.IsFork {
+	if !ctx.Repo().Repository.IsFork {
 		ctx.Error(http.StatusBadRequest, "NoFork", "The Repo must be a fork")
 		return
 	}
 
-	syncForkInfo, err := repo_service.GetSyncForkInfo(ctx, ctx.Repo.Repository, branch)
+	syncForkInfo, err := repo_service.GetSyncForkInfo(ctx, ctx.Repo().Repository, branch)
 	if err != nil {
 		if git_model.IsErrBranchNotExist(err) {
 			ctx.NotFound(err, branch)
@@ -56,7 +56,7 @@ func SyncForkDefaultInfo(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	getSyncForkInfo(ctx, ctx.Repo.Repository.DefaultBranch)
+	getSyncForkInfo(ctx, ctx.Repo().Repository.DefaultBranch)
 }
 
 // SyncForkBranchInfo returns information about syncing a fork branch with the base branch
@@ -93,12 +93,12 @@ func SyncForkBranchInfo(ctx *context.APIContext) {
 }
 
 func syncForkBranch(ctx *context.APIContext, branch string) {
-	if !ctx.Repo.Repository.IsFork {
+	if !ctx.Repo().Repository.IsFork {
 		ctx.Error(http.StatusBadRequest, "NoFork", "The Repo must be a fork")
 		return
 	}
 
-	syncForkInfo, err := repo_service.GetSyncForkInfo(ctx, ctx.Repo.Repository, branch)
+	syncForkInfo, err := repo_service.GetSyncForkInfo(ctx, ctx.Repo().Repository, branch)
 	if err != nil {
 		if git_model.IsErrBranchNotExist(err) {
 			ctx.NotFound(err, branch)
@@ -114,7 +114,7 @@ func syncForkBranch(ctx *context.APIContext, branch string) {
 		return
 	}
 
-	err = repo_service.SyncFork(ctx, ctx.Doer, ctx.Repo.Repository, branch)
+	err = repo_service.SyncFork(ctx, ctx.Doer(), ctx.Repo().Repository, branch)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "SyncFork", err)
 		return
@@ -148,7 +148,7 @@ func SyncForkDefault(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	syncForkBranch(ctx, ctx.Repo.Repository.DefaultBranch)
+	syncForkBranch(ctx, ctx.Repo().Repository.DefaultBranch)
 }
 
 // SyncForkBranch syncs a fork branch with the base branch

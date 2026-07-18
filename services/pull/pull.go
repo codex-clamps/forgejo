@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -101,8 +102,8 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *iss
 
 		data := issues_model.PushActionContent{IsForcePush: false}
 		data.CommitIDs = make([]string, 0, len(compareInfo.Commits))
-		for i := len(compareInfo.Commits) - 1; i >= 0; i-- {
-			data.CommitIDs = append(data.CommitIDs, compareInfo.Commits[i].ID.String())
+		for _, c := range slices.Backward(compareInfo.Commits) {
+			data.CommitIDs = append(data.CommitIDs, c.ID.String())
 		}
 
 		dataJSON, err := json.Marshal(data)
@@ -665,9 +666,7 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 
 	// commits list is in reverse chronological order
 	first := true
-	for i := len(commits) - 1; i >= 0; i-- {
-		commit := commits[i]
-
+	for _, commit := range slices.Backward(commits) {
 		if setting.Repository.PullRequest.PopulateSquashCommentWithCommitMessages {
 			maxSize := setting.Repository.PullRequest.DefaultMergeMessageSize
 			if maxSize < 0 || stringBuilder.Len() < maxSize {

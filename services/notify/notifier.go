@@ -16,6 +16,8 @@ import (
 )
 
 // Notifier defines an interface to notify receiver
+//
+//mockery:generate: true
 type Notifier interface {
 	Run()
 
@@ -40,6 +42,9 @@ type Notifier interface {
 	IssueChangeRef(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldRef string)
 	IssueChangeLabels(ctx context.Context, doer *user_model.User, issue *issues_model.Issue,
 		addedLabels, removedLabels []*issues_model.Label)
+
+	NewReaction(ctx context.Context, reaction *issues_model.Reaction)
+	DeleteReaction(ctx context.Context, reaction *issues_model.Reaction)
 
 	NewPullRequest(ctx context.Context, pr *issues_model.PullRequest, mentions []*user_model.User)
 	MergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest)

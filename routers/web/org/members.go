@@ -16,6 +16,7 @@ import (
 	"forgejo.org/modules/setting"
 	shared_user "forgejo.org/routers/web/shared/user"
 	"forgejo.org/services/context"
+	org_service "forgejo.org/services/org"
 )
 
 const (
@@ -77,6 +78,7 @@ func Members(ctx *context.Context) {
 	ctx.Data["MembersIsPublicMember"] = membersIsPublic
 	ctx.Data["MembersIsUserOrgOwner"] = organization.IsUserOrgOwner(ctx, members, org.ID)
 	ctx.Data["MembersTwoFaStatus"] = members.GetTwoFaStatus(ctx)
+	ctx.Data["AddMembersByInvitations"] = setting.Service.AddMembersByInvitations
 
 	ctx.HTML(http.StatusOK, tplMembers)
 }
@@ -154,9 +156,9 @@ func MembersAction(ctx *context.Context) {
 		for _, team := range teams {
 			addToTeam := ctx.FormBool(fmt.Sprintf("team_%d", team.ID))
 			if addToTeam {
-				err = models.AddTeamMember(ctx, team, u.ID)
+				err = org_service.InviteOrAddTeamMember(ctx, ctx.Doer, u, team)
 				if err != nil {
-					ctx.ServerError("AddTeamMember", err)
+					ctx.ServerError("InviteOrAddTeamMember", err)
 					return
 				}
 				addedToTeam = true

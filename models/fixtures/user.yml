@@ -1522,7 +1522,7 @@
   num_members: 0
   visibility: 0
   repo_admin_change_team_access: false
-  theme: ""
+  theme: "frog"
   keep_activity_private: false
   created_unix: 1672578390
 

@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -428,7 +429,6 @@ func GetPullDiffStats(ctx *context.Context) {
 		AfterCommitID:      headCommitID,
 		MaxLines:           setting.Git.MaxGitDiffLines,
 		MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
-		MaxFiles:           setting.Git.MaxGitDiffFiles,
 		WhitespaceBehavior: gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)),
 	}
 
@@ -964,9 +964,7 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 		var prevCommit, curCommit, nextCommit *git.Commit
 
 		// Iterate in reverse to properly map "previous" and "next" buttons
-		for i := len(prInfo.Commits) - 1; i >= 0; i-- {
-			commit := prInfo.Commits[i]
-
+		for _, commit := range slices.Backward(prInfo.Commits) {
 			if curCommit != nil {
 				nextCommit = commit
 				break
@@ -1063,19 +1061,34 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 
 	fileOnly := ctx.FormBool("file-only")
-
-	maxLines, maxFiles := setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffFiles
 	files := ctx.FormStrings("files")
-	if fileOnly && (len(files) == 2 || len(files) == 1) {
-		maxLines, maxFiles = -1, -1
+	ctx.Data["FileSelection"] = files
+
+	maxLines := setting.Git.MaxGitDiffLines
+
+	var diff *gitdiff.Diff
+
+	var diffFileMetadata []*gitdiff.DiffFileMetadata
+	if willShowSpecifiedCommit {
+		diffFileMetadata, err = gitdiff.GetDiffNameStatus(ctx, gitRepo, "", endCommitID, setting.UI.DiffPagingNum, files...)
+	} else {
+		diffFileMetadata, err = gitdiff.GetDiffNameStatus(ctx, gitRepo, startCommitID, endCommitID, setting.UI.DiffPagingNum, files...)
+	}
+	if err != nil {
+		ctx.ServerError("GetDiffNameStatus", err)
+		return
+	}
+
+	pager, pagedFiles := utils.PaginateDiffFiles(ctx, diffFileMetadata)
+
+	if fileOnly && (len(diffFileMetadata) == 2 || len(diffFileMetadata) == 1) {
+		maxLines = -1
 	}
 
 	diffOptions := &gitdiff.DiffOptions{
 		AfterCommitID:      endCommitID,
-		SkipTo:             ctx.FormString("skip-to"),
 		MaxLines:           maxLines,
 		MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
-		MaxFiles:           maxFiles,
 		WhitespaceBehavior: gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)),
 		FileOnly:           fileOnly,
 	}
@@ -1084,18 +1097,16 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 		diffOptions.BeforeCommitID = startCommitID
 	}
 
-	var methodWithError string
-	var diff *gitdiff.Diff
-
 	// if we're not logged in or only a single commit (or commit range) is shown we
 	// have to load only the diff and not get the viewed information
 	// as the viewed information is designed to be loaded only on latest PR
 	// diff and if you're signed in.
+	var methodWithError string
 	if !ctx.IsSigned || willShowSpecifiedCommit || willShowSpecifiedCommitRange {
-		diff, err = gitdiff.GetDiffFull(ctx, gitRepo, diffOptions, files...)
+		diff, err = gitdiff.GetDiffFull(ctx, gitRepo, diffOptions, pagedFiles...)
 		methodWithError = "GetDiff"
 	} else {
-		diff, err = gitdiff.SyncAndGetUserSpecificDiff(ctx, ctx.Doer.ID, pull, gitRepo, diffOptions, files...)
+		diff, err = gitdiff.SyncAndGetUserSpecificDiff(ctx, ctx.Doer.ID, pull, gitRepo, diffOptions, pagedFiles...)
 		methodWithError = "SyncAndGetUserSpecificDiff"
 	}
 	if err != nil {
@@ -1103,9 +1114,27 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 		return
 	}
 
+	var reviewState *pull_model.ReviewState
+	if ctx.IsSigned && !willShowSpecifiedCommit && !willShowSpecifiedCommitRange {
+		reviewState, err = pull_model.GetNewestReviewState(ctx, ctx.Doer.ID, pull.ID)
+		if err != nil {
+			ctx.ServerError("GetNewestReviewState", err)
+			return
+		}
+		diffFileMetadata = gitdiff.EnrichWithReview(reviewState, diffFileMetadata...)
+	}
+	diffMetadata, err := gitdiff.GetDiffMetadata(reviewState, pager.Paginater, len(diffFileMetadata))
+	if err != nil {
+		ctx.ServerError("GetDiffMetadata", err)
+		return
+	}
+
+	ctx.Data["DiffFileMetadata"] = diffFileMetadata
+	ctx.Data["DiffMetadata"] = diffMetadata
+
 	ctx.PageData["prReview"] = map[string]any{
-		"numberOfFiles":       diff.NumFiles,
-		"numberOfViewedFiles": diff.NumViewedFiles,
+		"numberOfFiles":       diffMetadata.TotalNumberOfFiles,
+		"numberOfViewedFiles": diffMetadata.NumberOfViewedFiles,
 	}
 
 	if err = diff.LoadComments(ctx, issue, ctx.Doer, ctx.Data["ShowOutdatedComments"].(bool), endCommitID); err != nil {
@@ -1129,7 +1158,7 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 	}
 
 	ctx.Data["Diff"] = diff
-	ctx.Data["DiffNotAvailable"] = diff.NumFiles == 0
+	ctx.Data["DiffNotAvailable"] = len(diff.Files) == 0
 
 	baseCommit, err := ctx.Repo.GitRepo.GetCommit(startCommitID)
 	if err != nil {
@@ -1527,6 +1556,7 @@ func MergePullRequest(ctx *context.Context) {
 				ctx.Flash.Error(ctx.Tr("repo.pulls.delete_after_merge.head_branch.insufficient_branch"))
 			default:
 				ctx.ServerError("DeleteBranchAfterMerge", err)
+				return
 			}
 
 			ctx.JSONRedirect(issue.Link())
@@ -1676,16 +1706,13 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 			log.Error("Unexpected error of NewPullRequest: %T %s", err, err)
 			ctx.ServerError("CompareAndPullRequest", err)
 		}
-		ctx.ServerError("NewPullRequest", err)
 		return
 	}
 
-	if projectID > 0 && ctx.Repo.CanWrite(unit.TypeProjects) {
-		if err := issues_model.IssueAssignOrRemoveProject(ctx, pullIssue, ctx.Doer, projectID, 0); err != nil {
-			if !errors.Is(err, util.ErrPermissionDenied) {
-				ctx.ServerError("IssueAssignOrRemoveProject", err)
-				return
-			}
+	if projectID > 0 {
+		updateIssueProject(ctx, pullIssue, projectID)
+		if ctx.Written() {
+			return
 		}
 	}
 
@@ -1988,6 +2015,7 @@ func PrepareViewPullInfoActionsTrust(ctx *context.Context, pull *issues_model.Pu
 	someRunsNeedApproval, err := actions_model.HasRunThatNeedApproval(ctx, pull.Issue.RepoID, pull.ID)
 	if err != nil {
 		ctx.ServerError("HasRunThatNeedApproval", err)
+		return
 	}
 	ctx.Data["SomePullRequestRunsNeedApproval"] = someRunsNeedApproval
 

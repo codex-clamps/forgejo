@@ -4,7 +4,7 @@
 	"admin.config.db.schema": "Shēma",
 	"admin.config.db.user": "Lietotājvārds",
 	"admin.config.db.name": "Nosaukums",
-	"admin.config.db.host": "Resursdators",
+	"admin.config.db.host": "Saimniekdators",
 	"admin.config.db.type": "Veids",
 	"admin.config.db.header": "Datubāzes konfigurācija",
 	"admin.config.mailer.user": "Lietotājs",
@@ -18,7 +18,7 @@
 	"admin.config.mailer.sendmail.path": "Sendmail ceļš",
 	"admin.config.mailer.sendmail.use": "Izmantot Sendmail",
 	"admin.config.mailer.name": "Nosaukums",
-	"admin.config.mailer.enabled": "Iespējota",
+	"admin.config.mailer.enabled": "Iespējots",
 	"admin.config.mailer.header": "Pasta sūtītāja konfigurācija",
 	"admin.config.git.gc_timeout": "GC darbības noildze",
 	"admin.config.git.pull_timeout": "Atgādāšanas darbības noildze",
@@ -26,7 +26,6 @@
 	"admin.config.git.mirror_timeout": "Spoguļglabātavas atjaunināšanas noildze",
 	"admin.config.git.migrate_timeout": "Pārcelšanas noildze",
 	"admin.config.git.gc_args": "GC argumenti",
-	"admin.config.git.diff.max_files": "Lielākais parādāmo salīdzināmo datņu skaits",
 	"admin.config.git.diff.max_line_characters": "Lielākais rindas salīdzināmo rakstzīmju skaits",
 	"admin.config.git.diff.max_lines": "Lielākais salīdzināmo rindu skaits datnē",
 	"admin.config.git.disable_diff_highlight": "Atspējot salīdzināšanas sintakses iekrāsošanu",
@@ -758,7 +757,6 @@
 	"install.ssh_authorized_keys_unexpected_key": "SSH iespējošana Forgejo nesader ar datni, kas atrodas %s, kas satur esošas SSH atslēgas. Ieteikumi: Forgejo vajadzībām izmantot atsevišķu sistēmas lietotāju vai atspējot SSH.",
 	"issues.filters.labels.exclude": "Neiekļaut iezīmi",
 	"issues.filters.labels.unexclude": "Notīrīt neiekļaušanu",
-	"actions.secrets.creation.name_description": "Noslēpuma nosaukums var saturēt tikai burtus, ciparus un zemsvītras. Tas nevar sākties ar FORGEJO_, GITEA_, GITHUB_ vai ciparu. Forgejo automātiski pārveidos to uz visiem lielajiem burtiem.",
 	"actions.variables.mutation.name_description": "Mainīgā nosaukums var saturēt tikai burtus, ciparus un zemsvītras. Tā nosaukums nevar būt CI vai sākties ar FORGEJO_, GITEA_, GITHUB_ vai ciparu. Forgejo automātiski pārveidos to uz visiem lielajiem burtiem.",
 	"actions.variables.mutation.value_description": "Mainīgā vērtība var būt jebkāds teksts. Īpašās rakstzīmes tiek paturētas. CRLF (Windows līniju pārrāvumi) tiek automātiski pārveidoti par LF. Kodēt vērtību ar Base64, ja būtu jāsaglabā sākotnējie līniju pārrāvumi.",
 	"actions.secrets.creation.value_description": "Noslēpuma vērtība var būt jebkāds teksts. Īpašās rakstzīmes tiek saglabātas. CRLF (Windows līniju pārrāvumi) tiek automātiski pārveidoti par LF. Kodēt vērtību ar Base64, ja būtu jāsaglabā sākotnējie līniju pārrāvumi.",
@@ -799,5 +797,50 @@
 	"settings.access_token.no_repositories_found": "Nav atrasta neviena glabātava.",
 	"settings.access_token.remove": "Noņemt %s",
 	"settings.access_token.resource_all_help": "Ļaut piekļuvi visiem resursiem.",
-	"settings.access_token.resource_public_only_help": "Ļaut piekļuvi tikai visiem pieejamām glabātavām un apvienībām."
+	"settings.access_token.resource_public_only_help": "Ļaut piekļuvi tikai visiem pieejamām glabātavām un apvienībām.",
+	"admin.auths.oauth2_dyn_group_maps_removal": "Automātiski noņemt lietotājus no visām komandām, kurās tie nav pievienoti, pamatojoties uz kopu kartējumiem.",
+	"admin.auths.oauth2_dyn_group_maps": "Automātiski pievienot lietotājus komandām, balstoties uz dinamiskiem kopu kartējumiem. (Izvēles)",
+	"actions.jobs.not_started": "nav sācies",
+	"members.invite_team_member": "Uzaicināt komandā",
+	"members.user": "Lietotājs",
+	"members.user_already_member": "Šis lietotājs jau ir apvienības dalībnieks.",
+	"members.no_team_selected": "Apvienības dalībniekiem ir jābūt vismaz vienā komandā.",
+	"pulls.status_checks.skipped": "Dažas pārbaudes tika izlaistas",
+	"members.invite_member": "Uzaicināt dalībnieku",
+	"repo.issues.context.copy_markdown": "Ievietot Markdown starpliktuvē",
+	"relativetime.duration.years": {
+		"zero": "%d gadu",
+		"one": "%d gads",
+		"other": "%d gadi"
+	},
+	"relativetime.duration.months": {
+		"zero": "%d mēnešu",
+		"one": "%d mēnesis",
+		"other": "%d mēneši"
+	},
+	"relativetime.duration.weeks": {
+		"zero": "%d nedēļu",
+		"one": "%d nedēļa",
+		"other": "%d nedēļas"
+	},
+	"relativetime.duration.days": {
+		"zero": "%d dienu",
+		"one": "%d diena",
+		"other": "%d dienas"
+	},
+	"relativetime.duration.hours": {
+		"zero": "%d stundu",
+		"one": "%d stunda",
+		"other": "%d stundas"
+	},
+	"relativetime.duration.mins": {
+		"zero": "%d minūšu",
+		"one": "%d minūte",
+		"other": "%d minūtes"
+	},
+	"relativetime.duration.secs": {
+		"zero": "%d sekunžu",
+		"one": "%d sekunde",
+		"other": "%d sekundes"
+	}
 }

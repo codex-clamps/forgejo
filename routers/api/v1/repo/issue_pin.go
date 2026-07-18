@@ -41,7 +41,7 @@ func PinIssue(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo().Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound()
@@ -60,7 +60,7 @@ func PinIssue(ctx *context.APIContext) {
 		return
 	}
 
-	err = issue.Pin(ctx, ctx.Doer)
+	err = issue.Pin(ctx, ctx.Doer())
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "PinIssue", err)
 		return
@@ -98,7 +98,7 @@ func UnpinIssue(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo().Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound()
@@ -115,7 +115,7 @@ func UnpinIssue(ctx *context.APIContext) {
 		return
 	}
 
-	err = issue.Unpin(ctx, ctx.Doer)
+	err = issue.Unpin(ctx, ctx.Doer())
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "UnpinIssue", err)
 		return
@@ -159,7 +159,7 @@ func MoveIssuePin(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo().Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound()
@@ -201,13 +201,13 @@ func ListPinnedIssues(ctx *context.APIContext) {
 	//     "$ref": "#/responses/IssueListWithoutPagination"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	issues, err := issues_model.GetPinnedIssues(ctx, ctx.Repo.Repository.ID, false)
+	issues, err := issues_model.GetPinnedIssues(ctx, ctx.Repo().Repository.ID, false)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadPinnedIssues", err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, ctx.Doer, issues))
+	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, ctx.Doer(), issues))
 }
 
 // ListPinnedPullRequests returns a list of all pinned PRs
@@ -233,7 +233,7 @@ func ListPinnedPullRequests(ctx *context.APIContext) {
 	//     "$ref": "#/responses/PullRequestList"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	issues, err := issues_model.GetPinnedIssues(ctx, ctx.Repo.Repository.ID, true)
+	issues, err := issues_model.GetPinnedIssues(ctx, ctx.Repo().Repository.ID, true)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadPinnedPullRequests", err)
 		return
@@ -261,7 +261,7 @@ func ListPinnedPullRequests(ctx *context.APIContext) {
 			return
 		}
 
-		apiPrs[i] = convert.ToAPIPullRequest(ctx, pr, ctx.Doer)
+		apiPrs[i] = convert.ToAPIPullRequest(ctx, pr, ctx.Doer())
 	}
 
 	ctx.JSON(http.StatusOK, &apiPrs)
@@ -293,13 +293,13 @@ func AreNewIssuePinsAllowed(ctx *context.APIContext) {
 	pinsAllowed := api.NewIssuePinsAllowed{}
 	var err error
 
-	pinsAllowed.Issues, err = issues_model.IsNewPinAllowed(ctx, ctx.Repo.Repository.ID, false)
+	pinsAllowed.Issues, err = issues_model.IsNewPinAllowed(ctx, ctx.Repo().Repository.ID, false)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "IsNewIssuePinAllowed", err)
 		return
 	}
 
-	pinsAllowed.PullRequests, err = issues_model.IsNewPinAllowed(ctx, ctx.Repo.Repository.ID, true)
+	pinsAllowed.PullRequests, err = issues_model.IsNewPinAllowed(ctx, ctx.Repo().Repository.ID, true)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "IsNewPullRequestPinAllowed", err)
 		return

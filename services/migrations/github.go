@@ -19,6 +19,7 @@ import (
 	base "forgejo.org/modules/migration"
 	"forgejo.org/modules/proxy"
 	"forgejo.org/modules/structs"
+	"forgejo.org/services/migrations/allowlist"
 
 	"github.com/google/go-github/v81/github"
 	"golang.org/x/oauth2"
@@ -116,7 +117,7 @@ func NewGithubDownloaderV3(ctx context.Context, baseURL string, getPullRequests,
 			)
 			client := &http.Client{
 				Transport: &oauth2.Transport{
-					Base:   NewMigrationHTTPTransport(),
+					Base:   allowlist.NewMigrationHTTPTransport(),
 					Source: oauth2.ReuseTokenSource(nil, ts),
 				},
 			}
@@ -124,7 +125,7 @@ func NewGithubDownloaderV3(ctx context.Context, baseURL string, getPullRequests,
 			downloader.addClient(client, baseURL)
 		}
 	} else {
-		transport := NewMigrationHTTPTransport()
+		transport := allowlist.NewMigrationHTTPTransport()
 		transport.Proxy = func(req *http.Request) (*url.URL, error) {
 			req.SetBasicAuth(userName, password)
 			return proxy.Proxy()(req)
@@ -346,7 +347,7 @@ func (g *GithubDownloaderV3) convertGithubRelease(rel *github.RepositoryRelease)
 		r.Published = rel.PublishedAt.Time
 	}
 
-	httpClient := NewMigrationHTTPClient()
+	httpClient := allowlist.NewMigrationHTTPClient()
 
 	for _, asset := range rel.Assets {
 		assetID := *asset.ID // Don't optimize this, for closure we need a local variable
@@ -454,7 +455,7 @@ func (g *GithubDownloaderV3) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 	if err != nil {
 		return nil, false, fmt.Errorf("error while listing repos: %w", err)
 	}
-	log.Trace("Request get issues %d/%d, but in fact get %d", perPage, page, len(issues))
+	log.Trace("Request get issues %d/%d, but in fact get %d. After pagination %s", perPage, page, len(issues), resp.After)
 	g.setRate(&resp.Rate)
 	for _, issue := range issues {
 		if issue.IsPullRequest() {
@@ -520,7 +521,7 @@ func (g *GithubDownloaderV3) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 		})
 	}
 
-	return allIssues, len(issues) < perPage, nil
+	return allIssues, resp.After == "", nil
 }
 
 // SupportGetRepoComments return true if it supports get repo comments

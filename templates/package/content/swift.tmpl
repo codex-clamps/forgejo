@@ -22,19 +22,10 @@
 		</div>
 	</div>
 
-	{{if .PackageDescriptor.Metadata.Description}}
+	{{if .PackageDescriptor.Metadata.Metadata.Description}}
 		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.about"}}</h4>
 		<div class="ui attached segment">
-			{{if .PackageDescriptor.Metadata.Description}}{{.PackageDescriptor.Metadata.Description}}{{end}}
-		</div>
-	{{end}}
-
-	{{if .PackageDescriptor.Metadata.Keywords}}
-		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.keywords"}}</h4>
-		<div class="ui attached segment">
-			{{range .PackageDescriptor.Metadata.Keywords}}
-				{{.}}
-			{{end}}
+			{{.PackageDescriptor.Metadata.Metadata.Description}}
 		</div>
 	{{end}}
 {{end}}

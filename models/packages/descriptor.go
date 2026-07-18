@@ -200,7 +200,7 @@ func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDesc
 	case TypeRubyGems:
 		metadata = &rubygems.Metadata{}
 	case TypeSwift:
-		metadata = &swift.Metadata{}
+		metadata = &swift.Package{}
 	case TypeVagrant:
 		metadata = &vagrant.Metadata{}
 	default:

@@ -48,12 +48,41 @@
 		"one": "%d year ago",
 		"other": "%d years ago"
 	},
+	"relativetime.duration.secs": {
+		"one": "%d second",
+		"other": "%d seconds"
+	},
+	"relativetime.duration.mins": {
+		"one": "%d minute",
+		"other": "%d minutes"
+	},
+	"relativetime.duration.hours": {
+		"one": "%d hour",
+		"other": "%d hours"
+	},
+	"relativetime.duration.days": {
+		"one": "%d day",
+		"other": "%d days"
+	},
+	"relativetime.duration.weeks": {
+		"one": "%d week",
+		"other": "%d weeks"
+	},
+	"relativetime.duration.months": {
+		"one": "%d month",
+		"other": "%d months"
+	},
+	"relativetime.duration.years": {
+		"one": "%d year",
+		"other": "%d years"
+	},
 	"relativetime.1day": "yesterday",
 	"relativetime.1week": "last week",
 	"relativetime.1month": "last month",
 	"relativetime.1year": "last year",
 	"repo.files.caption": "Repository files (latest commit first)",
 	"repo.files.filename": "Filename",
+	"repo.empty_commit_message": "Empty commit message",
 	"repo.files.last_commit_message": "Latest commit message",
 	"repo.files.last_commit_date": "Latest commit date",
 	"repo.issues.filter_poster.hint": "Filter by the author",
@@ -62,6 +91,7 @@
 	"repo.issues.filter_mention.hint": "Filter by mentioned user",
 	"repo.issues.filter_modified.hint": "Filter by last modified date",
 	"repo.issues.filter_sort.hint_with_placeholder": "Sort by: %s",
+	"repo.issues.context.copy_markdown": "Copy Markdown",
 	"issues.updated": "updated %s",
 	"issues.filters.labels.exclude": "Exclude label",
 	"issues.filters.labels.unexclude": "Clear exclusion",
@@ -134,6 +164,8 @@
 	"search.syntax": "Search syntax",
 	"search.fuzzy": "Fuzzy",
 	"search.fuzzy_tooltip": "Include results is an approximate match to the search term",
+	"search.match_inside_quotes": "Include only results that match the term in quotes",
+	"search.docs": "<a target=\"_blank\" rel=\"noopener noreferrer\" href=\"%[1]s\">See the documentation</a> for further details on search, operators, and filters.",
 	"repo.settings.push_mirror.branch_filter.label": "Branch filter (optional)",
 	"repo.settings.push_mirror.branch_filter.description": "Branches to be mirrored. Leave blank to mirror all branches. See <a href=\"%[1]s\">%[2]s documentation</a> for syntax. Examples: <code>main, release/*</code>",
 	"repo.settings.units.more_units_disable_hint": "The \"Enable more\" hint can be disabled in <a href=\"%s\">User settings > Appearance</a>.",
@@ -202,7 +234,6 @@
 	"admin.config.git.disable_diff_highlight": "Disable diff syntax highlighting",
 	"admin.config.git.diff.max_lines": "Max diff lines per file",
 	"admin.config.git.diff.max_line_characters": "Max diff characters per line",
-	"admin.config.git.diff.max_files": "Max diff files shown",
 	"admin.config.git.gc_args": "GC arguments",
 	"admin.config.git.migrate_timeout": "Migration timeout",
 	"admin.config.git.mirror_timeout": "Mirror Update timeout",
@@ -435,6 +466,7 @@
 	"admin.config.global_2fa_requirement.all": "All users",
 	"admin.config.global_2fa_requirement.admin": "Administrators",
 	"settings.visibility.description": "Profile visibility affects others' ability to access your non-private repositories. <a href=\"%s\" target=\"_blank\">Learn more</a>.",
+	"settings.profile.dotprofile.hint": "Advanced profile customization, including verification links, can be achieved with the <code>%s</code> repository. <a href=\"%s\" target=\"_blank\">Learn more</a>.",
 	"settings.twofa_unroll_unavailable": "Two-factor authentication is required for your account and cannot be disabled.",
 	"settings.twofa_reenroll": "Re-enroll two-factor authentication",
 	"settings.twofa_reenroll.description": "Re-enroll your two-factor authentication",
@@ -852,6 +884,12 @@
 	"actions.runs.delete.button": "Delete run",
 	"actions.runs.delete.error": "Could not delete the workflow run.",
 	"actions.runs.delete.confirm_action": "Do you really want to delete this workflow run?",
+	"actions.runs.prioritized_run": "Prioritized",
+	"actions.runs.prioritize_run": "Prioritize run",
+	"actions.runs.deprioritize_run": "Do not prioritize run",
+	"actions.runs.options": "Options",
+	"actions.runs.prioritization_success": "Workflow run #%d is now being prioritized.",
+	"actions.runs.deprioritization_success": "Workflow run #%d will no longer be prioritized.",
 	"actions.jobs.not_started": "not started",
 	"actions.workflow.job_parsing_error": "Unable to parse jobs in workflow: %v",
 	"actions.workflow.event_detection_error": "Unable to parse supported events in workflow: %v",
@@ -871,6 +909,8 @@
 	"actions.workflow.pre_execution_error": "Workflow was not executed due to an error that blocked the execution attempt.",
 	"actions.workflow.rerun_impossible": "The workflow cannot be rerun.",
 	"actions.workflow.job_rerun_impossible": "The job cannot be rerun.",
+	"actions.workflow.pre_execution_warning": "Workflow warnings:",
+	"actions.workflow.permissions_warning": "Job <code>%[1]s</code> or its workflow has a <code>permissions</code> field, which is not supported in Forgejo and will be ignored. Use <a href=\"%[2]s\">Authorized Integrations</a> to grant capabilities to this job instead.",
 	"actions.secrets.creation.value_description": "The value of a secret can be any text. Special characters are retained. CRLF (Windows-style line breaks) is automatically converted to LF. Encode the value with Base64 if linebreaks should be retained.",
 	"actions.variables.mutation.name_description": "The name of a variable can only contain letters, numbers, and underscores. It cannot be named CI or start with FORGEJO_, GITEA_, GITHUB_, or a number. Forgejo will automatically convert it to uppercase.",
 	"actions.variables.mutation.value_description": "A variable's value can be any text. Special characters are retained. CRLF (Windows-style line breaks) is automatically converted to LF. Encode the value with Base64 if linebreaks should be retained.",
@@ -906,6 +946,8 @@
 	"teams.add_all_repos.modal.header": "Add all repositories",
 	"teams.remove_all_repos.modal.header": "Remove all repositories",
 	"members.add_member": "Add member",
+	"members.invite_member": "Invite member",
+	"members.invite_team_member": "Invite to team",
 	"members.user": "User",
 	"members.user_already_member": "This user is already a member of the organization.",
 	"members.no_team_selected": "Organization members must belong to at least one team.",
@@ -928,6 +970,11 @@
 	"editor.toggle_case": "Toggle case sensitivity",
 	"editor.toggle_regex": "Toggle using regular expressions",
 	"editor.toggle_whole_word": "Toggle matching whole words",
+	"repo.watching": "Watching",
+	"repo.watch.issues": "Issues",
+	"repo.watch.pull_requests": "Pull requests",
+	"repo.watch.releases": "Releases",
+	"repo.watch.releases.hint": "(Email only)",
 	"markup.filepreview.line": "Line %[1]d in %[2]s",
 	"markup.filepreview.lines": "Lines %[1]d to %[2]d in %[3]s",
 	"markup.filepreview.truncated": "Preview has been truncated",

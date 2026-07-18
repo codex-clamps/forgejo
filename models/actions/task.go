@@ -19,6 +19,7 @@ import (
 	"forgejo.org/modules/util"
 
 	"code.forgejo.org/forgejo/runner/v12/act/jobparser"
+	"code.forgejo.org/xorm/xorm"
 	lru "github.com/hashicorp/golang-lru/v2"
 	"xorm.io/builder"
 )
@@ -160,6 +161,10 @@ func (task *ActionTask) GenerateToken() {
 // After using GenerateToken, UpdateToken can be used to update the database record affecting the same columns.
 func (task *ActionTask) UpdateToken(ctx context.Context) error {
 	return UpdateTask(ctx, task, "token_hash", "token_salt", "token_last_eight")
+}
+
+func (task *ActionTask) HasLogs() bool {
+	return task.LogFilename != ""
 }
 
 func GetTaskByID(ctx context.Context, id int64) (*ActionTask, error) {
@@ -336,7 +341,12 @@ func GetAvailableJobsForRunner(e db.Engine, runner *ActionRunner) ([]*ActionRunJ
 	}
 
 	var jobs []*ActionRunJob
-	if err := e.Where("task_id=? AND status=?", 0, StatusWaiting).And(jobCond).Asc("updated", "id").Find(&jobs); err != nil {
+	if err := e.
+		Join("INNER", "action_run", "action_run_job.run_id=action_run.id").
+		Where("task_id=? AND action_run_job.status=?", 0, StatusWaiting).And(jobCond).
+		Desc("action_run.priority").
+		Asc("action_run_job.updated", "action_run_job.id").
+		Find(&jobs); err != nil {
 		return nil, err
 	}
 	return jobs, nil
@@ -435,7 +445,14 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner, requestKey, 
 
 	job.TaskID = task.ID
 	// We never have to send a notification here because the job is started with a not done status.
-	if n, err := UpdateRunJobWithoutNotification(ctx, job, builder.Eq{"task_id": 0}); err != nil {
+	//
+	// ErrDeadlock can occur on MariaDB w/ `innodb_snapshot_isolation`, rather than returning 0 records -- we can treat
+	// that just the same and return the `ErrNoJobUpdated` error code. An alternative would be to use READ COMMITTED
+	// transaction isolation level, but models/db doesn't currently expose that, and it would cause transaction nesting
+	// difficulties.
+	if n, err := UpdateRunJobWithoutNotification(ctx, job, builder.Eq{"task_id": 0}); err != nil && errors.Is(err, xorm.ErrDeadlock) {
+		return nil, ErrNoJobUpdated
+	} else if err != nil {
 		return nil, err
 	} else if n != 1 {
 		return nil, ErrNoJobUpdated

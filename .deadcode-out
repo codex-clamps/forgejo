@@ -131,6 +131,11 @@ forgejo.org/modules/json
 	StdJSON.NewDecoder
 	StdJSON.Indent
 
+forgejo.org/modules/jwtx
+	savePublicKey
+	NewVerifier
+	Verifier.Parse
+
 forgejo.org/modules/log
 	eventWriterBuffer.Close
 	eventWriterBuffer.Write
@@ -218,6 +223,54 @@ forgejo.org/modules/zstd
 	NewWriter
 	Writer.Write
 	Writer.Close
+
+forgejo.org/routers/api/v1/permissions
+	Permissions.Context
+	Permissions.SetContext
+	Permissions.GetToken
+	Permissions.SetToken
+	Permissions.Repository
+	Permissions.SetRepository
+	Permissions.Doer
+	Permissions.SetDoer
+	Permissions.User
+	Permissions.SetUser
+	Permissions.Organization
+	Permissions.SetOrganization
+	Permissions.Team
+	Permissions.SetTeam
+	Permissions.PackageOwner
+	Permissions.SetPackageOwner
+	Permissions.PackageAccessMode
+	Permissions.SetPackageAccessMode
+	Permissions.Permission
+	Permissions.SetPermission
+	Permissions.IsSigned
+	Permissions.SetIsSigned
+	Permissions.PublicOnly
+	Permissions.SetPublicOnly
+	Permissions.Reducer
+	Permissions.SetReducer
+	Permissions.Authentication
+	Permissions.SetAuthentication
+	Permissions.RequiredScopeCategories
+	Permissions.SetRequiredScopeCategories
+	Permissions.GetStatus
+	Permissions.SetStatus
+	Permissions.GetMessage
+	Permissions.SetMessage
+	Permissions.GetError
+	Permissions.Error
+	Permissions.NotFound
+	Permissions.InternalServerError
+	Permissions.WrittenStatus
+	Permissions.String
+	Permissions.Strings
+
+forgejo.org/routers/api/v1/permissions/testhelpers
+	GetSignatureStringToSignature
+	GetUniquePermissionsSequences
+	GetShortestPermissionSequenceForEachSignature
 
 forgejo.org/routers/web/org
 	MustEnableProjects

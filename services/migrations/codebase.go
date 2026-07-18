@@ -15,8 +15,8 @@ import (
 
 	"forgejo.org/modules/log"
 	base "forgejo.org/modules/migration"
-	"forgejo.org/modules/proxy"
 	"forgejo.org/modules/structs"
+	"forgejo.org/services/migrations/allowlist"
 )
 
 var (
@@ -75,6 +75,8 @@ type CodebaseDownloader struct {
 	maxIssueIndex int64
 	userMap       map[int64]*codebaseUser
 	commitMap     map[string]string
+	username      string
+	password      string
 }
 
 // SetContext set context
@@ -92,18 +94,11 @@ func NewCodebaseDownloader(ctx context.Context, projectURL *url.URL, project, re
 		projectURL: projectURL,
 		project:    project,
 		repoName:   repoName,
-		client: &http.Client{
-			Transport: &http.Transport{
-				Proxy: func(req *http.Request) (*url.URL, error) {
-					if len(username) > 0 && len(password) > 0 {
-						req.SetBasicAuth(username, password)
-					}
-					return proxy.Proxy()(req)
-				},
-			},
-		},
-		userMap:   make(map[int64]*codebaseUser),
-		commitMap: make(map[string]string),
+		client:     allowlist.NewMigrationHTTPClient(),
+		username:   username,
+		password:   password,
+		userMap:    make(map[int64]*codebaseUser),
+		commitMap:  make(map[string]string),
 	}
 
 	log.Trace("Create Codebase downloader. BaseURL: %s Project: %s RepoName: %s", baseURL, project, repoName)
@@ -144,6 +139,9 @@ func (d *CodebaseDownloader) callAPI(endpoint string, parameter map[string]strin
 	req, err := http.NewRequestWithContext(d.ctx, "GET", u.String(), nil)
 	if err != nil {
 		return err
+	}
+	if len(d.username) > 0 && len(d.password) > 0 {
+		req.SetBasicAuth(d.username, d.password)
 	}
 	req.Header.Add("Accept", "application/xml")
 

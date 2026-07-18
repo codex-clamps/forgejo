@@ -142,6 +142,9 @@ func (*NullNotifier) IssueChangeLabels(ctx context.Context, doer *user_model.Use
 	addedLabels, removedLabels []*issues_model.Label) {
 }
 
+func (*NullNotifier) NewReaction(ctx context.Context, reaction *issues_model.Reaction)    {}
+func (*NullNotifier) DeleteReaction(ctx context.Context, reaction *issues_model.Reaction) {}
+
 // CreateRepository places a place holder function
 func (*NullNotifier) CreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository) {
 }

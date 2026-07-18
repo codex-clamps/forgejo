@@ -50,7 +50,7 @@ func Markup(ctx *context.APIContext) {
 		IsWiki:     form.Wiki,
 	}
 
-	re.RenderMarkup(ctx.Base, ctx.Repo)
+	re.RenderMarkup(ctx.Base, ctx.Repo())
 }
 
 // Markdown render markdown document to HTML
@@ -92,7 +92,7 @@ func Markdown(ctx *context.APIContext) {
 		IsWiki:    form.Wiki,
 	}
 
-	re.RenderMarkup(ctx.Base, ctx.Repo)
+	re.RenderMarkup(ctx.Base, ctx.Repo())
 }
 
 // MarkdownRaw render raw markdown HTML

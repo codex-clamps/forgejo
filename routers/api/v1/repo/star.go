@@ -45,16 +45,16 @@ func ListStargazers(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	stargazers, err := repo_model.GetStargazers(ctx, ctx.Repo.Repository, utils.GetListOptions(ctx))
+	stargazers, err := repo_model.GetStargazers(ctx, ctx.Repo().Repository, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetStargazers", err)
 		return
 	}
 	users := make([]*api.User, len(stargazers))
 	for i, stargazer := range stargazers {
-		users[i] = convert.ToUser(ctx, stargazer, ctx.Doer)
+		users[i] = convert.ToUser(ctx, stargazer, ctx.Doer())
 	}
 
-	ctx.SetTotalCountHeader(int64(ctx.Repo.Repository.NumStars))
+	ctx.SetTotalCountHeader(int64(ctx.Repo().Repository.NumStars))
 	ctx.JSON(http.StatusOK, users)
 }

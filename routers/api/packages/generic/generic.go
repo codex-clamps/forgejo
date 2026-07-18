@@ -29,6 +29,38 @@ func apiError(ctx *context.Context, status int, obj any) {
 	})
 }
 
+func CheckPackageFileExistence(ctx *context.Context) {
+	pv, err := packages_model.GetVersionByNameAndVersion(
+		ctx,
+		ctx.Package.Owner.ID,
+		packages_model.TypeGeneric,
+		ctx.Params("packagename"),
+		ctx.Params("packageversion"),
+	)
+	if err != nil {
+		if err == packages_model.ErrPackageNotExist {
+			apiError(ctx, http.StatusNotFound, err)
+			return
+		}
+		apiError(ctx, http.StatusInternalServerError, err)
+	}
+
+	pf, err := packages_model.GetFileForVersionByName(ctx, pv.ID, ctx.Params("filename"), "")
+	if err != nil {
+		if err == packages_model.ErrPackageFileNotExist {
+			apiError(ctx, http.StatusNotFound, err)
+			return
+		}
+		apiError(ctx, http.StatusInternalServerError, err)
+	}
+
+	ctx.SetServeHeaders(&context.ServeHeaderOptions{
+		Filename:     pf.Name,
+		LastModified: pf.CreatedUnix.AsLocalTime(),
+	})
+	ctx.Status(http.StatusOK)
+}
+
 // DownloadPackageFile serves the specific generic package.
 func DownloadPackageFile(ctx *context.Context) {
 	s, u, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(

@@ -190,7 +190,7 @@ func innerToRepo(ctx stdCtx.Context, repo *repo_model.Repository, permissionInRe
 	// the best-effort made here is to check if `ctx` is an `APIContext`.
 	ownerViewPerms := permissionInRepo.AccessMode
 	apiCtx, ok := ctx.(*context.APIContext)
-	if ok && apiCtx.Doer == nil {
+	if ok && apiCtx.Doer() == nil {
 		ownerViewPerms = perm.AccessModeNone
 	}
 

@@ -6,6 +6,7 @@ package mirror
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"strings"
 	"time"
 
@@ -23,6 +24,7 @@ import (
 	"forgejo.org/modules/setting"
 	"forgejo.org/modules/timeutil"
 	"forgejo.org/modules/util"
+	migrations_allowlist "forgejo.org/services/migrations/allowlist"
 	notify_service "forgejo.org/services/notify"
 )
 
@@ -274,6 +276,40 @@ func DecryptOrRecoverRemoteAddress(ctx context.Context, m *repo_model.Mirror) (*
 	return remoteURL, nil
 }
 
+// Ensure that an on-disk pull mirror is in a modern expected configuration state, in case those expectations have
+// changed since the time the mirror was created on-disk.
+func ModernizePullMirrorConfig(ctx context.Context, m *repo_model.Mirror) error {
+	repoPath := m.GetRepository(ctx).RepoPath()
+
+	// New pull mirrors are created with http.followRedirects=false to mitigate SSRF risks, as redirection URLs may not
+	// meet Forgejo's configured migration allow/deny host lists. Migrate to that setting if it is not present:
+	followRedirects, _, err := git.
+		NewCommand(ctx, "config", "--get", "http.followRedirects").
+		RunStdString(&git.RunOpts{Dir: repoPath})
+		// git will return a non-zero exit code if the config isn't set, so we'll treat an error the same as missing
+	if err != nil {
+		followRedirects = ""
+	}
+	followRedirects = strings.TrimSpace(followRedirects)
+	if followRedirects != "false" {
+		_, _, err = git.
+			NewCommand(ctx, "config", "--replace-all", "http.followRedirects", "false").
+			RunStdString(&git.RunOpts{Dir: repoPath})
+		if err != nil {
+			return fmt.Errorf("failed to set http.followRedirects config: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func recheckPullPermitted(ctx context.Context, m *repo_model.Mirror, remoteURL *url.URL) error {
+	if err := m.Repo.LoadOwner(ctx); err != nil {
+		return err
+	}
+	return migrations_allowlist.IsMigrateURLAllowed(remoteURL.String(), m.Repo.Owner)
+}
+
 // runSync returns true if sync finished without error.
 func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bool) {
 	repoPath := m.Repo.RepoPath()
@@ -282,9 +318,22 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 
 	log.Trace("SyncMirrors [repo: %-v]: running git remote update...", m.Repo)
 
+	if err := ModernizePullMirrorConfig(ctx, m); err != nil {
+		log.Error("SyncMirrors [repo: %-v]: failed to modernize pull mirror configuration: %v", m.Repo, err)
+		return nil, false
+	}
+
 	remoteURL, err := DecryptOrRecoverRemoteAddress(ctx, m)
 	if err != nil {
 		log.Error("SyncMirrors [repo: %-v]: failed to get remote address: %v", m.Repo, err)
+		return nil, false
+	}
+
+	// Recheck that the remote address is still permitted before pulling. The address passed IsMigrateURLAllowed at
+	// creation time, but the allow/block lists may have changed since, or DNS for the remote host may now resolve to an
+	// internal address (DNS rebinding).
+	if err := recheckPullPermitted(ctx, m, remoteURL.URL); err != nil {
+		log.Error("SyncMirrors [repo: %-v]: pull mirror failed to meet migration URL requirements: %v", m.Repo, err)
 		return nil, false
 	}
 
@@ -380,7 +429,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 	if m.LFS && setting.LFS.StartServer {
 		log.Trace("SyncMirrors [repo: %-v]: syncing LFS objects...", m.Repo)
 		endpoint := lfs.DetermineEndpoint(remoteURL.String(), m.LFSEndpoint)
-		lfsClient := lfs.NewClient(endpoint, nil)
+		lfsClient := lfs.NewClient(endpoint, migrations_allowlist.NewMigrationHTTPTransport())
 		if err = repo_module.StoreMissingLfsObjectsInRepository(ctx, m.Repo, gitRepo, lfsClient); err != nil {
 			log.Error("SyncMirrors [repo: %-v]: failed to synchronize LFS objects for repository: %v", m.Repo, err)
 		}

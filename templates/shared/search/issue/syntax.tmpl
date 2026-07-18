@@ -3,8 +3,8 @@
 	<article>
 		<header>{{ctx.Locale.Tr "search.syntax"}}</header>
 		<div class="content">
-			<table class="tw-table-auto">
-				<tbody>
+			{{ctx.Locale.Tr "search.docs" "https://forgejo.org/docs/latest/user/issue-search/"}}
+			<dl class="search-syntax-list">
 					{{range $filter, $tr :=
 						dict
 							"is:open" (ctx.Locale.TrString "repo.issues.open_title")
@@ -15,14 +15,14 @@
 							"review:<username>" (ctx.Locale.TrString "repo.issues.filter_reviewers.hint")
 							"mentions:<username>" (ctx.Locale.TrString "repo.issues.filter_mention.hint")
 							"sort:<by>:[asc|desc]" (ctx.Locale.Tr "repo.issues.filter_sort.hint_with_placeholder" (HTMLFormat "<code>created|comments|updated|deadline</code>"))
-							"modified:[>|<]<date>" (ctx.Locale.TrString "repo.issues.filter_modified.hint")}}
-						<tr>
-							<th class="tw-p-2"><code>{{$filter}}</code></th>
-							<td class="tw-p-2">{{$tr}}</td>
-						</tr>
+							"modified:[>|<]<date>" (ctx.Locale.TrString "repo.issues.filter_modified.hint")
+							"\"forgejo\"" (ctx.Locale.TrString "search.match_inside_quotes")}}
+						<div class="row">
+							<dt><code>{{$filter}}</code></dt>
+							<dd>{{$tr}}</td>
+						</div>
 					{{end}}
-				</tbody>
-			</table>
+			</dl>
 		</div>
 		<footer class="actions">
 			<button class="secondary button cancel">{{ctx.Locale.Tr "settings.cancel"}}</button>

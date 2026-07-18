@@ -16,9 +16,9 @@ import (
 )
 
 func TestCleanup(t *testing.T) {
-	require.NoError(t, unittest.PrepareTestDatabase())
-
 	t.Run("Deletes no longer existing logs", func(t *testing.T) {
+		require.NoError(t, unittest.PrepareTestDatabase())
+
 		unittest.AssertSuccessfulInsert(t, &actions_model.ActionTask{ID: 1001, LogExpired: false, LogIndexes: []int64{1, 2, 3, 4}, LogFilename: "does-not-exist", Stopped: timeutil.TimeStamp(1)})
 
 		require.NoError(t, CleanupLogs(db.DefaultContext))
@@ -26,6 +26,19 @@ func TestCleanup(t *testing.T) {
 		task := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: 1001})
 		assert.Equal(t, "does-not-exist", task.LogFilename)
 		assert.True(t, task.LogExpired)
+		assert.Nil(t, task.LogIndexes)
+	})
+
+	t.Run("Ignores tasks without logs", func(t *testing.T) {
+		require.NoError(t, unittest.PrepareTestDatabase())
+
+		unittest.AssertSuccessfulInsert(t, &actions_model.ActionTask{ID: 1001, LogExpired: false, LogIndexes: []int64{}, LogFilename: "", Stopped: timeutil.TimeStamp(1)})
+
+		require.NoError(t, CleanupLogs(db.DefaultContext))
+
+		task := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: 1001})
+		assert.Empty(t, task.LogFilename)
+		assert.False(t, task.LogExpired)
 		assert.Nil(t, task.LogIndexes)
 	})
 }

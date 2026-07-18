@@ -233,11 +233,9 @@ func SelfCheck(ctx *context.Context) {
 		ctx.Data["DatabaseCheckHasProblems"] = hasProblem
 	}
 
-	elapsed, err := cache.Test()
+	_, err = cache.Test()
 	if err != nil {
 		ctx.Data["CacheError"] = err
-	} else if elapsed > cache.SlowCacheThreshold {
-		ctx.Data["CacheSlow"] = fmt.Sprint(elapsed)
 	}
 
 	ctx.HTML(http.StatusOK, tplSelfCheck)

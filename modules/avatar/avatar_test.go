@@ -13,8 +13,6 @@ import (
 	"forgejo.org/modules/setting"
 	"forgejo.org/modules/test"
 
-	jpegstructure "code.superseriousbusiness.org/go-jpeg-image-structure/v2"
-	"github.com/dsoprea/go-exif/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -155,41 +153,4 @@ func Test_ProcessAvatarImage(t *testing.T) {
 	origin = newImgData(10)
 	_, _, err = processAvatarImage(origin, 262144)
 	require.ErrorContains(t, err, "image width is too large: 10 > 5")
-}
-
-func safeExifJpeg(t *testing.T, jpeg []byte) {
-	t.Helper()
-
-	parser := jpegstructure.NewJpegMediaParser()
-	mediaContext, err := parser.ParseBytes(jpeg)
-	require.NoError(t, err)
-
-	sl := mediaContext.(*jpegstructure.SegmentList)
-
-	rootIfd, _, err := sl.Exif()
-	require.NoError(t, err)
-	err = rootIfd.EnumerateTagsRecursively(func(ifd *exif.Ifd, ite *exif.IfdTagEntry) error {
-		assert.Equal(t, "Orientation", ite.TagName(), "only Orientation EXIF tag expected")
-		return nil
-	})
-	require.NoError(t, err)
-}
-
-func Test_ProcessAvatarExif(t *testing.T) {
-	t.Run("greater than max origin size", func(t *testing.T) {
-		data, err := os.ReadFile("testdata/exif.jpg")
-		require.NoError(t, err)
-
-		processedData, _, err := processAvatarImage(data, 12800)
-		require.NoError(t, err)
-		safeExifJpeg(t, processedData)
-	})
-	t.Run("smaller than max origin size", func(t *testing.T) {
-		data, err := os.ReadFile("testdata/exif.jpg")
-		require.NoError(t, err)
-
-		processedData, _, err := processAvatarImage(data, 128000)
-		require.NoError(t, err)
-		safeExifJpeg(t, processedData)
-	})
 }

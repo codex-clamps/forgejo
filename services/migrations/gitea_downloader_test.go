@@ -12,6 +12,9 @@ import (
 
 	"forgejo.org/models/unittest"
 	base "forgejo.org/modules/migration"
+	"forgejo.org/modules/setting"
+	"forgejo.org/modules/test"
+	"forgejo.org/services/migrations/allowlist"
 
 	gitea_sdk "code.gitea.io/sdk/gitea"
 	"github.com/stretchr/testify/assert"
@@ -19,6 +22,8 @@ import (
 )
 
 func TestGiteaDownloadRepo(t *testing.T) {
+	defer test.MockVariableValueWithReset(&setting.Migrations.AllowLocalNetworks, true, func() { require.NoError(t, allowlist.Init()) })()
+
 	giteaToken := os.Getenv("GITEA_TOKEN")
 
 	fixturePath := "./testdata/gitea/full_download"
@@ -30,7 +35,7 @@ func TestGiteaDownloadRepo(t *testing.T) {
 		gitea_sdk.SetToken(giteaToken),
 		gitea_sdk.SetBasicAuth("", ""),
 		gitea_sdk.SetContext(t.Context()),
-		gitea_sdk.SetHTTPClient(NewMigrationHTTPClient()),
+		gitea_sdk.SetHTTPClient(allowlist.NewMigrationHTTPClient()),
 	)
 	require.NoError(t, err, "Clould not create Client")
 	downloader, err := NewGiteaDownloader(t.Context(), giteaClient, server.URL, "gitea/test_repo")
@@ -319,6 +324,7 @@ func TestGiteaDownloadRepo(t *testing.T) {
 }
 
 func TestForgejoDownloadRepo(t *testing.T) {
+	defer test.MockVariableValueWithReset(&setting.Migrations.AllowLocalNetworks, true, func() { require.NoError(t, allowlist.Init()) })()
 	token := os.Getenv("CODE_FORGEJO_TOKEN")
 
 	fixturePath := "./testdata/code-forgejo-org/full_download"
@@ -330,7 +336,7 @@ func TestForgejoDownloadRepo(t *testing.T) {
 		gitea_sdk.SetToken(token),
 		gitea_sdk.SetBasicAuth("", ""),
 		gitea_sdk.SetContext(t.Context()),
-		gitea_sdk.SetHTTPClient(NewMigrationHTTPClient()),
+		gitea_sdk.SetHTTPClient(allowlist.NewMigrationHTTPClient()),
 	)
 	require.NoError(t, err, "Clould not create Client")
 	downloader, err := NewGiteaDownloader(t.Context(), giteaClient, server.URL, "Gusted/agit-test")
@@ -407,6 +413,7 @@ func createForgejoIssueComments(comments []*gitea_sdk.Comment) []*base.Comment {
 }
 
 func TestBreakConditions(t *testing.T) {
+	defer test.MockVariableValueWithReset(&setting.Migrations.AllowLocalNetworks, true, func() { require.NoError(t, allowlist.Init()) })()
 	giteaToken := os.Getenv("GITEA_TOKEN")
 
 	fixturePath := "./testdata/gitea/breaking_conditions"
@@ -419,7 +426,7 @@ func TestBreakConditions(t *testing.T) {
 		gitea_sdk.SetToken(""),
 		gitea_sdk.SetBasicAuth("", ""),
 		gitea_sdk.SetContext(t.Context()),
-		gitea_sdk.SetHTTPClient(NewMigrationHTTPClient()),
+		gitea_sdk.SetHTTPClient(allowlist.NewMigrationHTTPClient()),
 	)
 	require.NoError(t, err, "Clould not create Client")
 

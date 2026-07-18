@@ -15,10 +15,10 @@ import (
 	"forgejo.org/modules/json"
 	"forgejo.org/modules/log"
 	base "forgejo.org/modules/migration"
-	"forgejo.org/modules/proxy"
 	"forgejo.org/modules/setting"
 	"forgejo.org/modules/structs"
 	"forgejo.org/modules/util"
+	"forgejo.org/services/migrations/allowlist"
 )
 
 var (
@@ -238,14 +238,10 @@ func NewPagureDownloader(ctx context.Context, baseURL *url.URL, token, repoName 
 	}
 
 	downloader := &PagureDownloader{
-		ctx:      ctx,
-		baseURL:  baseURL,
-		repoName: repoName,
-		client: &http.Client{
-			Transport: &http.Transport{
-				Proxy: proxy.Proxy(),
-			},
-		},
+		ctx:                   ctx,
+		baseURL:               baseURL,
+		repoName:              repoName,
+		client:                allowlist.NewMigrationHTTPClient(),
 		token:                 token,
 		privateIssuesOnlyRepo: privateIssuesOnlyRepo,
 		userMap:               make(map[string]*PagureUser),

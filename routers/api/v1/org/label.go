@@ -49,20 +49,20 @@ func ListLabels(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	labels, err := issues_model.GetLabelsByOrgID(ctx, ctx.Org.Organization.ID, ctx.FormString("sort"), utils.GetListOptions(ctx))
+	labels, err := issues_model.GetLabelsByOrgID(ctx, ctx.Org().Organization.ID, ctx.FormString("sort"), utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetLabelsByOrgID", err)
 		return
 	}
 
-	count, err := issues_model.CountLabelsByOrgID(ctx, ctx.Org.Organization.ID)
+	count, err := issues_model.CountLabelsByOrgID(ctx, ctx.Org().Organization.ID)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
 
 	ctx.SetTotalCountHeader(count)
-	ctx.JSON(http.StatusOK, convert.ToLabelList(labels, nil, ctx.Org.Organization.AsUser()))
+	ctx.JSON(http.StatusOK, convert.ToLabelList(labels, nil, ctx.Org().Organization.AsUser()))
 }
 
 // CreateLabel create a label for a repository
@@ -104,7 +104,7 @@ func CreateLabel(ctx *context.APIContext) {
 		Name:        form.Name,
 		Exclusive:   form.Exclusive,
 		Color:       form.Color,
-		OrgID:       ctx.Org.Organization.ID,
+		OrgID:       ctx.Org().Organization.ID,
 		Description: form.Description,
 	}
 	if err := issues_model.NewLabel(ctx, label); err != nil {
@@ -112,7 +112,7 @@ func CreateLabel(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToLabel(label, nil, ctx.Org.Organization.AsUser()))
+	ctx.JSON(http.StatusCreated, convert.ToLabel(label, nil, ctx.Org().Organization.AsUser()))
 }
 
 // GetLabel get label by organization and label id
@@ -146,9 +146,9 @@ func GetLabel(ctx *context.APIContext) {
 	)
 	strID := ctx.Params(":id")
 	if intID, err2 := strconv.ParseInt(strID, 10, 64); err2 != nil {
-		label, err = issues_model.GetLabelInOrgByName(ctx, ctx.Org.Organization.ID, strID)
+		label, err = issues_model.GetLabelInOrgByName(ctx, ctx.Org().Organization.ID, strID)
 	} else {
-		label, err = issues_model.GetLabelInOrgByID(ctx, ctx.Org.Organization.ID, intID)
+		label, err = issues_model.GetLabelInOrgByID(ctx, ctx.Org().Organization.ID, intID)
 	}
 	if err != nil {
 		if issues_model.IsErrOrgLabelNotExist(err) {
@@ -159,7 +159,7 @@ func GetLabel(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToLabel(label, nil, ctx.Org.Organization.AsUser()))
+	ctx.JSON(http.StatusOK, convert.ToLabel(label, nil, ctx.Org().Organization.AsUser()))
 }
 
 // EditLabel modify a label for an Organization
@@ -195,7 +195,7 @@ func EditLabel(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 	form := web.GetForm(ctx).(*api.EditLabelOption)
-	l, err := issues_model.GetLabelInOrgByID(ctx, ctx.Org.Organization.ID, ctx.ParamsInt64(":id"))
+	l, err := issues_model.GetLabelInOrgByID(ctx, ctx.Org().Organization.ID, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if issues_model.IsErrOrgLabelNotExist(err) {
 			ctx.NotFound()
@@ -228,7 +228,7 @@ func EditLabel(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToLabel(l, nil, ctx.Org.Organization.AsUser()))
+	ctx.JSON(http.StatusOK, convert.ToLabel(l, nil, ctx.Org().Organization.AsUser()))
 }
 
 // DeleteLabel delete a label for an organization
@@ -254,7 +254,7 @@ func DeleteLabel(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if err := issues_model.DeleteLabel(ctx, ctx.Org.Organization.ID, ctx.ParamsInt64(":id")); err != nil {
+	if err := issues_model.DeleteLabel(ctx, ctx.Org().Organization.ID, ctx.ParamsInt64(":id")); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteLabel", err)
 		return
 	}

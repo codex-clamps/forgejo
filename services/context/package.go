@@ -7,14 +7,11 @@ import (
 	"fmt"
 	"net/http"
 
-	"forgejo.org/models/organization"
 	packages_model "forgejo.org/models/packages"
 	"forgejo.org/models/perm"
-	"forgejo.org/models/unit"
 	user_model "forgejo.org/models/user"
-	"forgejo.org/modules/setting"
-	"forgejo.org/modules/structs"
 	"forgejo.org/modules/templates"
+	packages_service "forgejo.org/services/packages"
 )
 
 // Package contains owner, access mode and optional the package descriptor
@@ -52,8 +49,8 @@ func PackageAssignment() func(ctx *Context) {
 // PackageAssignmentAPI returns a middleware to handle Context.Package assignment
 func PackageAssignmentAPI() func(ctx *APIContext) {
 	return func(ctx *APIContext) {
-		paCtx := &packageAssignmentCtx{Base: ctx.Base, Doer: ctx.Doer, ContextUser: ctx.ContextUser}
-		ctx.Package = packageAssignment(paCtx, ctx.Error)
+		paCtx := &packageAssignmentCtx{Base: ctx.Base, Doer: ctx.Doer(), ContextUser: ctx.User()}
+		ctx.pkg = packageAssignment(paCtx, ctx.Error)
 	}
 }
 
@@ -62,7 +59,7 @@ func packageAssignment(ctx *packageAssignmentCtx, errCb func(int, string, any)) 
 		Owner: ctx.ContextUser,
 	}
 	var err error
-	pkg.AccessMode, err = determineAccessMode(ctx.Base, pkg, ctx.Doer)
+	pkg.AccessMode, err = packages_service.DeterminePackageAccessMode(ctx.Base, pkg.Owner, ctx.Doer)
 	if err != nil {
 		errCb(http.StatusInternalServerError, "determineAccessMode", err)
 		return pkg
@@ -90,62 +87,6 @@ func packageAssignment(ctx *packageAssignmentCtx, errCb func(int, string, any)) 
 	}
 
 	return pkg
-}
-
-func determineAccessMode(ctx *Base, pkg *Package, doer *user_model.User) (perm.AccessMode, error) {
-	if setting.Service.RequireSignInView && (doer == nil || doer.IsGhost()) {
-		return perm.AccessModeNone, nil
-	}
-
-	if doer != nil && !doer.IsGhost() && !doer.IsAccessAllowed(ctx) {
-		return perm.AccessModeNone, nil
-	}
-
-	// TODO: ActionUser permission check
-	accessMode := perm.AccessModeNone
-	if pkg.Owner.IsOrganization() {
-		org := organization.OrgFromUser(pkg.Owner)
-
-		if doer != nil && !doer.IsGhost() {
-			// 1. If user is logged in, check all team packages permissions
-			var err error
-			accessMode, err = org.GetOrgUserMaxAuthorizeLevel(ctx, doer.ID)
-			if err != nil {
-				return accessMode, err
-			}
-			// If access mode is less than write check every team for more permissions
-			// The minimum possible access mode is read for org members
-			if accessMode < perm.AccessModeWrite {
-				teams, err := organization.GetUserOrgTeams(ctx, org.ID, doer.ID)
-				if err != nil {
-					return accessMode, err
-				}
-				for _, t := range teams {
-					perm := t.UnitAccessMode(ctx, unit.TypePackages)
-					if accessMode < perm {
-						accessMode = perm
-					}
-				}
-			}
-		}
-		if accessMode == perm.AccessModeNone && organization.HasOrgOrUserVisible(ctx, pkg.Owner, doer) {
-			// 2. If user is unauthorized or no org member, check if org is visible
-			accessMode = perm.AccessModeRead
-		}
-	} else {
-		if doer != nil && !doer.IsGhost() {
-			// 1. Check if user is package owner
-			if doer.ID == pkg.Owner.ID {
-				accessMode = perm.AccessModeOwner
-			} else if pkg.Owner.Visibility == structs.VisibleTypePublic || pkg.Owner.Visibility == structs.VisibleTypeLimited { // 2. Check if package owner is public or limited
-				accessMode = perm.AccessModeRead
-			}
-		} else if pkg.Owner.Visibility == structs.VisibleTypePublic { // 3. Check if package owner is public
-			accessMode = perm.AccessModeRead
-		}
-	}
-
-	return accessMode, nil
 }
 
 // PackageContexter initializes a package context for a request.

@@ -13,7 +13,6 @@ import (
 
 	"forgejo.org/modules/json"
 	"forgejo.org/modules/util"
-	"forgejo.org/modules/validation"
 
 	"github.com/hashicorp/go-version"
 )
@@ -37,18 +36,8 @@ const (
 
 // Package represents a Swift package
 type Package struct {
-	RepositoryURLs []string
-	Metadata       *Metadata
-}
-
-// Metadata represents the metadata of a Swift package
-type Metadata struct {
-	Description   string               `json:"description,omitempty"`
-	Keywords      []string             `json:"keywords,omitempty"`
-	RepositoryURL string               `json:"repository_url,omitempty"`
-	License       string               `json:"license,omitempty"`
-	Author        Person               `json:"author"`
-	Manifests     map[string]*Manifest `json:"manifests,omitempty"`
+	Manifests map[string]*Manifest
+	Metadata  *PackageRelease
 }
 
 // Manifest represents a Package.swift file
@@ -57,54 +46,31 @@ type Manifest struct {
 	ToolsVersion string `json:"tools_version,omitempty"`
 }
 
-// https://schema.org/SoftwareSourceCode
-type SoftwareSourceCode struct {
-	Context             []string            `json:"@context"`
-	Type                string              `json:"@type"`
-	Name                string              `json:"name"`
-	Version             string              `json:"version"`
-	Description         string              `json:"description,omitempty"`
-	Keywords            []string            `json:"keywords,omitempty"`
-	CodeRepository      string              `json:"codeRepository,omitempty"`
-	License             string              `json:"license,omitempty"`
-	Author              Person              `json:"author"`
-	ProgrammingLanguage ProgrammingLanguage `json:"programmingLanguage"`
-	RepositoryURLs      []string            `json:"repositoryURLs,omitempty"`
+// https://docs.swift.org/swiftpm/documentation/packagemanagerdocs/registryserverspecification/#PackageRelease-type
+type PackageRelease struct {
+	Author                  *Author  `json:"author,omitempty"`
+	Description             string   `json:"description,omitempty"`
+	LicenseURL              string   `json:"licenseURL,omitempty"`
+	OriginalPublicationTime string   `json:"originalPublicationTime,omitempty"`
+	ReadmeURL               string   `json:"readmeURL,omitempty"`
+	RepositoryURLs          []string `json:"repositoryURLs,omitempty"`
 }
 
-// https://schema.org/ProgrammingLanguage
-type ProgrammingLanguage struct {
-	Type string `json:"@type"`
-	Name string `json:"name"`
-	URL  string `json:"url"`
+// https://docs.swift.org/swiftpm/documentation/packagemanagerdocs/registryserverspecification/#Author-type
+type Author struct {
+	Name         string        `json:"name,omitempty"`
+	Email        string        `json:"email,omitempty"`
+	Description  string        `json:"description,omitempty"`
+	Organization *Organization `json:"organization,omitempty"`
+	URL          string        `json:"url,omitempty"`
 }
 
-// https://schema.org/Person
-type Person struct {
-	Type       string `json:"@type,omitempty"`
-	GivenName  string `json:"givenName,omitempty"`
-	MiddleName string `json:"middleName,omitempty"`
-	FamilyName string `json:"familyName,omitempty"`
-}
-
-func (p Person) String() string {
-	var sb strings.Builder
-	if p.GivenName != "" {
-		sb.WriteString(p.GivenName)
-	}
-	if p.MiddleName != "" {
-		if sb.Len() > 0 {
-			sb.WriteRune(' ')
-		}
-		sb.WriteString(p.MiddleName)
-	}
-	if p.FamilyName != "" {
-		if sb.Len() > 0 {
-			sb.WriteRune(' ')
-		}
-		sb.WriteString(p.FamilyName)
-	}
-	return sb.String()
+// https://docs.swift.org/swiftpm/documentation/packagemanagerdocs/registryserverspecification/#Organization-type
+type Organization struct {
+	Name        string `json:"name,omitempty"`
+	Email       string `json:"email,omitempty"`
+	Description string `json:"description,omitempty"`
+	URL         string `json:"url,omitempty"`
 }
 
 // ParsePackage parses the Swift package upload
@@ -115,9 +81,8 @@ func ParsePackage(sr io.ReaderAt, size int64, mr io.Reader) (*Package, error) {
 	}
 
 	p := &Package{
-		Metadata: &Metadata{
-			Manifests: make(map[string]*Manifest),
-		},
+		Manifests: make(map[string]*Manifest),
+		Metadata:  &PackageRelease{},
 	}
 
 	for _, file := range zr.File {
@@ -168,34 +133,27 @@ func ParsePackage(sr io.ReaderAt, size int64, mr io.Reader) (*Package, error) {
 			manifest.ToolsVersion = TrimmedVersionString(v)
 		}
 
-		p.Metadata.Manifests[swiftVersion] = manifest
+		p.Manifests[swiftVersion] = manifest
 	}
 
-	if _, found := p.Metadata.Manifests[""]; !found {
+	if _, found := p.Manifests[""]; !found {
 		return nil, ErrMissingManifestFile
 	}
 
 	if mr != nil {
-		var ssc *SoftwareSourceCode
-		if err := json.NewDecoder(mr).Decode(&ssc); err != nil {
+		var pr *PackageRelease
+		if err := json.NewDecoder(mr).Decode(&pr); err != nil {
 			return nil, err
 		}
-
-		p.Metadata.Description = ssc.Description
-		p.Metadata.Keywords = ssc.Keywords
-		p.Metadata.License = ssc.License
-		p.Metadata.Author = Person{
-			GivenName:  ssc.Author.GivenName,
-			MiddleName: ssc.Author.MiddleName,
-			FamilyName: ssc.Author.FamilyName,
+		if pr.Author != nil {
+			if pr.Author.Name == "" {
+				return nil, util.NewInvalidArgumentErrorf("if metadata.author exists, its name can't be empty")
+			}
+			if pr.Author.Organization != nil && pr.Author.Organization.Name == "" {
+				return nil, util.NewInvalidArgumentErrorf("if metadata.author.organization exists, its name can't be empty")
+			}
 		}
-
-		p.Metadata.RepositoryURL = ssc.CodeRepository
-		if !validation.IsValidURL(p.Metadata.RepositoryURL) {
-			p.Metadata.RepositoryURL = ""
-		}
-
-		p.RepositoryURLs = ssc.RepositoryURLs
+		p.Metadata = pr
 	}
 
 	return p, nil

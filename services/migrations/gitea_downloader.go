@@ -16,6 +16,7 @@ import (
 	"forgejo.org/modules/log"
 	base "forgejo.org/modules/migration"
 	"forgejo.org/modules/structs"
+	"forgejo.org/services/migrations/allowlist"
 
 	gitea_sdk "code.gitea.io/sdk/gitea"
 )
@@ -61,7 +62,7 @@ func (f *GiteaDownloaderFactory) New(ctx context.Context, opts base.MigrateOptio
 		gitea_sdk.SetToken(opts.AuthToken),
 		gitea_sdk.SetBasicAuth(opts.AuthUsername, opts.AuthPassword),
 		gitea_sdk.SetContext(ctx),
-		gitea_sdk.SetHTTPClient(NewMigrationHTTPClient()),
+		gitea_sdk.SetHTTPClient(allowlist.NewMigrationHTTPClient()),
 	)
 	if err != nil {
 		log.Error(fmt.Sprintf("Failed to create NewGiteaDownloader for: %s. Error: %v", baseURL, err))
@@ -280,7 +281,7 @@ func (g *GiteaDownloader) convertGiteaRelease(rel *gitea_sdk.Release) *base.Rele
 		Created:         rel.CreatedAt,
 	}
 
-	httpClient := NewMigrationHTTPClient()
+	httpClient := allowlist.NewMigrationHTTPClient()
 
 	for _, asset := range rel.Attachments {
 		assetID := asset.ID // Don't optimize this, for closure we need a local variable

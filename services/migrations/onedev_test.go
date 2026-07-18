@@ -10,10 +10,23 @@ import (
 	"time"
 
 	base "forgejo.org/modules/migration"
+	"forgejo.org/modules/setting"
+	"forgejo.org/modules/test"
+	"forgejo.org/services/migrations/allowlist"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestOneDevDownloaderBlocksLocalhost(t *testing.T) {
+	defer test.MockVariableValueWithReset(&setting.Migrations.AllowLocalNetworks, false, func() { require.NoError(t, allowlist.Init()) })()
+
+	u, _ := url.Parse("http://localhost")
+	downloader := NewOneDevDownloader(t.Context(), u, "", "", "test_repo")
+	_, err := downloader.GetRepoInfo()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "can only call allowed HTTP servers")
+}
 
 func TestOneDevDownloadRepo(t *testing.T) {
 	resp, err := http.Get("https://code.onedev.io/projects/go-gitea-test_repo")

@@ -25,8 +25,8 @@ func NewReport(ctx *context.Context) {
 	contentID := ctx.FormInt64("id")
 	if contentID <= 0 {
 		setMinimalContextData(ctx)
-		ctx.RenderWithErr(ctx.Tr("moderation.report_abuse_form.invalid"), tplSubmitAbuseReport, nil)
 		log.Warn("The content ID is expected to be an integer greater that 0; the provided value is %s.", ctx.FormString("id"))
+		ctx.RenderWithErr(ctx.Tr("moderation.report_abuse_form.invalid"), tplSubmitAbuseReport, nil)
 		return
 	}
 
@@ -43,8 +43,8 @@ func NewReport(ctx *context.Context) {
 		contentType = moderation.ReportedContentTypeComment
 	default:
 		setMinimalContextData(ctx)
-		ctx.RenderWithErr(ctx.Tr("moderation.report_abuse_form.invalid"), tplSubmitAbuseReport, nil)
 		log.Warn("The provided content type `%s` is not among the expected values.", contentTypeString)
+		ctx.RenderWithErr(ctx.Tr("moderation.report_abuse_form.invalid"), tplSubmitAbuseReport, nil)
 		return
 	}
 

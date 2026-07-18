@@ -12,6 +12,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"testing"
 
@@ -64,8 +65,8 @@ func (e *quotaEnv) APIPathForRepo(uriFormat string, a ...any) string {
 }
 
 func (e *quotaEnv) Cleanup() {
-	for i := len(e.cleanups) - 1; i >= 0; i-- {
-		e.cleanups[i]()
+	for _, cleanup := range slices.Backward(e.cleanups) {
+		cleanup()
 	}
 }
 

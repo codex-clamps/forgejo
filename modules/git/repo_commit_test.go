@@ -275,6 +275,33 @@ func TestGetCommitsFromIDs(t *testing.T) {
 	})
 }
 
+func TestConvertToGitID(t *testing.T) {
+	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
+	bareRepo1, err := openRepositoryWithDefaultContext(bareRepo1Path)
+	require.NoError(t, err)
+	defer bareRepo1.Close()
+
+	// existing commit
+	existingID := "2839944139e0de9737a044f78b0e4b40d989a9e3"
+	id, err := bareRepo1.ConvertToGitID(existingID)
+	require.NoError(t, err)
+	assert.Equal(t, existingID, id.String())
+
+	// non-existing commit, but well-formatted git hash
+	_, err = bareRepo1.ConvertToGitID("2839944139e0de9737a044f78b0e4b40d989a9e4")
+	require.Error(t, err)
+	assert.True(t, IsErrNotExist(err))
+
+	// invalid branch name
+	_, err = bareRepo1.ConvertToGitID("invalid-branch")
+	require.Error(t, err)
+
+	// valid branch
+	id, err = bareRepo1.ConvertToGitID("master")
+	require.NoError(t, err)
+	assert.Equal(t, "ce064814f4a0d337b333e646ece456cd39fab612", id.String())
+}
+
 func TestGetLatestCommitTime(t *testing.T) {
 	t.Run("repo1", func(t *testing.T) {
 		repo, err := openRepositoryWithDefaultContext(filepath.Join(testReposDir, "repo1_bare"))

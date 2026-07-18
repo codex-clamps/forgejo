@@ -85,10 +85,10 @@ func TestIsUserSiteAdmin(t *testing.T) {
 		resp := httptest.NewRecorder()
 		base, baseCleanUp := NewBaseContext(resp, req)
 		t.Cleanup(baseCleanUp)
-		ctx := &APIContext{Base: base, Reducer: reducer}
+		ctx := &APIContext{Base: base, reducer: reducer}
 		// setup ctx with an admin, and the test cases will modify to false in various ways
-		ctx.IsSigned = true
-		ctx.Doer = &user_model.User{IsAdmin: true}
+		ctx.SetIsSigned(true)
+		ctx.SetDoer(&user_model.User{IsAdmin: true})
 		return ctx
 	}
 
@@ -97,13 +97,13 @@ func TestIsUserSiteAdmin(t *testing.T) {
 
 	t.Run("not authenticated", func(t *testing.T) {
 		ctx := makeCtx(t, defaultReducer)
-		ctx.IsSigned = false
+		ctx.SetIsSigned(false)
 		assert.False(t, ctx.IsUserSiteAdmin())
 	})
 
 	t.Run("non-admin", func(t *testing.T) {
 		ctx := makeCtx(t, defaultReducer)
-		ctx.Doer.IsAdmin = false
+		ctx.Doer().IsAdmin = false
 		assert.False(t, ctx.IsUserSiteAdmin())
 	})
 
@@ -126,9 +126,9 @@ func TestIsUserRepoAdmin(t *testing.T) {
 		resp := httptest.NewRecorder()
 		base, baseCleanUp := NewBaseContext(resp, req)
 		t.Cleanup(baseCleanUp)
-		ctx := &APIContext{Base: base, Reducer: reducer}
+		ctx := &APIContext{Base: base, reducer: reducer}
 		// setup ctx with a repo admin, and the test cases will modify to false in various ways
-		ctx.Repo = &Repository{Permission: access_model.Permission{AccessMode: perm_model.AccessModeAdmin}}
+		ctx.SetRepo(&Repository{Permission: access_model.Permission{AccessMode: perm_model.AccessModeAdmin}})
 		return ctx
 	}
 
@@ -137,7 +137,7 @@ func TestIsUserRepoAdmin(t *testing.T) {
 
 	t.Run("non-admin", func(t *testing.T) {
 		ctx := makeCtx(t, defaultReducer)
-		ctx.Repo.Permission.AccessMode = perm_model.AccessModeWrite
+		ctx.Repo().Permission.AccessMode = perm_model.AccessModeWrite
 		assert.False(t, ctx.IsUserRepoAdmin())
 	})
 

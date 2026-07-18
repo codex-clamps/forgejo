@@ -56,7 +56,7 @@ func (Action) ListActionsSecrets(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	repo := ctx.Repo.Repository
+	repo := ctx.Repo().Repository
 
 	opts := &secret_model.FindSecretsOptions{
 		RepoID:      repo.ID,
@@ -120,7 +120,7 @@ func (Action) CreateOrUpdateSecret(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	repo := ctx.Repo.Repository
+	repo := ctx.Repo().Repository
 
 	opt := web.GetForm(ctx).(*api.CreateOrUpdateSecretOption)
 
@@ -176,7 +176,7 @@ func (Action) DeleteSecret(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	repo := ctx.Repo.Repository
+	repo := ctx.Repo().Repository
 
 	err := secrets_service.DeleteSecretByName(ctx, 0, repo.ID, ctx.Params("secretname"))
 	if err != nil {
@@ -224,7 +224,7 @@ func (Action) GetVariable(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	v, err := actions_service.GetVariable(ctx, actions_model.FindVariablesOpts{
-		RepoID: ctx.Repo.Repository.ID,
+		RepoID: ctx.Repo().Repository.ID,
 		Name:   ctx.Params("variablename"),
 	})
 	if err != nil {
@@ -277,7 +277,7 @@ func (Action) DeleteVariable(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if err := actions_service.DeleteVariableByName(ctx, 0, ctx.Repo.Repository.ID, ctx.Params("variablename")); err != nil {
+	if err := actions_service.DeleteVariableByName(ctx, 0, ctx.Repo().Repository.ID, ctx.Params("variablename")); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.Error(http.StatusBadRequest, "DeleteVariableByName", err)
 		} else if errors.Is(err, util.ErrNotExist) {
@@ -330,7 +330,7 @@ func (Action) CreateVariable(ctx *context.APIContext) {
 
 	opt := web.GetForm(ctx).(*api.CreateVariableOption)
 
-	repoID := ctx.Repo.Repository.ID
+	repoID := ctx.Repo().Repository.ID
 	variableName := ctx.Params("variablename")
 
 	v, err := actions_service.GetVariable(ctx, actions_model.FindVariablesOpts{
@@ -398,7 +398,7 @@ func (Action) UpdateVariable(ctx *context.APIContext) {
 	opt := web.GetForm(ctx).(*api.UpdateVariableOption)
 
 	v, err := actions_service.GetVariable(ctx, actions_model.FindVariablesOpts{
-		RepoID: ctx.Repo.Repository.ID,
+		RepoID: ctx.Repo().Repository.ID,
 		Name:   ctx.Params("variablename"),
 	})
 	if err != nil {
@@ -413,7 +413,7 @@ func (Action) UpdateVariable(ctx *context.APIContext) {
 	if opt.Name == "" {
 		opt.Name = ctx.Params("variablename")
 	}
-	if _, err := actions_service.UpdateVariable(ctx, v.ID, 0, ctx.Repo.Repository.ID, opt.Name, opt.Value); err != nil {
+	if _, err := actions_service.UpdateVariable(ctx, v.ID, 0, ctx.Repo().Repository.ID, opt.Name, opt.Value); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.Error(http.StatusBadRequest, "UpdateVariable", err)
 		} else {
@@ -460,7 +460,7 @@ func (Action) ListVariables(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	vars, count, err := db.FindAndCount[actions_model.ActionVariable](ctx, &actions_model.FindVariablesOpts{
-		RepoID:      ctx.Repo.Repository.ID,
+		RepoID:      ctx.Repo().Repository.ID,
 		ListOptions: utils.GetListOptions(ctx),
 	})
 	if err != nil {
@@ -510,7 +510,7 @@ func (Action) GetRegistrationToken(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/RegistrationToken"
 
-	shared.GetRegistrationToken(ctx, 0, ctx.Repo.Repository.ID)
+	shared.GetRegistrationToken(ctx, 0, ctx.Repo().Repository.ID)
 }
 
 // ListRunners returns runners that belong to the repository
@@ -550,7 +550,7 @@ func (Action) ListRunners(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	shared.ListRunners(ctx, 0, ctx.Repo.Repository.ID)
+	shared.ListRunners(ctx, 0, ctx.Repo().Repository.ID)
 }
 
 // GetRunner returns a particular runner that belongs to the repository
@@ -583,7 +583,7 @@ func (Action) GetRunner(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	shared.GetRunner(ctx, 0, ctx.Repo.Repository.ID, ctx.ParamsInt64("runner_id"))
+	shared.GetRunner(ctx, 0, ctx.Repo().Repository.ID, ctx.ParamsInt64("runner_id"))
 }
 
 // RegisterRunner registers a new repository-level runner
@@ -620,7 +620,7 @@ func (Action) RegisterRunner(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	shared.RegisterRunner(ctx, 0, ctx.Repo.Repository.ID)
+	shared.RegisterRunner(ctx, 0, ctx.Repo().Repository.ID)
 }
 
 // DeleteRunner removes a particular runner that belongs to a repository
@@ -653,7 +653,7 @@ func (Action) DeleteRunner(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	shared.DeleteRunner(ctx, 0, ctx.Repo.Repository.ID, ctx.ParamsInt64("runner_id"))
+	shared.DeleteRunner(ctx, 0, ctx.Repo().Repository.ID, ctx.ParamsInt64("runner_id"))
 }
 
 // SearchActionRunJobs return a list of actions jobs filtered by the provided parameters
@@ -683,7 +683,7 @@ func (Action) SearchActionRunJobs(ctx *context.APIContext) {
 	//     "$ref": "#/responses/RunJobList"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
-	shared.GetActionRunJobs(ctx, 0, ctx.Repo.Repository.ID)
+	shared.GetActionRunJobs(ctx, 0, ctx.Repo().Repository.ID)
 }
 
 var _ actions_service.API = new(Action)
@@ -758,7 +758,7 @@ func ListActionTasks(ctx *context.APIContext) {
 
 	tasks, total, err := db.FindAndCount[actions_model.ActionTask](ctx, &actions_model.FindTaskOptions{
 		ListOptions: utils.GetListOptions(ctx),
-		RepoID:      ctx.Repo.Repository.ID,
+		RepoID:      ctx.Repo().Repository.ID,
 		Status:      statuses,
 	})
 	if err != nil {
@@ -828,7 +828,7 @@ func DispatchWorkflow(ctx *context.APIContext) {
 		return
 	}
 
-	workflow, err := actions_service.GetWorkflowFromCommit(ctx.Repo.GitRepo, opt.Ref, name)
+	workflow, err := actions_service.GetWorkflowFromCommit(ctx.Repo().GitRepo, opt.Ref, name)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.Error(http.StatusNotFound, "GetWorkflowFromCommit", err)
@@ -842,7 +842,7 @@ func DispatchWorkflow(ctx *context.APIContext) {
 		return opt.Inputs[key]
 	}
 
-	run, jobs, err := workflow.Dispatch(ctx, inputGetter, ctx.Repo.Repository, ctx.Doer)
+	run, jobs, err := workflow.Dispatch(ctx, inputGetter, ctx.Repo().Repository, ctx.Doer())
 	if err != nil {
 		if actions_service.IsInputRequiredErr(err) {
 			ctx.Error(http.StatusBadRequest, "workflow.Dispatch", err)
@@ -944,8 +944,8 @@ func ListActionRuns(ctx *context.APIContext) {
 
 	runs, total, err := db.FindAndCount[actions_model.ActionRun](ctx, &actions_model.FindRunOptions{
 		ListOptions: utils.GetListOptions(ctx),
-		OwnerID:     ctx.Repo.Owner.ID,
-		RepoID:      ctx.Repo.Repository.ID,
+		OwnerID:     ctx.Repo().Owner.ID,
+		RepoID:      ctx.Repo().Repository.ID,
 		Events:      ctx.FormStrings("event"),
 		Status:      statuses,
 		RunNumber:   ctx.FormInt64("run_number"),
@@ -967,7 +967,7 @@ func ListActionRuns(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 			return
 		}
-		cr := convert.ToActionRun(ctx, r, ctx.Doer)
+		cr := convert.ToActionRun(ctx, r, ctx.Doer())
 		res.Entries[i] = cr
 	}
 
@@ -1020,7 +1020,7 @@ func GetActionRun(ctx *context.APIContext) {
 
 	// Action runs lives in its own table, therefore we check that the
 	// run with the requested ID is owned by the repository
-	if ctx.Repo.Repository.ID != run.RepoID {
+	if ctx.Repo().Repository.ID != run.RepoID {
 		ctx.Error(http.StatusNotFound, "GetRunById", util.ErrNotExist)
 		return
 	}
@@ -1030,7 +1030,7 @@ func GetActionRun(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToActionRun(ctx, run, ctx.Doer))
+	ctx.JSON(http.StatusOK, convert.ToActionRun(ctx, run, ctx.Doer()))
 }
 
 // DeleteActionRun removes a completed workflow run.
@@ -1081,7 +1081,7 @@ func DeleteActionRun(ctx *context.APIContext) {
 		return
 	}
 
-	if ctx.Repo.Repository.ID != run.RepoID {
+	if ctx.Repo().Repository.ID != run.RepoID {
 		ctx.Error(http.StatusNotFound, "GetRunById", util.ErrNotExist)
 		return
 	}
@@ -1142,7 +1142,7 @@ func CancelActionRun(ctx *context.APIContext) {
 		return
 	}
 
-	if ctx.Repo.Repository.ID != run.RepoID {
+	if ctx.Repo().Repository.ID != run.RepoID {
 		ctx.Error(http.StatusNotFound, "GetRunById", util.ErrNotExist)
 		return
 	}
@@ -1202,7 +1202,7 @@ func ListActionRunJobs(ctx *context.APIContext) {
 
 	// Action runs lives in its own table, therefore we check that the
 	// run with the requested ID is owned by the repository
-	if ctx.Repo.Repository.ID != run.RepoID {
+	if ctx.Repo().Repository.ID != run.RepoID {
 		ctx.Error(http.StatusNotFound, "GetRunById", util.ErrNotExist)
 		return
 	}
@@ -1261,7 +1261,7 @@ func ListActionArtifacts(ctx *context.APIContext) {
 
 	opts := actions_model.FindArtifactsOptions{
 		ListOptions:  utils.GetListOptions(ctx),
-		RepoID:       ctx.Repo.Repository.ID,
+		RepoID:       ctx.Repo().Repository.ID,
 		ArtifactName: ctx.FormString("name"),
 	}
 
@@ -1271,7 +1271,7 @@ func ListActionArtifacts(ctx *context.APIContext) {
 		return
 	}
 
-	repoAPIURL := ctx.Repo.Repository.APIURL()
+	repoAPIURL := ctx.Repo().Repository.APIURL()
 
 	entries := make([]*api.ActionArtifact, len(arts))
 	for i, art := range arts {
@@ -1339,7 +1339,7 @@ func ListActionRunArtifacts(ctx *context.APIContext) {
 		}
 		return
 	}
-	if ctx.Repo.Repository.ID != run.RepoID {
+	if ctx.Repo().Repository.ID != run.RepoID {
 		ctx.Error(http.StatusNotFound, "GetRunByID", util.ErrNotExist)
 		return
 	}
@@ -1356,7 +1356,7 @@ func ListActionRunArtifacts(ctx *context.APIContext) {
 		return
 	}
 
-	repoAPIURL := ctx.Repo.Repository.APIURL()
+	repoAPIURL := ctx.Repo().Repository.APIURL()
 
 	entries := make([]*api.ActionArtifact, len(arts))
 	for i, art := range arts {
@@ -1402,7 +1402,7 @@ func GetActionArtifact(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	meta, err := actions_model.GetAggregatedArtifactByID(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":artifact_id"))
+	meta, err := actions_model.GetAggregatedArtifactByID(ctx, ctx.Repo().Repository.ID, ctx.ParamsInt64(":artifact_id"))
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.Error(http.StatusNotFound, "GetAggregatedArtifactByID", err)
@@ -1412,7 +1412,7 @@ func GetActionArtifact(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToActionArtifact(ctx.Repo.Repository.APIURL(), meta))
+	ctx.JSON(http.StatusOK, convert.ToActionArtifact(ctx.Repo().Repository.APIURL(), meta))
 }
 
 // DownloadActionArtifact download an artifact by its ID
@@ -1449,7 +1449,7 @@ func DownloadActionArtifact(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	meta, err := actions_model.GetAggregatedArtifactByID(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":artifact_id"))
+	meta, err := actions_model.GetAggregatedArtifactByID(ctx, ctx.Repo().Repository.ID, ctx.ParamsInt64(":artifact_id"))
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.Error(http.StatusNotFound, "GetAggregatedArtifactByID", err)
@@ -1517,7 +1517,7 @@ func DeleteActionArtifact(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	meta, err := actions_model.GetAggregatedArtifactByID(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":artifact_id"))
+	meta, err := actions_model.GetAggregatedArtifactByID(ctx, ctx.Repo().Repository.ID, ctx.ParamsInt64(":artifact_id"))
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.Error(http.StatusNotFound, "GetAggregatedArtifactByID", err)
@@ -1594,7 +1594,7 @@ func GetActionJobLogs(ctx *context.APIContext) {
 		attempt = optional.Some(ctx.FormInt64("attempt"))
 	}
 
-	reader, filename, modtime, err := actions_service.OpenJobLogReader(ctx, ctx.Repo.Repository, jobID, attempt)
+	reader, filename, modtime, err := actions_service.OpenJobLogReader(ctx, ctx.Repo().Repository, jobID, attempt)
 	if err != nil {
 		switch {
 		case errors.Is(err, util.ErrNotExist),
@@ -1676,7 +1676,7 @@ func GetActionRunLogs(ctx *context.APIContext) {
 		return
 	}
 
-	if run.RepoID != ctx.Repo.Repository.ID {
+	if run.RepoID != ctx.Repo().Repository.ID {
 		ctx.Error(http.StatusNotFound, "GetRunByID", util.ErrNotExist)
 		return
 	}

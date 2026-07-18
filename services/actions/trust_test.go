@@ -28,21 +28,21 @@ func TestActionsTrust_ChangeStatus(t *testing.T) {
 		PullRequestPosterID: pullRequestPosterID,
 		Status:              actions_model.StatusSuccess,
 	}
-	require.NoError(t, actions_model.InsertRun(t.Context(), runDone, nil))
+	require.NoError(t, actions_model.InsertRunWithoutNotification(t.Context(), runDone, nil))
 
 	runNotByPoster := &actions_model.ActionRun{
 		RepoID:              repoID,
 		PullRequestPosterID: 43243,
 		Status:              actions_model.StatusRunning,
 	}
-	require.NoError(t, actions_model.InsertRun(t.Context(), runNotByPoster, nil))
+	require.NoError(t, actions_model.InsertRunWithoutNotification(t.Context(), runNotByPoster, nil))
 
 	runNotInTheSameRepository := &actions_model.ActionRun{
 		RepoID:              5,
 		PullRequestPosterID: pullRequestPosterID,
 		Status:              actions_model.StatusSuccess,
 	}
-	require.NoError(t, actions_model.InsertRun(t.Context(), runNotInTheSameRepository, nil))
+	require.NoError(t, actions_model.InsertRunWithoutNotification(t.Context(), runNotInTheSameRepository, nil))
 
 	t.Run("RevokeTrust", func(t *testing.T) {
 		singleWorkflows, err := actions_module.JobParser([]byte(`
@@ -60,7 +60,7 @@ jobs:
 			Status:              actions_model.StatusWaiting,
 			PullRequestPosterID: pullRequestPosterID,
 		}
-		require.NoError(t, actions_model.InsertRun(t.Context(), runNotDone, singleWorkflows))
+		require.NoError(t, actions_model.InsertRunWithoutNotification(t.Context(), runNotDone, singleWorkflows))
 		require.NoError(t, actions_model.InsertActionUser(t.Context(), &actions_model.ActionUser{
 			UserID:                  pullRequestPosterID,
 			RepoID:                  repoID,
@@ -100,7 +100,7 @@ jobs:
 			PullRequestID:       pullRequestID,
 			PullRequestPosterID: pullRequestPosterID,
 		}
-		require.NoError(t, actions_model.InsertRun(t.Context(), runNotApproved, singleWorkflows))
+		require.NoError(t, actions_model.InsertRunWithoutNotification(t.Context(), runNotApproved, singleWorkflows))
 		return runNotApproved
 	}
 
@@ -387,5 +387,19 @@ func TestActionsTrust_GetPullRequestUserIsTrustedWithActions(t *testing.T) {
 		assert.True(t, run.IsForkPullRequest)
 		assert.Equal(t, pr.Issue.PosterID, run.PullRequestPosterID)
 		assert.Equal(t, pr.ID, run.PullRequestID)
+	})
+
+	t.Run("no poster set on issue linked to pull request", func(t *testing.T) {
+		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 6000})
+		posterTrust, err := GetPullRequestPosterIsTrustedWithActions(t.Context(), pr)
+		require.ErrorIs(t, err, issues_model.ErrNoPosterSetOnIssue)
+		require.Equal(t, UserIsNotTrustedWithActions, posterTrust)
+	})
+
+	t.Run("poster set on issue linked to pull request does not exist", func(t *testing.T) {
+		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 7000})
+		posterTrust, err := GetPullRequestPosterIsTrustedWithActions(t.Context(), pr)
+		require.ErrorIs(t, err, user_model.ErrUserNotExist{UID: 666})
+		require.Equal(t, UserIsNotTrustedWithActions, posterTrust)
 	})
 }

@@ -87,11 +87,17 @@ func RerunAllJobs(ctx context.Context, run *actions_model.ActionRun) ([]*actions
 		run.Status = actions_model.StatusWaiting
 		run.Started = 0
 		run.Stopped = 0
+		run.Priority = actions_model.DefaultRunPriority
+		run.Prioritize = false
 
 		// The columns have to be specified here to work around a xorm quirk: It won't update columns that are set to
 		// their zero value without AllCols().
-		if err := UpdateRun(ctx, run, "status", "started", "stopped", "previous_duration"); err != nil {
+		if err := UpdateRun(ctx, run, "status", "started", "stopped", "previous_duration", "priority", "prioritize"); err != nil {
 			return fmt.Errorf("cannot update run %d: %w", run.ID, err)
+		}
+
+		if err := recalculateRunPriorities(ctx, run.RepoID); err != nil {
+			return fmt.Errorf("could not recalculate workflow run priorities of repository %d: %w", run.RepoID, err)
 		}
 
 		jobs, err := actions_model.GetRunJobsByRunID(ctx, run.ID)
@@ -146,9 +152,17 @@ func RerunJob(ctx context.Context, job *actions_model.ActionRunJob) ([]*actions_
 			job.Run.Status = actions_model.StatusWaiting
 			job.Run.Started = 0
 			job.Run.Stopped = 0
+			job.Run.Priority = actions_model.DefaultRunPriority
+			job.Run.Prioritize = false
 
-			if err := UpdateRun(ctx, job.Run, "previous_duration", "status", "started", "stopped"); err != nil {
+			// The columns have to be specified here to work around a xorm quirk: It won't update columns that are set
+			// to their zero value without AllCols().
+			if err := UpdateRun(ctx, job.Run, "previous_duration", "status", "started", "stopped", "priority", "prioritize"); err != nil {
 				return fmt.Errorf("unable to update run %d of job %d: %w", job.RunID, job.ID, err)
+			}
+
+			if err := recalculateRunPriorities(ctx, job.RepoID); err != nil {
+				return fmt.Errorf("could not recalculate workflow run priorities of repository %d: %w", job.RepoID, err)
 			}
 		}
 

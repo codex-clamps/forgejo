@@ -72,7 +72,7 @@ func Transfer(ctx *context.APIContext) {
 	}
 
 	if newOwner.Type == user_model.UserTypeOrganization {
-		if !ctx.IsUserSiteAdmin() && newOwner.Visibility == api.VisibleTypePrivate && !organization.OrgFromUser(newOwner).HasMemberWithUserID(ctx, ctx.Doer.ID) {
+		if !ctx.IsUserSiteAdmin() && newOwner.Visibility == api.VisibleTypePrivate && !organization.OrgFromUser(newOwner).HasMemberWithUserID(ctx, ctx.Doer().ID) {
 			// The user shouldn't know about this organization
 			ctx.Error(http.StatusNotFound, "", "The new owner does not exist or cannot be found")
 			return
@@ -107,14 +107,14 @@ func Transfer(ctx *context.APIContext) {
 		}
 	}
 
-	if ctx.Repo.GitRepo != nil {
-		ctx.Repo.GitRepo.Close()
-		ctx.Repo.GitRepo = nil
+	if ctx.Repo().GitRepo != nil {
+		ctx.Repo().GitRepo.Close()
+		ctx.Repo().GitRepo = nil
 	}
 
-	oldFullname := ctx.Repo.Repository.FullName()
+	oldFullname := ctx.Repo().Repository.FullName()
 
-	if err := repo_service.StartRepositoryTransfer(ctx, ctx.Doer, newOwner, ctx.Repo.Repository, teams); err != nil {
+	if err := repo_service.StartRepositoryTransfer(ctx, ctx.Doer(), newOwner, ctx.Repo().Repository, teams); err != nil {
 		if errors.Is(err, user_model.ErrBlockedByUser) {
 			ctx.Error(http.StatusForbidden, "StartRepositoryTransfer", err)
 			return
@@ -134,14 +134,14 @@ func Transfer(ctx *context.APIContext) {
 		return
 	}
 
-	if ctx.Repo.Repository.Status == repo_model.RepositoryPendingTransfer {
-		log.Trace("Repository transfer initiated: %s -> %s", oldFullname, ctx.Repo.Repository.FullName())
-		ctx.JSON(http.StatusCreated, convert.ToRepo(ctx, ctx.Repo.Repository, access_model.Permission{AccessMode: perm.AccessModeAdmin}))
+	if ctx.Repo().Repository.Status == repo_model.RepositoryPendingTransfer {
+		log.Trace("Repository transfer initiated: %s -> %s", oldFullname, ctx.Repo().Repository.FullName())
+		ctx.JSON(http.StatusCreated, convert.ToRepo(ctx, ctx.Repo().Repository, access_model.Permission{AccessMode: perm.AccessModeAdmin}))
 		return
 	}
 
-	log.Trace("Repository transferred: %s -> %s", oldFullname, ctx.Repo.Repository.FullName())
-	ctx.JSON(http.StatusAccepted, convert.ToRepo(ctx, ctx.Repo.Repository, access_model.Permission{AccessMode: perm.AccessModeAdmin}))
+	log.Trace("Repository transferred: %s -> %s", oldFullname, ctx.Repo().Repository.FullName())
+	ctx.JSON(http.StatusAccepted, convert.ToRepo(ctx, ctx.Repo().Repository, access_model.Permission{AccessMode: perm.AccessModeAdmin}))
 }
 
 // AcceptTransfer accept a repo transfer
@@ -181,7 +181,7 @@ func AcceptTransfer(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusAccepted, convert.ToRepo(ctx, ctx.Repo.Repository, ctx.Repo.Permission))
+	ctx.JSON(http.StatusAccepted, convert.ToRepo(ctx, ctx.Repo().Repository, ctx.Repo().Permission))
 }
 
 // RejectTransfer reject a repo transfer
@@ -219,11 +219,11 @@ func RejectTransfer(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToRepo(ctx, ctx.Repo.Repository, ctx.Repo.Permission))
+	ctx.JSON(http.StatusOK, convert.ToRepo(ctx, ctx.Repo().Repository, ctx.Repo().Permission))
 }
 
 func acceptOrRejectRepoTransfer(ctx *context.APIContext, accept bool) error {
-	repoTransfer, err := models.GetPendingRepositoryTransfer(ctx, ctx.Repo.Repository)
+	repoTransfer, err := models.GetPendingRepositoryTransfer(ctx, ctx.Repo().Repository)
 	if err != nil {
 		if models.IsErrNoPendingTransfer(err) {
 			ctx.NotFound()
@@ -236,7 +236,7 @@ func acceptOrRejectRepoTransfer(ctx *context.APIContext, accept bool) error {
 		return err
 	}
 
-	if !repoTransfer.CanUserAcceptTransfer(ctx, ctx.Doer) {
+	if !repoTransfer.CanUserAcceptTransfer(ctx, ctx.Doer()) {
 		ctx.Error(http.StatusForbidden, "CanUserAcceptTransfer", nil)
 		return errors.New("user does not have permissions to do this")
 	}
@@ -247,8 +247,8 @@ func acceptOrRejectRepoTransfer(ctx *context.APIContext, accept bool) error {
 			return nil
 		}
 
-		return repo_service.TransferOwnership(ctx, repoTransfer.Doer, repoTransfer.Recipient, ctx.Repo.Repository, repoTransfer.Teams)
+		return repo_service.TransferOwnership(ctx, repoTransfer.Doer, repoTransfer.Recipient, ctx.Repo().Repository, repoTransfer.Teams)
 	}
 
-	return repo_service.CancelRepositoryTransfer(ctx, ctx.Repo.Repository)
+	return repo_service.CancelRepositoryTransfer(ctx, ctx.Repo().Repository)
 }

@@ -66,7 +66,7 @@ func GetIssueAttachment(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToAPIAttachment(ctx.Repo.Repository, attach))
+	ctx.JSON(http.StatusOK, convert.ToAPIAttachment(ctx.Repo().Repository, attach))
 }
 
 // ListIssueAttachments lists all attachments of the issue
@@ -109,7 +109,7 @@ func ListIssueAttachments(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToAPIIssue(ctx, ctx.Doer, issue).Attachments)
+	ctx.JSON(http.StatusOK, convert.ToAPIIssue(ctx, ctx.Doer(), issue).Attachments)
 }
 
 // CreateIssueAttachment creates an attachment and saves the given file
@@ -183,7 +183,7 @@ func CreateIssueAttachment(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "time.Parse", err)
 			return
 		}
-		err = issue_service.SetIssueUpdateDate(ctx, issue, &updated, ctx.Doer)
+		err = issue_service.SetIssueUpdateDate(ctx, issue, &updated, ctx.Doer())
 		if err != nil {
 			ctx.Error(http.StatusForbidden, "SetIssueUpdateDate", err)
 			return
@@ -205,8 +205,8 @@ func CreateIssueAttachment(ctx *context.APIContext) {
 
 	attachment, err := attachment.UploadAttachment(ctx, file, setting.Attachment.AllowedTypes, header.Size, &repo_model.Attachment{
 		Name:        filename,
-		UploaderID:  ctx.Doer.ID,
-		RepoID:      ctx.Repo.Repository.ID,
+		UploaderID:  ctx.Doer().ID,
+		RepoID:      ctx.Repo().Repository.ID,
 		IssueID:     issue.ID,
 		NoAutoTime:  issue.NoAutoTime,
 		CreatedUnix: issue.UpdatedUnix,
@@ -222,12 +222,12 @@ func CreateIssueAttachment(ctx *context.APIContext) {
 
 	issue.Attachments = append(issue.Attachments, attachment)
 
-	if err := issue_service.ChangeContent(ctx, issue, ctx.Doer, issue.Content, issue.ContentVersion); err != nil {
+	if err := issue_service.ChangeContent(ctx, issue, ctx.Doer(), issue.Content, issue.ContentVersion); err != nil {
 		ctx.Error(http.StatusInternalServerError, "ChangeContent", err)
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToAPIAttachment(ctx.Repo.Repository, attachment))
+	ctx.JSON(http.StatusCreated, convert.ToAPIAttachment(ctx.Repo().Repository, attachment))
 }
 
 // EditIssueAttachment updates the given attachment
@@ -289,9 +289,10 @@ func EditIssueAttachment(ctx *context.APIContext) {
 
 	if err := repo_model.UpdateAttachment(ctx, attachment); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateAttachment", err)
+		return
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToAPIAttachment(ctx.Repo.Repository, attachment))
+	ctx.JSON(http.StatusCreated, convert.ToAPIAttachment(ctx.Repo().Repository, attachment))
 }
 
 // DeleteIssueAttachment delete a given attachment
@@ -346,13 +347,13 @@ func DeleteIssueAttachment(ctx *context.APIContext) {
 }
 
 func getIssueFromContext(ctx *context.APIContext) *issues_model.Issue {
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64("index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo().Repository.ID, ctx.ParamsInt64("index"))
 	if err != nil {
 		ctx.NotFoundOrServerError("GetIssueByIndex", issues_model.IsErrIssueNotExist, err)
 		return nil
 	}
 
-	issue.Repo = ctx.Repo.Repository
+	issue.Repo = ctx.Repo().Repository
 
 	return issue
 }
@@ -383,7 +384,7 @@ func getIssueAttachmentSafeRead(ctx *context.APIContext, issue *issues_model.Iss
 }
 
 func canUserWriteIssueAttachment(ctx *context.APIContext, issue *issues_model.Issue) bool {
-	canEditIssue := ctx.IsSigned && (ctx.Doer.ID == issue.PosterID || ctx.IsUserRepoAdmin() || ctx.IsUserSiteAdmin() || ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull))
+	canEditIssue := ctx.IsSigned() && (ctx.Doer().ID == issue.PosterID || ctx.IsUserRepoAdmin() || ctx.IsUserSiteAdmin() || ctx.Repo().CanWriteIssuesOrPulls(issue.IsPull))
 	if !canEditIssue {
 		ctx.Error(http.StatusForbidden, "", "user should have permission to write issue")
 		return false
@@ -393,8 +394,8 @@ func canUserWriteIssueAttachment(ctx *context.APIContext, issue *issues_model.Is
 }
 
 func attachmentBelongsToRepoOrIssue(ctx *context.APIContext, attachment *repo_model.Attachment, issue *issues_model.Issue) bool {
-	if attachment.RepoID != ctx.Repo.Repository.ID {
-		log.Debug("Requested attachment[%d] does not belong to repo[%-v].", attachment.ID, ctx.Repo.Repository)
+	if attachment.RepoID != ctx.Repo().Repository.ID {
+		log.Debug("Requested attachment[%d] does not belong to repo[%-v].", attachment.ID, ctx.Repo().Repository)
 		ctx.NotFound("no such attachment in repo")
 		return false
 	}

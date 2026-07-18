@@ -80,6 +80,8 @@
   previous_duration: 0
   created: 1776331495
   updated: 1776331721
+  priority: 127
+  prioritize: true
 
 - id: 455660
   title: Workflow with independent jobs
@@ -100,4 +102,5 @@
   previous_duration: 0
   created: 1776331495
   updated: 1776331721
-
+  priority: 127
+  prioritize: true

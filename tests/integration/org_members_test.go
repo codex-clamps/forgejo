@@ -13,6 +13,9 @@ import (
 	"forgejo.org/models/organization"
 	"forgejo.org/models/unittest"
 	user_model "forgejo.org/models/user"
+	"forgejo.org/modules/optional"
+	"forgejo.org/modules/setting"
+	"forgejo.org/modules/test"
 	"forgejo.org/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -56,7 +59,18 @@ func TestOrgMembersPage(t *testing.T) {
 		assert.Less(t, 2, doc.Find(".members .list .link-action").Length())
 		assert.Less(t, 2, doc.Find(".members .list .delete-button").Length())
 		/* Adding new members is possible */
-		doc.AssertElement(t, "#add-org-member-button", true)
+		assert.Equal(t, "Add member", strings.TrimSpace(doc.Find("#add-org-member-button").Text()))
+	})
+
+	t.Run("Owner PoV with ADD_MEMBERS_BY_INVITATIONS setting on", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+		defer test.MockVariableValue(&setting.Service.AddMembersByInvitations, true)()
+
+		session := loginUser(t, "user2") // user2 owns org3
+		doc := NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", testPage), http.StatusOK).Body)
+
+		/* Inviting new members is possible */
+		assert.Equal(t, "Invite member", strings.TrimSpace(doc.Find("#add-org-member-button").Text()))
 	})
 }
 
@@ -220,4 +234,43 @@ func TestOrgAddExistingMemberFails(t *testing.T) {
 	isTeamMember, err = organization.IsTeamMember(db.DefaultContext, team.OrgID, team.ID, user.ID)
 	require.NoError(t, err)
 	assert.False(t, isTeamMember)
+}
+
+func TestOrgAddMemberGeneratesAnInvite(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	defer test.MockVariableValue(&setting.Service.AddMembersByInvitations, true)()
+
+	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
+	team1 := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 1})
+	team2 := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+
+	isMember, err := organization.IsTeamMember(db.DefaultContext, team1.OrgID, team1.ID, user.ID)
+	require.NoError(t, err)
+	assert.False(t, isMember)
+	isMember, err = organization.IsTeamMember(db.DefaultContext, team2.OrgID, team2.ID, user.ID)
+	require.NoError(t, err)
+	assert.False(t, isMember)
+
+	session := loginUser(t, "user2")
+
+	teamURL := fmt.Sprintf("/org/%s/members", org.Name)
+	req := NewRequestWithValues(t, "POST", teamURL+"/action/add", map[string]string{
+		"uid":    "2",
+		"uname":  user.LoginName,
+		"team_1": "on",
+		"team_2": "on",
+	})
+	resp := session.MakeRequest(t, req, http.StatusSeeOther)
+	assert.Equal(t, teamURL, resp.Header().Get("Location"))
+
+	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+	isMember, err = organization.IsTeamMember(db.DefaultContext, team1.OrgID, team1.ID, user.ID)
+	require.NoError(t, err)
+	assert.False(t, isMember)
+	isMember, err = organization.IsTeamMember(db.DefaultContext, team2.OrgID, team2.ID, user.ID)
+	require.NoError(t, err)
+	assert.False(t, isMember)
+	unittest.AssertExistsAndLoadBean(t, &organization.TeamInvite{TeamID: team1.ID, InviterID: 2, InvitedID: optional.Some(user.ID)})
+	unittest.AssertExistsAndLoadBean(t, &organization.TeamInvite{TeamID: team2.ID, InviterID: 2, InvitedID: optional.Some(user.ID)})
 }

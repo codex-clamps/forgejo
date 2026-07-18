@@ -26,7 +26,6 @@
 	"admin.config.git.mirror_timeout": "Zeitlimit für Spiegel-Aktualisierung",
 	"admin.config.git.migrate_timeout": "Zeitlimit für Migration",
 	"admin.config.git.gc_args": "GC-Argumente",
-	"admin.config.git.diff.max_files": "Max. Diff-Dateien (Angezeigte)",
 	"admin.config.git.diff.max_line_characters": "Max. Diff-Zeichen (in einer Zeile)",
 	"admin.config.git.diff.max_lines": "Max. Diff-Zeilen (in einer Datei)",
 	"admin.config.git.disable_diff_highlight": "Diff-Syntaxhervorhebung ausschalten",
@@ -131,7 +130,7 @@
 	"admin.monitor.queue.settings.submit": "Einstellungen aktualisieren",
 	"admin.monitor.queue.settings.maxnumberworkers.error": "Die Anzahl der Worker muss eine Zahl sein",
 	"admin.monitor.queue.settings.maxnumberworkers.placeholder": "Derzeit %[1]d",
-	"admin.monitor.queue.settings.maxnumberworkers": "Maximale Anzahl an Workern",
+	"admin.monitor.queue.settings.maxnumberworkers": "Maximale Anzahl der Worker",
 	"admin.monitor.queue.settings.description": "Pools wachsen dynamisch basierend auf der Blockierung der Arbeitswarteschlange.",
 	"admin.monitor.queue.settings.title": "Pool-Einstellungen",
 	"admin.monitor.queue.review_add": "Worker hinzufügen/prüfen",
@@ -737,7 +736,6 @@
 	"repo.view.gitmodules_too_large": "Die .gitmodules-Datei ist zu groß und wird ignoriert (zum Beispiel für API-Aufrufe)",
 	"install.ssh_authorized_keys_inspection_error": "Existierende authorized_keys-Datei konnte nicht untersucht werden: %v",
 	"install.ssh_authorized_keys_unexpected_key": "Die Aktivierung von SSH für Forgejo steht im Konflikt mit der Datei bei %s, die existierende SSH-Keys enthält. Vorschlag: Verwende einen eigenen Systembenutzer für Forgejo oder deaktiviere SSH.",
-	"actions.secrets.creation.name_description": "Der Name eines Geheimnisses darf nur Buchstaben, Ziffern und Unterstriche enthalten. Es darf nicht mit „FORGEJO_“, „GITEA_“, „GITHUB_“ oder einer Zahl anfangen. Forgejo wird es automatisch in Großbuchstaben umwandeln.",
 	"actions.secrets.creation.value_description": "Der Wert eines Geheimnisses kann jeder Text sein. Sonderzeichen werden beibehalten. CRLF (Zeilenumbrüche im Windows-Stil) werden automatisch zu LF konvertiert. Kodiere den Wert mit Base64, falls Zeilenumbrüche beibehalten werden sollen.",
 	"actions.variables.mutation.name_description": "Der Name einer Variable kann nur Buchstaben, Ziffern und Unterstriche enthalten. Er darf nicht „CI“ lauten oder mit „FORGEJO_“, „GITEA_“, „GITHUB_“ oder einer Zahl beginnen. Forgejo wird ihn automatisch zu Großbuchstaben umwandeln.",
 	"actions.variables.mutation.value_description": "Der Wert einer Variablen kann jeder Text sein. Sonderzeichen werden beibehalten. CRLF (Zeilenumbrüche im Windows-Stil) werden automatisch zu LF konvertiert. Kodiere den Wert mit Base64, falls Zeilenumbrüche beibehalten werden sollen.",
@@ -765,13 +763,9 @@
 	"actions.runners.ephemeral.yes": "ja",
 	"actions.runners.ephemeral.no": "nein",
 	"actions.runners.edit_runner_button": "Runner bearbeiten",
-	"actions.runners.create_runner.page_title": "Neuen Runner erstellen",
+	"actions.runners.create_runner.page_title": "Neuer Runner",
 	"actions.runners.create_runner.title": "Neuen Runner erstellen",
-	"actions.runners.create_runner.properties_fieldset": "Eigenschaften",
-	"actions.runners.create_runner.name_label": "Name",
-	"actions.runners.create_runner.description_label": "Beschreibung",
 	"actions.runners.create_runner.create_button": "Erstellen",
-	"actions.runners.create_runner.cancel_button": "Abbrechen",
 	"actions.runners.edit_runner.page_title": "Runner %s bearbeiten",
 	"actions.runners.edit_runner.title": "Runner %s bearbeiten",
 	"actions.runners.edit_runner.properties_fieldset": "Eigenschaften",
@@ -899,7 +893,6 @@
 	"actions.runs.delete.error": "Der Workflow-Run konnte nicht gelöscht werden.",
 	"actions.runs.delete.confirm_action": "Möchtest du wirklich diesen Workflow-Run löschen?",
 	"settings.authorized_integration.forgejo_actions_local.event.label": "Ereignis:",
-	"repo.pulls.status_checks_skipped": "Übersprungen",
 	"settings.authorized_integration.create_page_title": "Autorisierte Integration erstellen",
 	"settings.authorized_integration.create": "Autorisierte Integration erstellen",
 	"settings.authorized_integration.create_success": "Autorisierte Integration erstellt: %s",
@@ -929,5 +922,64 @@
 	"settings.authorized_integration.forgejo_actions_local.git_ref.error": "Fehler beim Parsen von git-Referenz: %s",
 	"settings.authorized_integration.forgejo_actions_local.event.help": "Falls keine Ereignisse ausgewählt wurden, wird jedes Ereignis zugelassen.",
 	"admin.auths.oauth2_dyn_group_maps": "Benutzer dynamisch zu Teams basierend auf den dynamischen Gruppen-Zuteilungen hinzufügen. (Optional)",
-	"admin.auths.oauth2_dyn_group_maps_removal": "Dynamisch Benutzer von allen Teams entfernen, falls der Benutzer nicht basierend auf den Gruppen-Mappings hinzugefügt wird."
+	"admin.auths.oauth2_dyn_group_maps_removal": "Dynamisch Benutzer von allen Teams entfernen, falls der Benutzer nicht basierend auf den Gruppen-Mappings hinzugefügt wird.",
+	"migrate.in_progress.issues.progress": {
+		"one": "%[1]d Issue migriert",
+		"other": "%[1]d Issues migriert"
+	},
+	"migrate.in_progress.pulls.progress": {
+		"one": "%[1] Pull-Request migriert",
+		"other": "%[1] Pull-Requests migriert"
+	},
+	"repo.settings.units.more_units_disable_hint": "Der „Mehr-aktivieren“-Hinweis kann unter <a href=\"%s\">Benutzereinstellungen > Erscheinung</a> deaktiviert werden.",
+	"actions.jobs.not_started": "nicht gestartet",
+	"form.website.valid_url_schemes": "Zu den erlaubten URL-Schemas gehört: %s",
+	"search.match_inside_quotes": "Nur Ergebnisse, die auf den Begriff in Anführungszeichen passen, einbinden",
+	"search.docs": "<a target=\"_blank\" rel=\"noopener noreferrer\" href=\"%[1]s\">Siehe die Dokumentation</a> für weitere Details über die Suche, Operatoren und Filter.",
+	"pulls.status_checks.skipped": "Einige Prüfungen wurden übersprungen",
+	"members.invite_member": "Mitglied einladen",
+	"members.invite_team_member": "Zum Team einladen",
+	"actions.runs.prioritized_run": "Priorisiert",
+	"actions.runs.prioritize_run": "Run priorisieren",
+	"actions.runs.deprioritize_run": "Run nicht priorisieren",
+	"actions.runs.options": "Optionen",
+	"actions.runs.prioritization_success": "Workflow-Run #%d ist jetzt priorisiert.",
+	"actions.runs.deprioritization_success": "Workflow-Run #%d wird nicht mehr priotisiert.",
+	"repo.issues.context.copy_markdown": "Markdown kopieren",
+	"actions.workflow.pre_execution_warning": "Workflow-Warnungen:",
+	"actions.workflow.permissions_warning": "Job <code>%[1]s</code> oder sein Workflow hat ein <code>permissions</code>-Feld, welches in Forgejo nicht unterstützt wird, der Job wird daher ignoriert. Benutzen Sie stattdessen <a href=\"%[2]s\">Autorisierte Integrationen</a>, um Fähigkeiten diesem Job zuzuweisen.",
+	"repo.watch.issues": "Issues",
+	"repo.watch.pull_requests": "Pull-Requests",
+	"repo.watch.releases": "Releases",
+	"repo.watch.releases.hint": "(nur E-Mail)",
+	"relativetime.duration.secs": {
+		"one": "%s Sekunde",
+		"other": "%s Sekunden"
+	},
+	"relativetime.duration.mins": {
+		"one": "%d Minute",
+		"other": "%d Minuten"
+	},
+	"relativetime.duration.hours": {
+		"one": "%d Stunde",
+		"other": "%d Stunden"
+	},
+	"relativetime.duration.days": {
+		"one": "%d Tag",
+		"other": "%d Tage"
+	},
+	"relativetime.duration.weeks": {
+		"one": "%d Woche",
+		"other": "%d Wochen"
+	},
+	"relativetime.duration.months": {
+		"one": "%d Monat",
+		"other": "%d Monate"
+	},
+	"relativetime.duration.years": {
+		"one": "%d Jahr",
+		"other": "%d Jahre"
+	},
+	"settings.profile.dotprofile.hint": "Eine fortgeschrittene Profilanpassung, inklusive Verifikationslinks, kann mit dem Repository „<code>%s</code>“-Repository vorgenommen werden. <a href=\"%s\" target=\"_blank\">Mehr erfahren</a>.",
+	"repo.watching": "Beobachten"
 }

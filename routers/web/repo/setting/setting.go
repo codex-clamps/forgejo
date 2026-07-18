@@ -38,7 +38,7 @@ import (
 	"forgejo.org/services/context"
 	"forgejo.org/services/federation"
 	"forgejo.org/services/forms"
-	"forgejo.org/services/migrations"
+	migrations_allowlist "forgejo.org/services/migrations/allowlist"
 	mirror_service "forgejo.org/services/mirror"
 	repo_service "forgejo.org/services/repository"
 	wiki_service "forgejo.org/services/wiki"
@@ -396,8 +396,8 @@ func SettingsPost(ctx *context.Context) {
 
 	case "federation":
 		if !setting.Federation.Enabled {
-			ctx.NotFound("", nil)
 			ctx.Flash.Info(ctx.Tr("repo.settings.federation_not_enabled"))
+			ctx.NotFound("", nil)
 			return
 		}
 		followingRepos := strings.TrimSpace(form.FollowingRepos)
@@ -474,7 +474,7 @@ func SettingsPost(ctx *context.Context) {
 
 		address, err := forms.ParseRemoteAddr(form.MirrorAddress, form.MirrorUsername, form.MirrorPassword)
 		if err == nil {
-			err = migrations.IsMigrateURLAllowed(address, ctx.Doer)
+			err = migrations_allowlist.IsMigrateURLAllowed(address, ctx.Doer)
 		}
 		if err != nil {
 			ctx.Data["Err_MirrorAddress"] = true
@@ -511,7 +511,7 @@ func SettingsPost(ctx *context.Context) {
 				ctx.RenderWithErr(ctx.Tr("repo.migrate.invalid_lfs_endpoint"), tplSettingsOptions, &form)
 				return
 			}
-			err = migrations.IsMigrateURLAllowed(ep.String(), ctx.Doer)
+			err = migrations_allowlist.IsMigrateURLAllowed(ep.String(), ctx.Doer)
 			if err != nil {
 				ctx.Data["Err_LFSEndpoint"] = true
 				handleSettingRemoteAddrError(ctx, err, form)
@@ -688,7 +688,7 @@ func SettingsPost(ctx *context.Context) {
 
 		address, err := forms.ParseRemoteAddr(form.PushMirrorAddress, form.PushMirrorUsername, form.PushMirrorPassword)
 		if err == nil {
-			err = migrations.IsPushMirrorURLAllowed(address, ctx.Doer)
+			err = migrations_allowlist.IsPushMirrorURLAllowed(address, ctx.Doer)
 		}
 		if err != nil {
 			ctx.Data["Err_PushMirrorAddress"] = true

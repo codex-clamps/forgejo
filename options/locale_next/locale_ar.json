@@ -73,20 +73,36 @@
 	"webauthn.sign_in": "اضغط الزر على مفتاحك الأمني إذا لم يكن لدى مفتاح الأمن الخاص بك أي زر، إعادة تشغيله.",
 	"webauthn.insert_key": "أدخل مفتاحك الأمني",
 	"counters.n_commits": {
-		"one": "%s إيداع",
-		"other": "%s إيداعات"
+		"zero": "%s إيداع",
+		"one": "%s إيداعات",
+		"two": "",
+		"few": "",
+		"many": "",
+		"other": ""
 	},
 	"counters.n_branches": {
-		"one": "%s فرع",
-		"other": "%s فروع"
+		"zero": "%s فرع",
+		"one": "%s فروع",
+		"two": "",
+		"few": "",
+		"many": "",
+		"other": ""
 	},
 	"counters.n_tags": {
-		"one": "%s علامة",
-		"other": "‪%s علامات"
+		"zero": "%s علامة",
+		"one": "‪%s علامات",
+		"two": "",
+		"few": "",
+		"many": "",
+		"other": ""
 	},
 	"counters.n_releases": {
-		"one": "%s إصدار",
-		"other": "%s إصدارات"
+		"zero": "%s إصدار",
+		"one": "%s إصدارات",
+		"two": "",
+		"few": "",
+		"many": "",
+		"other": ""
 	},
 	"actions.actions": "الإجراءات",
 	"actions.status.unknown": "مجهول",
@@ -110,7 +126,6 @@
 	"actions.runners.description": "الوصف",
 	"actions.runners.labels": "التصنيفات",
 	"actions.runners.last_online": "آخر مرة كان متصلا",
-	"actions.runners.runner_title": "",
 	"actions.runners.task_list.no_tasks": "لا توجد مهام بعد.",
 	"actions.runners.task_list.run": "شغّل",
 	"actions.runners.task_list.status": "الحالة",

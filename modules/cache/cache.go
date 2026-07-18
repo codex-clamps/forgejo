@@ -48,8 +48,7 @@ func Init() error {
 }
 
 const (
-	testCacheKey       = "DefaultCache.TestKey"
-	SlowCacheThreshold = 100 * time.Microsecond
+	testCacheKey = "DefaultCache.TestKey"
 )
 
 func Test() (time.Duration, error) {

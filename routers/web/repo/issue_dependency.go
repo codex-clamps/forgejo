@@ -34,13 +34,11 @@ func AddDependency(ctx *context.Context) {
 		return
 	}
 
-	// Redirect
-	defer ctx.Redirect(issue.Link())
-
 	// Dependency
 	dep, err := issues_model.GetIssueByID(ctx, depID)
 	if err != nil {
 		ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_dep_issue_not_exist"))
+		ctx.Redirect(issue.Link())
 		return
 	}
 
@@ -48,6 +46,7 @@ func AddDependency(ctx *context.Context) {
 	if issue.RepoID != dep.RepoID {
 		if !setting.Service.AllowCrossRepositoryDependencies {
 			ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_dep_not_same_repo"))
+			ctx.Redirect(issue.Link())
 			return
 		}
 		if err := dep.LoadRepo(ctx); err != nil {
@@ -62,6 +61,7 @@ func AddDependency(ctx *context.Context) {
 		}
 		if !depRepoPerm.CanReadIssuesOrPulls(dep.IsPull) {
 			// you can't see this dependency
+			ctx.Redirect(issue.Link())
 			return
 		}
 	}
@@ -69,6 +69,7 @@ func AddDependency(ctx *context.Context) {
 	// Check if issue and dependency is the same
 	if dep.ID == issue.ID {
 		ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_same_issue"))
+		ctx.Redirect(issue.Link())
 		return
 	}
 
@@ -76,14 +77,18 @@ func AddDependency(ctx *context.Context) {
 	if err != nil {
 		if issues_model.IsErrDependencyExists(err) {
 			ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_dep_exists"))
+			ctx.Redirect(issue.Link())
 			return
 		} else if issues_model.IsErrCircularDependency(err) {
 			ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_cannot_create_circular"))
+			ctx.Redirect(issue.Link())
 			return
 		}
 		ctx.ServerError("CreateOrUpdateIssueDependency", err)
 		return
 	}
+
+	ctx.Redirect(issue.Link())
 }
 
 // RemoveDependency removes the dependency

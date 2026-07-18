@@ -80,7 +80,10 @@ func (err ErrIssueWasClosed) Error() string {
 	return fmt.Sprintf("Issue [%d] %d was already closed", err.ID, err.Index)
 }
 
-var ErrIssueAlreadyChanged = util.NewInvalidArgumentErrorf("the issue is already changed")
+var (
+	ErrIssueAlreadyChanged = util.NewInvalidArgumentErrorf("the issue is already changed")
+	ErrNoPosterSetOnIssue  = errors.New("the issue has no poster")
+)
 
 // Issue represents an issue or pull request of repository.
 type Issue struct {

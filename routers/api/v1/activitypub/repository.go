@@ -38,14 +38,14 @@ func Repository(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/ActivityPub"
 
-	link := fmt.Sprintf("%s/api/v1/activitypub/repository-id/%d", strings.TrimSuffix(setting.AppURL, "/"), ctx.Repo.Repository.ID)
+	link := fmt.Sprintf("%s/api/v1/activitypub/repository-id/%d", strings.TrimSuffix(setting.AppURL, "/"), ctx.Repo().Repository.ID)
 	repo := forgefed.RepositoryNew(ap.IRI(link))
 
 	repo.Inbox = ap.IRI(link + "/inbox")
 	repo.Outbox = ap.IRI(link + "/outbox")
 
 	repo.Name = ap.NaturalLanguageValuesNew()
-	err := repo.Name.Set(ap.NilLangRef, ap.Content(ctx.Repo.Repository.Name))
+	err := repo.Name.Set(ap.NilLangRef, ap.Content(ctx.Repo().Repository.Name))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "Set Name", err)
 		return
@@ -75,7 +75,7 @@ func RepositoryInbox(ctx *context.APIContext) {
 	//   "204":
 	//     "$ref": "#/responses/empty"
 
-	repository := ctx.Repo.Repository
+	repository := ctx.Repo().Repository
 	log.Info("RepositoryInbox: repo: %v", repository)
 	form := web.GetForm(ctx)
 	activity := form.(*ap.Activity)
@@ -104,7 +104,7 @@ func RepositoryOutbox(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/Outbox"
 
-	repository := ctx.Repo.Repository
+	repository := ctx.Repo().Repository
 	outbox := ap.OrderedCollectionNew(ap.IRI(repository.APActorID() + "/outbox"))
 
 	binary, err := jsonld.WithContext(

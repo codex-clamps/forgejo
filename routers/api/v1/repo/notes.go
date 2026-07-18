@@ -63,12 +63,12 @@ func GetNote(ctx *context.APIContext) {
 }
 
 func getNote(ctx *context.APIContext, identifier string) {
-	if ctx.Repo.GitRepo == nil {
+	if ctx.Repo().GitRepo == nil {
 		ctx.InternalServerError(errors.New("no open git repo"))
 		return
 	}
 
-	commitID, err := ctx.Repo.GitRepo.ConvertToGitID(identifier)
+	commitID, err := ctx.Repo().GitRepo.ConvertToGitID(identifier)
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound(err)
@@ -78,7 +78,7 @@ func getNote(ctx *context.APIContext, identifier string) {
 		return
 	}
 
-	note, err := git.GetNote(ctx, ctx.Repo.GitRepo, commitID.String())
+	note, err := git.GetNote(ctx, ctx.Repo().GitRepo, commitID.String())
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound(identifier)
@@ -91,7 +91,7 @@ func getNote(ctx *context.APIContext, identifier string) {
 	verification := ctx.FormString("verification") == "" || ctx.FormBool("verification")
 	files := ctx.FormString("files") == "" || ctx.FormBool("files")
 
-	cmt, err := convert.ToCommit(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, note.Commit, nil,
+	cmt, err := convert.ToCommit(ctx, ctx.Repo().Repository, ctx.Repo().GitRepo, note.Commit, nil,
 		convert.ToCommitOptions{
 			Stat:         true,
 			Verification: verification,
@@ -147,7 +147,7 @@ func SetNote(ctx *context.APIContext) {
 
 	form := web.GetForm(ctx).(*api.NoteOptions)
 
-	err := git.SetNote(ctx, ctx.Repo.GitRepo, sha, form.Message, ctx.Doer.Name, ctx.Doer.GetEmail())
+	err := git.SetNote(ctx, ctx.Repo().GitRepo, sha, form.Message, ctx.Doer().Name, ctx.Doer().GetEmail())
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound(sha)
@@ -196,7 +196,7 @@ func RemoveNote(ctx *context.APIContext) {
 		return
 	}
 
-	err := git.RemoveNote(ctx, ctx.Repo.GitRepo, sha)
+	err := git.RemoveNote(ctx, ctx.Repo().GitRepo, sha)
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound(sha)

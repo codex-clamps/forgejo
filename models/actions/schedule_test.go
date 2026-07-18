@@ -56,7 +56,7 @@ jobs:
 		WorkflowID:        "test.yaml",
 		WorkflowDirectory: ".forgejo/workflows",
 		TriggerUserID:     -2,
-		Ref:               "main",
+		Ref:               "refs/heads/main",
 		CommitSHA:         "6af834a5bc97c1a337eb3a21d26903c5cdceca0c",
 		Event:             webhook.HookEventPush,
 		EventPayload:      "{\"action\":\"schedule\"}",
@@ -75,7 +75,7 @@ jobs:
 	assert.Equal(t, "test.yaml", schedules[0].WorkflowID)
 	assert.Equal(t, ".forgejo/workflows", schedules[0].WorkflowDirectory)
 	assert.Equal(t, int64(-2), schedules[0].TriggerUserID)
-	assert.Equal(t, "main", schedules[0].Ref)
+	assert.Equal(t, "refs/heads/main", schedules[0].Ref)
 	assert.Equal(t, "6af834a5bc97c1a337eb3a21d26903c5cdceca0c", schedules[0].CommitSHA)
 	assert.Equal(t, webhook.HookEventPush, schedules[0].Event)
 	assert.JSONEq(t, "{\"action\":\"schedule\"}", schedules[0].EventPayload)

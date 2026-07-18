@@ -26,7 +26,6 @@
 	"admin.config.git.mirror_timeout": "Prazo para a sincronização da réplica",
 	"admin.config.git.migrate_timeout": "Prazo da migração",
 	"admin.config.git.gc_args": "Argumentos da recolha de lixo",
-	"admin.config.git.diff.max_files": "Número máximo de ficheiros diff a serem apresentados",
 	"admin.config.git.diff.max_line_characters": "Número máximos de caracteres diff por linha",
 	"admin.config.git.diff.max_lines": "Número máximo de linhas diff por ficheiro",
 	"admin.config.git.disable_diff_highlight": "Desabilitar o realce de sintaxe no diff",
@@ -756,7 +755,6 @@
 	"repo.view.gitmodules_too_large": "O ficheiro .gitmodules é demasiado grande e será ignorado (por exemplo, em chamadas API)",
 	"install.ssh_authorized_keys_inspection_error": "Falha ao inspecionar o ficheiro authorized_keys existente: %v",
 	"install.ssh_authorized_keys_unexpected_key": "A ativação do SSH para o Forgejo entra em conflito com o ficheiro localizado em %s que contém chaves SSH existentes. Sugestões: use um utilizador de sistema dedicado para o Forgejo ou desative o SSH.",
-	"actions.secrets.creation.name_description": "O nome de um segredo só pode conter letras, números e sublinhados. Não pode começar com FORGEJO_, GITEA_, GITHUB_ ou um número. O Forgejo irá convertê-lo automaticamente para maiúsculas.",
 	"actions.secrets.creation.value_description": "O valor de um segredo pode ser qualquer texto. Os caracteres especiais são mantidos. CRLF (quebras de linha no estilo Windows) é automaticamente convertido para LF. Codifique o valor com Base64 se as quebras de linha devem ser mantidas.",
 	"actions.variables.mutation.name_description": "O nome de uma variável só pode conter letras, números e sublinhados. Não pode ter o nome CI nem começar por FORGEJO_, GITEA_, GITHUB_ ou um número. O Forgejo irá convertê-lo automaticamente para maiúsculas.",
 	"actions.variables.mutation.value_description": "O valor de uma variável pode ser qualquer texto. Os caracteres especiais são mantidos. CRLF (quebras de linha no estilo Windows) é automaticamente convertido para LF. Codifique o valor com Base64 se as quebras de linha devem ser mantidas.",
@@ -792,11 +790,7 @@
 	"actions.runners.edit_runner_button": "Editar executor",
 	"actions.runners.create_runner.page_title": "Criar novo executor",
 	"actions.runners.create_runner.title": "Criar novo executor",
-	"actions.runners.create_runner.properties_fieldset": "Propriedades",
-	"actions.runners.create_runner.name_label": "Nome",
-	"actions.runners.create_runner.description_label": "Descrição",
 	"actions.runners.create_runner.create_button": "Criar",
-	"actions.runners.create_runner.cancel_button": "Cancelar",
 	"actions.runners.edit_runner.page_title": "Editar executor %s",
 	"actions.runners.edit_runner.title": "Editar executor %s",
 	"actions.runners.edit_runner.properties_fieldset": "Propriedades",
@@ -897,5 +891,6 @@
 	"repo.files.caption": "Ficheiros do repositório (o cometimento mais recente em primeiro lugar)",
 	"repo.files.filename": "Nome do ficheiro",
 	"repo.files.last_commit_message": "Mensagem do último cometimento",
-	"repo.files.last_commit_date": "Data do último cometimento"
+	"repo.files.last_commit_date": "Data do último cometimento",
+	"repo.packages.visibility_warning": "Este repositório é privado, mas os pacotes associados são públicos (o proprietário %s é público)."
 }

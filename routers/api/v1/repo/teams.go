@@ -40,12 +40,12 @@ func ListTeams(ctx *context.APIContext) {
 	//   "405":
 	//     "$ref": "#/responses/error"
 
-	if !ctx.Repo.Owner.IsOrganization() {
+	if !ctx.Repo().Owner.IsOrganization() {
 		ctx.Error(http.StatusMethodNotAllowed, "noOrg", "repo is not owned by an organization")
 		return
 	}
 
-	teams, err := organization.GetRepoTeams(ctx, ctx.Repo.Repository)
+	teams, err := organization.GetRepoTeams(ctx, ctx.Repo().Repository)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -91,7 +91,7 @@ func IsTeam(ctx *context.APIContext) {
 	//   "405":
 	//     "$ref": "#/responses/error"
 
-	if !ctx.Repo.Owner.IsOrganization() {
+	if !ctx.Repo().Owner.IsOrganization() {
 		ctx.Error(http.StatusMethodNotAllowed, "noOrg", "repo is not owned by an organization")
 		return
 	}
@@ -101,7 +101,7 @@ func IsTeam(ctx *context.APIContext) {
 		return
 	}
 
-	if repo_service.HasRepository(ctx, team, ctx.Repo.Repository.ID) {
+	if repo_service.HasRepository(ctx, team, ctx.Repo().Repository.ID) {
 		apiTeam, err := convert.ToTeam(ctx, team)
 		if err != nil {
 			ctx.InternalServerError(err)
@@ -187,10 +187,11 @@ func DeleteTeam(ctx *context.APIContext) {
 }
 
 func changeRepoTeam(ctx *context.APIContext, add bool) {
-	if !ctx.Repo.Owner.IsOrganization() {
+	if !ctx.Repo().Owner.IsOrganization() {
 		ctx.Error(http.StatusMethodNotAllowed, "noOrg", "repo is not owned by an organization")
+		return
 	}
-	if !ctx.Repo.Owner.RepoAdminChangeTeamAccess && !ctx.Repo.IsOwner() {
+	if !ctx.Repo().Owner.RepoAdminChangeTeamAccess && !ctx.Repo().IsOwner() {
 		ctx.Error(http.StatusForbidden, "noAdmin", "user is nor repo admin nor owner")
 		return
 	}
@@ -200,20 +201,20 @@ func changeRepoTeam(ctx *context.APIContext, add bool) {
 		return
 	}
 
-	repoHasTeam := repo_service.HasRepository(ctx, team, ctx.Repo.Repository.ID)
+	repoHasTeam := repo_service.HasRepository(ctx, team, ctx.Repo().Repository.ID)
 	var err error
 	if add {
 		if repoHasTeam {
 			ctx.Error(http.StatusUnprocessableEntity, "alreadyAdded", fmt.Errorf("team '%s' is already added to repo", team.Name))
 			return
 		}
-		err = org_service.TeamAddRepository(ctx, team, ctx.Repo.Repository)
+		err = org_service.TeamAddRepository(ctx, team, ctx.Repo().Repository)
 	} else {
 		if !repoHasTeam {
 			ctx.Error(http.StatusUnprocessableEntity, "notAdded", fmt.Errorf("team '%s' was not added to repo", team.Name))
 			return
 		}
-		err = repo_service.RemoveRepositoryFromTeam(ctx, team, ctx.Repo.Repository.ID)
+		err = repo_service.RemoveRepositoryFromTeam(ctx, team, ctx.Repo().Repository.ID)
 	}
 	if err != nil {
 		ctx.InternalServerError(err)
@@ -224,7 +225,7 @@ func changeRepoTeam(ctx *context.APIContext, add bool) {
 }
 
 func getTeamByParam(ctx *context.APIContext) *organization.Team {
-	team, err := organization.GetTeam(ctx, ctx.Repo.Owner.ID, ctx.Params(":team"))
+	team, err := organization.GetTeam(ctx, ctx.Repo().Owner.ID, ctx.Params(":team"))
 	if err != nil {
 		if organization.IsErrTeamNotExist(err) {
 			ctx.Error(http.StatusNotFound, "TeamNotExit", err)

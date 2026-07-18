@@ -26,7 +26,6 @@
 	"admin.config.git.mirror_timeout": "Тайм-аут оновлення дзеркала",
 	"admin.config.git.migrate_timeout": "Тайм-аут перенесення",
 	"admin.config.git.gc_args": "Аргументи збирача сміття",
-	"admin.config.git.diff.max_files": "Максимум файлів для показу при порівнянні",
 	"admin.config.git.diff.max_line_characters": "Максимум символів на рядок при порівнянні",
 	"admin.config.git.diff.max_lines": "Максимум рядків на файл при порівнянні",
 	"admin.config.git.disable_diff_highlight": "Вимкнути підсвітку синтаксису diff",
@@ -62,7 +61,7 @@
 	"admin.packages.type": "Тип",
 	"admin.packages.version": "Версія",
 	"admin.packages.name": "Назва",
-	"admin.packages.creator": "Творець",
+	"admin.packages.creator": "Автор",
 	"admin.packages.owner": "Власник",
 	"admin.packages.unreferenced_size": "Розмір без посилань: %s",
 	"admin.packages.total_size": "Загальний розмір: %s",
@@ -106,7 +105,7 @@
 	"admin.dashboard.delete_old_actions.started": "Розпочато видалення всіх старих активностей з бази даних.",
 	"admin.dashboard.delete_missing_repos.started": "Запущено завдання видалення всіх репозиторіїв, в яких відсутні файли Git.",
 	"admin.dashboard.delete_repo_archives.started": "Запущено завдання видалення всіх архівів репозиторіїв.",
-	"admin.dashboard.delete_inactive_accounts.started": "Запущено завдання видалення всі неактивованих облікових записів.",
+	"admin.dashboard.delete_inactive_accounts.started": "Запущено завдання видалення всіх неактивованих облікових записів.",
 	"admin.dashboard.cron.finished": "Cron: %[1]s завершено",
 	"admin.dashboard.cron.error": "Помилка в Cron: %s: %[3]s",
 	"admin.dashboard.cron.cancelled": "Cron: %[1]s скасовано: %[3]s",
@@ -423,9 +422,9 @@
 		"many": "%s форків"
 	},
 	"stars.n_stars": {
-		"one": "%s зірка",
-		"few": "%s зірки",
-		"many": "%s зірок"
+		"one": "В обраному у %s",
+		"few": "В обраному у %s",
+		"many": "В обраному у %s"
 	},
 	"release.n_downloads": {
 		"one": "%s завантаження",
@@ -756,7 +755,6 @@
 	"repo.view.gitmodules_too_large": "Файл .gitmodules занадто великий і буде проігнорований (наприклад, при викликах API)",
 	"install.ssh_authorized_keys_inspection_error": "Не вдалося перевірити наявний файл authorized_keys: %v",
 	"install.ssh_authorized_keys_unexpected_key": "Увімкнення SSH для Forgejo конфліктує з файлом, розташованим за адресою %s, який містить існуючі ключі SSH. Підказка: використовуйте для Forgejo спеціального системного користувача або вимкніть SSH.",
-	"actions.secrets.creation.name_description": "Ім’я секрету може містити тільки літери, цифри та підкреслення. Не може починатися з FORGEJO_, GITEA_, GITHUB_ або цифри. Forgejo автоматично переводить його у верхній регістр.",
 	"actions.variables.mutation.name_description": "Ім’я змінної може містити лише літери, цифри та підкреслення. Не можна називати змінну CI або починати ім’я з FORGEJO_, GITEA_, GITHUB_ чи цифри. Forgejo автоматично переводить його у верхній регістр.",
 	"actions.secrets.creation.value_description": "Значенням секрету може бути будь-який текст. Спеціальні символи зберігаються. CRLF (розриви рядків у форматі Windows) автоматично замінюються на LF. Якщо розриви рядків потрібно зберегти, закодуйте значення за допомогою Base64.",
 	"actions.variables.mutation.value_description": "Значенням змінної може бути будь-який текст. Спеціальні символи зберігаються. CRLF (розриви рядків у форматі Windows) автоматично замінюються на LF. Якщо розриви рядків потрібно зберегти, закодуйте значення за допомогою Base64.",
@@ -775,7 +773,6 @@
 	"actions.runners.token": "Токен",
 	"actions.runners.ephemeral.yes": "так",
 	"actions.runners.ephemeral.no": "ні",
-	"actions.runners.create_runner.description_label": "Опис",
 	"actions.runners.edit_runner.description_label": "Опис",
 	"actions.runners.runner_details.page_title": "Ранер %s",
 	"actions.runners.list_runners.edit_column": "Редагувати",
@@ -787,15 +784,12 @@
 	"actions.runners.list_runners.delete_column": "Видалити",
 	"actions.runners.list_runners.delete_button": "Видалити",
 	"actions.runners.list_runners.delete_button_aria": "Видалити %s",
-	"actions.runners.create_runner.page_title": "Створити новий ранер",
+	"actions.runners.create_runner.page_title": "Новий ранер",
 	"actions.runners.create_runner.title": "Створити новий ранер",
 	"actions.runners.create_runner.create_button": "Створити",
-	"actions.runners.create_runner.properties_fieldset": "Властивості",
 	"actions.runners.edit_runner.properties_fieldset": "Властивості",
-	"actions.runners.create_runner.name_label": "Назва",
 	"actions.runners.edit_runner.name_label": "Назва",
 	"form.RunnerName": "Назва",
-	"actions.runners.create_runner.cancel_button": "Скасувати",
 	"actions.runners.edit_runner.cancel_button": "Скасувати",
 	"actions.runners.edit_runner.properties_options": "Параметри",
 	"actions.runners.edit_runner.regenerate_token_label": "Згенерувати новий токен",
@@ -902,7 +896,6 @@
 	"settings.authorized_integration.field.description": "Опис",
 	"settings.authorized_integration.ui.forgejo_actions_local": "Дії Forgejo (локальні)",
 	"settings.authorized_integration.edit": "Редагувати",
-	"repo.pulls.status_checks_skipped": "Пропущено",
 	"repo.packages.visibility_warning": "Це приватний репозиторій, але пов’язані з ним пакунки є загальнодоступними (власник %s є публічним).",
 	"settings.authorized_integrations": "Авторизовані інтеграції",
 	"settings.manage_authorized_integrations": "Авторизовані інтеграції",
@@ -924,7 +917,7 @@
 	"settings.authorized_integration.ui.generic": "Загальний JWT",
 	"settings.authorized_integration.claims.generic": "Правила загального JWT",
 	"settings.authorized_integration.none": "Не налаштовано жодної авторизованої інтеграції.",
-	"settings.authorized_integration.field.description.placeholder": "Використовується для публікації пакунків, якщо...",
+	"settings.authorized_integration.field.description.placeholder": "Використовується для публікації пакунків у…",
 	"settings.authorized_integration.desc": "Авторизовані інтеграції дозволяють Forgejo отримувати підписані JWT, перевіряти їхні твердження на відповідність налаштованим правилам та надавати їм доступ до API Forgejo.",
 	"settings.authorized_integration.perms.title": "Дозволені можливості",
 	"settings.authorized_integration.copy_audience": "Копіювати аудиторію в буфер обміну",
@@ -949,5 +942,73 @@
 	"settings.authorized_integration.forgejo_actions_local.event.help": "Якщо події не вибрано, буде дозволено будь-яку подію.",
 	"settings.authorized_integration.forgejo_actions_local.git_ref.help": "Якщо залишити порожнім, буде дозволено будь-яке посилання. Синтаксис шаблонів дивіться у документації <a href=\"%[1]s\">%[2]s</a>.<br>Приклади: <code>refs/heads/main</code>, <code>refs/pull/*/head</code>.",
 	"settings.authorized_integration.forgejo_actions_local.workflow_file.help": "Якщо залишити порожнім, буде дозволено будь-який робочий потік. Синтаксис шаблонів дивіться у документації <a href=\"%[1]s\">%[2]s</a>.<br>Приклади: <code>testing.yml</code>, <code>test-*.yml</code>.",
-	"settings.authorized_integration.forgejo_actions_local.description": "Дії Forgejo зможуть отримувати доступ до Forgejo через цю авторизовану інтеграцію з одного вибраного репозиторію, якщо виконання відповідає умовам, визначеним нижче."
+	"settings.authorized_integration.forgejo_actions_local.description": "Дії Forgejo зможуть отримувати доступ до Forgejo через цю авторизовану інтеграцію з одного вибраного репозиторію, якщо виконання відповідає умовам, визначеним нижче.",
+	"repo.settings.units.more_units_disable_hint": "Підказку «Увімкнути ще» можна вимкнути в розділі <a href=\"%s\">Користувацькі налаштування → Зовнішній вигляд</a>.",
+	"migrate.in_progress.issues.progress": {
+		"one": "Перенесено %[1]d задачу",
+		"few": "Перенесено %[1]d задачі",
+		"many": "Перенесено %[1]d задач"
+	},
+	"migrate.in_progress.pulls.progress": {
+		"one": "Перенесено %[1]d запит на злиття",
+		"few": "Перенесено %[1]d запити на злиття",
+		"many": "Перенесено %[1]d запитів на злиття"
+	},
+	"actions.jobs.not_started": "не запущені",
+	"form.website.valid_url_schemes": "Дозволені схеми URL-адрес: %s",
+	"pulls.status_checks.skipped": "Деякі перевірки було пропущено",
+	"search.match_inside_quotes": "Включати лише результати, які відповідають пошуковому запиту в лапках",
+	"search.docs": "Докладніше про пошук, оператори та фільтри <a target=\"_blank\" rel=\"noopener noreferrer\" href=\"%[1]s\">читайте в документації</a>.",
+	"members.invite_team_member": "Запросити до команди",
+	"members.invite_member": "Запросити учасника",
+	"actions.runs.options": "Параметри",
+	"actions.runs.prioritized_run": "Пріоритетний",
+	"actions.runs.prioritize_run": "Надати пріоритет",
+	"actions.runs.deprioritize_run": "Зняти пріоритет",
+	"actions.runs.prioritization_success": "Запуск робочого потоку №%d тепер має пріоритет.",
+	"actions.runs.deprioritization_success": "Запуск робочого потоку №%d більше не має пріоритету.",
+	"actions.workflow.pre_execution_warning": "Попередження щодо робочого потоку:",
+	"actions.workflow.permissions_warning": "У завдання <code>%[1]s</code> або його робочого потоку є поле <code>permissions</code>, яке не підтримується в Forgejo і буде проігноровано. Щоб надати цьому завданню відповідні можливості, скористайтеся функцією <a href=\"%[2]s\">Авторизовані інтеграції</a>.",
+	"repo.issues.context.copy_markdown": "Копіювати з розміткою",
+	"settings.profile.dotprofile.hint": "Розширене налаштування профілю, зокрема посилань для підтвердження, можна здійснити за допомогою репозиторію <code>%s</code>. <a href=\"%s\" target=\"_blank\">Дізнатися більше</a>.",
+	"repo.watch.releases": "Випуски",
+	"repo.watch.pull_requests": "Запити на злиття",
+	"repo.watch.issues": "Задачі",
+	"repo.watching": "Відстежується",
+	"repo.watch.releases.hint": "(Тільки email)",
+	"relativetime.duration.secs": {
+		"one": "%d секунда",
+		"few": "%d секунди",
+		"many": "%d секунд"
+	},
+	"relativetime.duration.mins": {
+		"one": "%d хвилина",
+		"few": "%d хвилини",
+		"many": "%d хвилин"
+	},
+	"relativetime.duration.hours": {
+		"one": "%d година",
+		"few": "%d години",
+		"many": "%d годин"
+	},
+	"relativetime.duration.days": {
+		"one": "%d день",
+		"few": "%d дні",
+		"many": "%d днів"
+	},
+	"relativetime.duration.weeks": {
+		"one": "%d тиждень",
+		"few": "%d тижні",
+		"many": "%d тижнів"
+	},
+	"relativetime.duration.months": {
+		"one": "%d місяць",
+		"few": "%d місяці",
+		"many": "%d місяців"
+	},
+	"relativetime.duration.years": {
+		"one": "%d рік",
+		"few": "%d роки",
+		"many": "%d років"
+	}
 }

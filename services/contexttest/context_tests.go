@@ -111,8 +111,8 @@ func LoadRepo(t *testing.T, ctx gocontext.Context, repoID int64) {
 		ctx.Repo = repo
 		doer = ctx.Doer
 	case *context.APIContext:
-		ctx.Repo = repo
-		doer = ctx.Doer
+		ctx.SetRepo(repo)
+		doer = ctx.Doer()
 	default:
 		assert.FailNow(t, "context is not *context.Context or *context.APIContext")
 	}
@@ -133,7 +133,7 @@ func LoadRepoCommit(t *testing.T, ctx gocontext.Context) {
 	case *context.Context:
 		repo = ctx.Repo
 	case *context.APIContext:
-		repo = ctx.Repo
+		repo = ctx.Repo()
 	default:
 		assert.FailNow(t, "context is not *context.Context or *context.APIContext")
 	}
@@ -158,7 +158,7 @@ func LoadUser(t *testing.T, ctx gocontext.Context, userID int64) {
 	case *context.Context:
 		ctx.Doer = doer
 	case *context.APIContext:
-		ctx.Doer = doer
+		ctx.SetDoer(doer)
 	default:
 		assert.FailNow(t, "context is not *context.Context or *context.APIContext")
 	}
@@ -171,7 +171,7 @@ func LoadOrganization(t *testing.T, ctx gocontext.Context, orgID int64) {
 	case *context.Context:
 		ctx.Org.Organization = org
 	case *context.APIContext:
-		ctx.Org.Organization = org
+		ctx.Org().Organization = org
 	default:
 		assert.FailNow(t, "context is not *context.Context or *context.APIContext")
 	}
@@ -185,7 +185,7 @@ func LoadGitRepo(t *testing.T, ctx gocontext.Context) {
 	case *context.Context:
 		repo = ctx.Repo
 	case *context.APIContext:
-		repo = ctx.Repo
+		repo = ctx.Repo()
 	default:
 		assert.FailNow(t, "context is not *context.Context or *context.APIContext")
 	}

@@ -181,7 +181,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 	}
 
 	if shouldDetectSchedules {
-		if err := handleSchedules(ctx, schedules, commit, input, ref.String()); err != nil {
+		if err := handleSchedules(ctx, schedules, commit, input); err != nil {
 			return err
 		}
 	}
@@ -424,6 +424,7 @@ func handleWorkflows(
 				jobparser.SupportIncompleteRunsOn(),
 				jobparser.ExpandLocalReusableWorkflows(expandLocalReusableWorkflows(commit)),
 				jobparser.ExpandInstanceReusableWorkflows(expandInstanceReusableWorkflows(ctx)),
+				jobparser.WithGitContext(generateGiteaContextForRun(run)),
 			)
 			if err != nil {
 				log.Info("jobparser.Parse: invalid workflow, setting job status to failed: %v", err)
@@ -433,6 +434,12 @@ func handleWorkflows(
 				jobs = []*jobparser.SingleWorkflow{{
 					Name: dwf.EntryName,
 				}}
+			}
+		}
+
+		if errorCode == 0 {
+			if err := ConfigureActionRunTitle(jobs, run); err != nil {
+				log.Error("ConfigureActionRunTitle: %v", err)
 			}
 		}
 
@@ -449,11 +456,13 @@ func handleWorkflows(
 		err = db.WithTx(ctx, func(ctx context.Context) error {
 			// Transaction avoids any chance of a run being picked up in a Waiting state when we're about to put it into
 			// a PreExecutionError a millisecond later.
-			if err := actions_model.InsertRun(ctx, run, jobs); err != nil {
-				return err
+			if err := InsertRun(ctx, run, jobs); err != nil {
+				return fmt.Errorf("InsertRun: %w", err)
 			}
 			if errorCode != 0 {
-				return FailRunPreExecutionError(ctx, run, errorCode, errorDetails)
+				if err := FailRunPreExecutionError(ctx, run, errorCode, errorDetails); err != nil {
+					return fmt.Errorf("FailRunPreExecutionError: %w", err)
+				}
 			}
 			return nil
 		})
@@ -528,13 +537,8 @@ func handleSchedules(
 	detectedWorkflows []*actions_module.DetectedWorkflow,
 	commit *git.Commit,
 	input *notifyInput,
-	_ string,
 ) error {
-	branch, err := commit.GetBranchName()
-	if err != nil {
-		return err
-	}
-	if branch != input.Repo.DefaultBranch {
+	if input.Ref.BranchName() != input.Repo.DefaultBranch {
 		log.Trace("commit branch is not default branch in repo")
 		return nil
 	}
@@ -598,7 +602,7 @@ func handleSchedules(
 			WorkflowID:        dwf.EntryName,
 			WorkflowDirectory: dwf.EntryDirectory,
 			TriggerUserID:     user_model.ActionsUserID,
-			Ref:               input.Repo.DefaultBranch,
+			Ref:               input.Ref.String(),
 			CommitSHA:         commit.ID.String(),
 			Event:             input.Event,
 			EventPayload:      string(p),
@@ -639,7 +643,8 @@ func DetectAndHandleSchedules(ctx context.Context, repo *repo_model.Repository) 
 	// We need a notifyInput to call handleSchedules
 	// if repo is a mirror, commit author maybe an external user,
 	// so we use action user as the Doer of the notifyInput
-	notifyInput := newNotifyInputForSchedules(repo)
+	notifyInput := newNotifyInputForSchedules(repo).
+		WithRef(git.RefNameFromBranch(repo.DefaultBranch).String())
 
-	return handleSchedules(ctx, scheduleWorkflows, commit, notifyInput, repo.DefaultBranch)
+	return handleSchedules(ctx, scheduleWorkflows, commit, notifyInput)
 }

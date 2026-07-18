@@ -80,7 +80,7 @@ func PostCronTask(ctx *context.APIContext) {
 		return
 	}
 	task.Run()
-	log.Trace("Cron Task %s started by admin(%s)", task.Name, ctx.Doer.Name)
+	log.Trace("Cron Task %s started by admin(%s)", task.Name, ctx.Doer().Name)
 
 	ctx.Status(http.StatusNoContent)
 }

@@ -111,16 +111,17 @@ func (repo *Repository) IsEmpty() (bool, error) {
 
 // CloneRepoOptions options when clone a repository
 type CloneRepoOptions struct {
-	Timeout       time.Duration
-	Mirror        bool
-	Bare          bool
-	Quiet         bool
-	Branch        string
-	Shared        bool
-	NoCheckout    bool
-	Depth         int
-	Filter        string
-	SkipTLSVerify bool
+	Timeout              time.Duration
+	Mirror               bool
+	Bare                 bool
+	Quiet                bool
+	Branch               string
+	Shared               bool
+	NoCheckout           bool
+	Depth                int
+	Filter               string
+	SkipTLSVerify        bool
+	ProhibitHTTPRedirect bool
 }
 
 // Clone clones original repository to target path.
@@ -180,6 +181,9 @@ func CloneWithArgs(ctx context.Context, args TrustedCmdArgs, from, to string, op
 	if len(opts.Branch) > 0 {
 		cmd.AddArguments("-b").AddDynamicArguments(opts.Branch)
 	}
+	if opts.ProhibitHTTPRedirect {
+		cmd.AddArguments("-c", "http.followRedirects=false")
+	}
 
 	cmd.SetDescription(fmt.Sprintf("clone branch %s from %s to %s (shared: %t, mirror: %t, depth: %d)", opts.Branch, sanitizedFrom, to, opts.Shared, opts.Mirror, opts.Depth))
 	cmd.AddDashesAndList(fromURL, to)
@@ -202,18 +206,25 @@ func CloneWithArgs(ctx context.Context, args TrustedCmdArgs, from, to string, op
 
 // PushOptions options when push to remote
 type PushOptions struct {
-	Remote         string
-	Branch         string
-	Force          bool
-	Mirror         bool
-	Env            []string
-	Timeout        time.Duration
-	PrivateKeyPath string
+	Remote               string
+	Branch               string
+	Force                bool
+	Mirror               bool
+	Env                  []string
+	Timeout              time.Duration
+	PrivateKeyPath       string
+	ProhibitHTTPRedirect bool
 }
 
 // Push pushs local commits to given remote branch.
 func Push(ctx context.Context, repoPath string, opts PushOptions) error {
-	cmd := NewCommand(ctx, "push")
+	cmd := NewCommand(ctx)
+
+	if opts.ProhibitHTTPRedirect {
+		cmd.AddArguments("-c", "http.followRedirects=false")
+	}
+
+	cmd.AddArguments("push")
 
 	if opts.PrivateKeyPath != "" {
 		// Preserve the behavior that existing environments are used if no

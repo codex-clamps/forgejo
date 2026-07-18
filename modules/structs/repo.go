@@ -151,7 +151,7 @@ type CreateRepoOption struct {
 	AutoInit bool `json:"auto_init"`
 	// Whether the repository is template
 	Template bool `json:"template"`
-	// Gitignores to use
+	// Gitignores to use, separated by commas
 	Gitignores string `json:"gitignores"`
 	// License to use
 	License string `json:"license"`

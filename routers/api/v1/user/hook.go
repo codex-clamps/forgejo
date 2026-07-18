@@ -39,7 +39,7 @@ func ListHooks(ctx *context.APIContext) {
 
 	utils.ListOwnerHooks(
 		ctx,
-		ctx.Doer,
+		ctx.Doer(),
 	)
 }
 
@@ -65,17 +65,17 @@ func GetHook(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	hook, err := utils.GetOwnerHook(ctx, ctx.Doer.ID, ctx.ParamsInt64("id"))
+	hook, err := utils.GetOwnerHook(ctx, ctx.Doer().ID, ctx.ParamsInt64("id"))
 	if err != nil {
 		return
 	}
 
-	if !ctx.IsUserSiteAdmin() && hook.OwnerID != ctx.Doer.ID {
+	if !ctx.IsUserSiteAdmin() && hook.OwnerID != ctx.Doer().ID {
 		ctx.NotFound()
 		return
 	}
 
-	apiHook, err := webhook_service.ToHook(ctx.Doer.HomeLink(), hook)
+	apiHook, err := webhook_service.ToHook(ctx.Doer().HomeLink(), hook)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -108,7 +108,7 @@ func CreateHook(ctx *context.APIContext) {
 
 	utils.AddOwnerHook(
 		ctx,
-		ctx.Doer,
+		ctx.Doer(),
 		web.GetForm(ctx).(*api.CreateHookOption),
 	)
 }
@@ -143,7 +143,7 @@ func EditHook(ctx *context.APIContext) {
 
 	utils.EditOwnerHook(
 		ctx,
-		ctx.Doer,
+		ctx.Doer(),
 		web.GetForm(ctx).(*api.EditHookOption),
 		ctx.ParamsInt64("id"),
 	)
@@ -173,7 +173,7 @@ func DeleteHook(ctx *context.APIContext) {
 
 	utils.DeleteOwnerHook(
 		ctx,
-		ctx.Doer,
+		ctx.Doer(),
 		ctx.ParamsInt64("id"),
 	)
 }

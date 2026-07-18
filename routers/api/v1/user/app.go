@@ -138,7 +138,7 @@ func CreateOauth2Application(ctx *context.APIContext) {
 
 	app, err := auth_model.CreateOAuth2Application(ctx, auth_model.CreateOAuth2ApplicationOptions{
 		Name:               data.Name,
-		UserID:             ctx.Doer.ID,
+		UserID:             ctx.Doer().ID,
 		RedirectURIs:       data.RedirectURIs,
 		ConfidentialClient: data.ConfidentialClient,
 	})
@@ -182,7 +182,7 @@ func ListOauth2Applications(ctx *context.APIContext) {
 
 	apps, total, err := db.FindAndCount[auth_model.OAuth2Application](ctx, auth_model.FindOAuth2ApplicationsOptions{
 		ListOptions: utils.GetListOptions(ctx),
-		OwnerID:     ctx.Doer.ID,
+		OwnerID:     ctx.Doer().ID,
 	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ListOAuth2Applications", err)
@@ -223,7 +223,7 @@ func DeleteOauth2Application(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	appID := ctx.ParamsInt64(":id")
-	if err := auth_model.DeleteOAuth2Application(ctx, appID, ctx.Doer.ID); err != nil {
+	if err := auth_model.DeleteOAuth2Application(ctx, appID, ctx.Doer().ID); err != nil {
 		if auth_model.IsErrOAuthApplicationNotFound(err) {
 			ctx.NotFound()
 		} else {
@@ -268,7 +268,7 @@ func GetOauth2Application(ctx *context.APIContext) {
 		}
 		return
 	}
-	if app.UID != ctx.Doer.ID {
+	if app.UID != ctx.Doer().ID {
 		ctx.NotFound()
 		return
 	}
@@ -312,7 +312,7 @@ func UpdateOauth2Application(ctx *context.APIContext) {
 
 	app, err := auth_model.UpdateOAuth2Application(ctx, auth_model.UpdateOAuth2ApplicationOptions{
 		Name:               data.Name,
-		UserID:             ctx.Doer.ID,
+		UserID:             ctx.Doer().ID,
 		ID:                 appID,
 		RedirectURIs:       data.RedirectURIs,
 		ConfidentialClient: data.ConfidentialClient,

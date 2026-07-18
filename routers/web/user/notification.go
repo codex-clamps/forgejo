@@ -203,6 +203,7 @@ func NotificationStatusPost(ctx *context.Context) {
 	if !ctx.FormBool("noredirect") {
 		url := fmt.Sprintf("%s/notifications?page=%s", setting.AppSubURL, url.QueryEscape(ctx.FormString("page")))
 		ctx.Redirect(url, http.StatusSeeOther)
+		return
 	}
 
 	getNotifications(ctx)

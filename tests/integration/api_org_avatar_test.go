@@ -7,9 +7,11 @@ import (
 	"encoding/base64"
 	"net/http"
 	"os"
+	"path"
 	"testing"
 
 	auth_model "forgejo.org/models/auth"
+	"forgejo.org/modules/setting"
 	api "forgejo.org/modules/structs"
 	"forgejo.org/tests"
 
@@ -25,7 +27,7 @@ func TestAPIUpdateOrgAvatar(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteOrganization)
 
 	// Test what happens if you use a valid image
-	avatar, err := os.ReadFile("tests/integration/avatar.png")
+	avatar, err := os.ReadFile(path.Join(setting.AppWorkPath, "tests/integration/avatar.png"))
 	require.NoError(t, err)
 	if err != nil {
 		assert.FailNow(t, "Unable to open avatar.png")
@@ -49,7 +51,7 @@ func TestAPIUpdateOrgAvatar(t *testing.T) {
 	MakeRequest(t, req, http.StatusBadRequest)
 
 	// Test what happens if you use a file that is not an image
-	text, err := os.ReadFile("tests/integration/README.md")
+	text, err := os.ReadFile(path.Join(setting.AppWorkPath, "tests/integration/README.md"))
 	require.NoError(t, err)
 	if err != nil {
 		assert.FailNow(t, "Unable to open README.md")

@@ -74,7 +74,7 @@ func GetRawFile(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if ctx.Repo.Repository.IsEmpty {
+	if ctx.Repo().Repository.IsEmpty {
 		ctx.NotFound()
 		return
 	}
@@ -87,7 +87,7 @@ func GetRawFile(ctx *context.APIContext) {
 	ctx.RespHeader().Set(giteaObjectTypeHeader, string(files_service.GetObjectTypeFromTreeEntry(entry)))
 	ctx.RespHeader().Set(forgejoObjectTypeHeader, string(files_service.GetObjectTypeFromTreeEntry(entry)))
 
-	if err := common.ServeBlob(ctx.Base, ctx.Repo.TreePath, blob, lastModified); err != nil {
+	if err := common.ServeBlob(ctx.Base, ctx.Repo().TreePath, blob, lastModified); err != nil {
 		ctx.Error(http.StatusInternalServerError, "ServeBlob", err)
 	}
 }
@@ -128,7 +128,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if ctx.Repo.Repository.IsEmpty {
+	if ctx.Repo().Repository.IsEmpty {
 		ctx.NotFound()
 		return
 	}
@@ -149,7 +149,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 		}
 
 		// OK not cached - serve!
-		if err := common.ServeBlob(ctx.Base, ctx.Repo.TreePath, blob, lastModified); err != nil {
+		if err := common.ServeBlob(ctx.Base, ctx.Repo().TreePath, blob, lastModified); err != nil {
 			ctx.ServerError("ServeBlob", err)
 		}
 		return
@@ -171,7 +171,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 	}
 
 	if err := dataRc.Close(); err != nil {
-		log.Error("Error whilst closing blob %s reader in %-v. Error: %v", blob.ID, ctx.Repo.Repository, err)
+		log.Error("Error whilst closing blob %s reader in %-v. Error: %v", blob.ID, ctx.Repo().Repository, err)
 	}
 
 	// Check if the blob represents a pointer
@@ -185,12 +185,12 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 		}
 
 		// OK not cached - serve!
-		common.ServeContentByReader(ctx.Base, ctx.Repo.TreePath, blob.Size(), bytes.NewReader(buf))
+		common.ServeContentByReader(ctx.Base, ctx.Repo().TreePath, blob.Size(), bytes.NewReader(buf))
 		return
 	}
 
 	// Now check if there is a MetaObject for this pointer
-	meta, err := git_model.GetLFSMetaObjectByOid(ctx, ctx.Repo.Repository.ID, pointer.Oid)
+	meta, err := git_model.GetLFSMetaObjectByOid(ctx, ctx.Repo().Repository.ID, pointer.Oid)
 
 	// If there isn't one, just serve the data directly
 	if err == git_model.ErrLFSObjectNotExist {
@@ -199,7 +199,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 			return
 		}
 
-		common.ServeContentByReader(ctx.Base, ctx.Repo.TreePath, blob.Size(), bytes.NewReader(buf))
+		common.ServeContentByReader(ctx.Base, ctx.Repo().TreePath, blob.Size(), bytes.NewReader(buf))
 		return
 	} else if err != nil {
 		ctx.ServerError("GetLFSMetaObjectByOid", err)
@@ -227,11 +227,11 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 	}
 	defer lfsDataRc.Close()
 
-	common.ServeContentByReadSeeker(ctx.Base, ctx.Repo.TreePath, lastModified, lfsDataRc)
+	common.ServeContentByReadSeeker(ctx.Base, ctx.Repo().TreePath, lastModified, lfsDataRc)
 }
 
 func getBlobForEntry(ctx *context.APIContext) (blob *git.Blob, entry *git.TreeEntry, lastModified *time.Time) {
-	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
+	entry, err := ctx.Repo().Commit.GetTreeEntryByPath(ctx.Repo().TreePath)
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound()
@@ -246,7 +246,7 @@ func getBlobForEntry(ctx *context.APIContext) (blob *git.Blob, entry *git.TreeEn
 		return nil, nil, nil
 	}
 
-	latestCommit, err := ctx.Repo.GitRepo.GetTreePathLatestCommit(ctx.Repo.Commit.ID.String(), ctx.Repo.TreePath)
+	latestCommit, err := ctx.Repo().GitRepo.GetTreePathLatestCommit(ctx.Repo().Commit.ID.String(), ctx.Repo().TreePath)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetTreePathLatestCommit", err)
 		return nil, nil, nil
@@ -287,13 +287,13 @@ func GetArchive(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if ctx.Repo.GitRepo == nil {
-		gitRepo, err := gitrepo.OpenRepository(ctx, ctx.Repo.Repository)
+	if ctx.Repo().GitRepo == nil {
+		gitRepo, err := gitrepo.OpenRepository(ctx, ctx.Repo().Repository)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "OpenRepository", err)
 			return
 		}
-		ctx.Repo.GitRepo = gitRepo
+		ctx.Repo().GitRepo = gitRepo
 		defer gitRepo.Close()
 	}
 
@@ -308,7 +308,7 @@ func archiveDownload(ctx *context.APIContext) {
 		return
 	}
 
-	aReq, err := archiver_service.NewRequest(ctx, ctx.Repo.Repository.ID, ctx.Repo.GitRepo, strings.TrimSuffix(uri, ext), tp)
+	aReq, err := archiver_service.NewRequest(ctx, ctx.Repo().Repository.ID, ctx.Repo().GitRepo, strings.TrimSuffix(uri, ext), tp)
 	if err != nil {
 		if errors.Is(err, archiver_service.ErrUnknownArchiveFormat{}) {
 			ctx.Error(http.StatusBadRequest, "unknown archive format", err)
@@ -330,12 +330,12 @@ func archiveDownload(ctx *context.APIContext) {
 }
 
 func download(ctx *context.APIContext, archiveName string, archiver *repo_model.RepoArchiver) {
-	downloadName := ctx.Repo.Repository.Name + "-" + archiveName
+	downloadName := ctx.Repo().Repository.Name + "-" + archiveName
 
 	// Add nix format link header so tarballs lock correctly:
 	// https://github.com/nixos/nix/blob/56763ff918eb308db23080e560ed2ea3e00c80a7/doc/manual/src/protocols/tarball-fetcher.md
 	ctx.Resp.Header().Add("Link", fmt.Sprintf(`<%s/archive/%s.%s?rev=%s>; rel="immutable"`,
-		ctx.Repo.Repository.APIURL(),
+		ctx.Repo().Repository.APIURL(),
 		archiver.CommitID,
 		archiver.Type.String(),
 		archiver.CommitID,
@@ -413,7 +413,7 @@ func GetEditorconfig(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	ec, _, err := ctx.Repo.GetEditorconfig(ctx.Repo.Commit)
+	ec, _, err := ctx.Repo().GetEditorconfig(ctx.Repo().Commit)
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound(err)
@@ -434,9 +434,9 @@ func GetEditorconfig(ctx *context.APIContext) {
 
 // canWriteFiles returns true if repository is editable and user has proper access level.
 func canWriteFiles(ctx *context.APIContext, branch string) bool {
-	return ctx.Repo.CanWriteToBranch(ctx, ctx.Doer, branch) &&
-		!ctx.Repo.Repository.IsMirror &&
-		!ctx.Repo.Repository.IsArchived
+	return ctx.Repo().CanWriteToBranch(ctx, ctx.Doer(), branch) &&
+		!ctx.Repo().Repository.IsMirror &&
+		!ctx.Repo().Repository.IsArchived
 }
 
 // canReadFiles returns true if repository is readable and user has proper access level.
@@ -496,7 +496,7 @@ func ChangeFiles(ctx *context.APIContext) {
 	apiOpts := web.GetForm(ctx).(*api.ChangeFilesOptions)
 
 	if apiOpts.BranchName == "" {
-		apiOpts.BranchName = ctx.Repo.Repository.DefaultBranch
+		apiOpts.BranchName = ctx.Repo().Repository.DefaultBranch
 	}
 
 	var files []*files_service.ChangeRepoFile
@@ -603,7 +603,7 @@ func CreateFile(ctx *context.APIContext) {
 	apiOpts := web.GetForm(ctx).(*api.CreateFileOptions)
 
 	if apiOpts.BranchName == "" {
-		apiOpts.BranchName = ctx.Repo.Repository.DefaultBranch
+		apiOpts.BranchName = ctx.Repo().Repository.DefaultBranch
 	}
 
 	contentReader, err := base64Reader(apiOpts.ContentBase64)
@@ -703,13 +703,13 @@ func UpdateFile(ctx *context.APIContext) {
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
 	apiOpts := web.GetForm(ctx).(*api.UpdateFileOptions)
-	if ctx.Repo.Repository.IsEmpty {
+	if ctx.Repo().Repository.IsEmpty {
 		ctx.Error(http.StatusUnprocessableEntity, "RepoIsEmpty", errors.New("repo is empty"))
 		return
 	}
 
 	if apiOpts.BranchName == "" {
-		apiOpts.BranchName = ctx.Repo.Repository.DefaultBranch
+		apiOpts.BranchName = ctx.Repo().Repository.DefaultBranch
 	}
 
 	contentReader, err := base64Reader(apiOpts.ContentBase64)
@@ -801,12 +801,12 @@ func handleCreateOrUpdateFileError(ctx *context.APIContext, err error) {
 func createOrUpdateFiles(ctx *context.APIContext, opts *files_service.ChangeRepoFilesOptions) (*api.FilesResponse, error) {
 	if !canWriteFiles(ctx, opts.OldBranch) {
 		return nil, repo_model.ErrUserDoesNotHaveAccessToRepo{
-			UserID:   ctx.Doer.ID,
-			RepoName: ctx.Repo.Repository.LowerName,
+			UserID:   ctx.Doer().ID,
+			RepoName: ctx.Repo().Repository.LowerName,
 		}
 	}
 
-	return files_service.ChangeRepoFiles(ctx, ctx.Repo.Repository, ctx.Doer, opts)
+	return files_service.ChangeRepoFiles(ctx, ctx.Repo().Repository, ctx.Doer(), opts)
 }
 
 // format commit message if empty
@@ -886,14 +886,14 @@ func DeleteFile(ctx *context.APIContext) {
 	apiOpts := web.GetForm(ctx).(*api.DeleteFileOptions)
 	if !canWriteFiles(ctx, apiOpts.BranchName) {
 		ctx.Error(http.StatusForbidden, "DeleteFile", repo_model.ErrUserDoesNotHaveAccessToRepo{
-			UserID:   ctx.Doer.ID,
-			RepoName: ctx.Repo.Repository.LowerName,
+			UserID:   ctx.Doer().ID,
+			RepoName: ctx.Repo().Repository.LowerName,
 		})
 		return
 	}
 
 	if apiOpts.BranchName == "" {
-		apiOpts.BranchName = ctx.Repo.Repository.DefaultBranch
+		apiOpts.BranchName = ctx.Repo().Repository.DefaultBranch
 	}
 
 	opts := &files_service.ChangeRepoFilesOptions{
@@ -933,7 +933,7 @@ func DeleteFile(ctx *context.APIContext) {
 		opts.Message = changeFilesCommitMessage(ctx, opts.Files)
 	}
 
-	if filesResponse, err := files_service.ChangeRepoFiles(ctx, ctx.Repo.Repository, ctx.Doer, opts); err != nil {
+	if filesResponse, err := files_service.ChangeRepoFiles(ctx, ctx.Repo().Repository, ctx.Doer(), opts); err != nil {
 		if git.IsErrBranchNotExist(err) || models.IsErrRepoFileDoesNotExist(err) || git.IsErrNotExist(err) {
 			ctx.Error(http.StatusNotFound, "DeleteFile", err)
 			return
@@ -989,10 +989,10 @@ func GetContents(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if !canReadFiles(ctx.Repo) {
+	if !canReadFiles(ctx.Repo()) {
 		ctx.Error(http.StatusInternalServerError, "GetContentsOrList", repo_model.ErrUserDoesNotHaveAccessToRepo{
-			UserID:   ctx.Doer.ID,
-			RepoName: ctx.Repo.Repository.LowerName,
+			UserID:   ctx.Doer().ID,
+			RepoName: ctx.Repo().Repository.LowerName,
 		})
 		return
 	}
@@ -1000,7 +1000,7 @@ func GetContents(ctx *context.APIContext) {
 	treePath := ctx.Params("*")
 	ref := ctx.FormTrim("ref")
 
-	if fileList, err := files_service.GetContentsOrList(ctx, ctx.Repo.Repository, treePath, ref); err != nil {
+	if fileList, err := files_service.GetContentsOrList(ctx, ctx.Repo().Repository, treePath, ref); err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound("GetContentsOrList", err)
 			return

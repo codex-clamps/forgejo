@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-	"path/filepath"
+	"path"
 	"testing"
 
 	auth_model "forgejo.org/models/auth"
@@ -44,12 +44,13 @@ func TestInstanceSigning(t *testing.T) {
 		t.Run("SSH", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			pubKeyContent, err := os.ReadFile("tests/integration/ssh-signing-key.pub")
+			signingKeyPath := path.Join(setting.AppWorkPath, "tests/integration/ssh-signing-key")
+			pubKeyPath := signingKeyPath + ".pub"
+
+			pubKeyContent, err := os.ReadFile(pubKeyPath)
 			require.NoError(t, err)
 
 			pubKey, _, _, _, err := ssh.ParseAuthorizedKey(pubKeyContent)
-			require.NoError(t, err)
-			signingKeyPath, err := filepath.Abs("tests/integration/ssh-signing-key")
 			require.NoError(t, err)
 			require.NoError(t, os.Chmod(signingKeyPath, 0o600))
 			defer test.MockVariableValue(&setting.SSHInstanceKey, pubKey)()
@@ -438,10 +439,11 @@ func crudActionCreateFile(_ *testing.T, ctx APITestContext, user *user_model.Use
 }
 
 func importTestingKey() (*openpgp.Entity, error) {
-	if _, _, err := process.GetManager().Exec("gpg --import tests/integration/private-testing.key", "gpg", "--import", "tests/integration/private-testing.key"); err != nil {
+	keyringFilePath := path.Join(setting.AppWorkPath, "tests/integration/private-testing.key")
+	if _, _, err := process.GetManager().Exec("gpg --import "+keyringFilePath, "gpg", "--import", keyringFilePath); err != nil {
 		return nil, err
 	}
-	keyringFile, err := os.Open("tests/integration/private-testing.key")
+	keyringFile, err := os.Open(keyringFilePath)
 	if err != nil {
 		return nil, err
 	}

@@ -4,6 +4,7 @@
 package gitdiff
 
 import (
+	"slices"
 	"strings"
 
 	"forgejo.org/modules/highlight"
@@ -214,8 +215,7 @@ func (hcd *HighlightCodeDiff) Recover(src string) string {
 
 	if len(tagStack) > 0 {
 		// close all opening tags
-		for i := len(tagStack) - 1; i >= 0; i-- {
-			tagToClose := tagStack[i]
+		for _, tagToClose := range slices.Backward(tagStack) {
 			// get the closing tag "</span>" from "<span class=...>" or "<span>"
 			pos := strings.IndexAny(tagToClose, " >")
 			if pos != -1 {

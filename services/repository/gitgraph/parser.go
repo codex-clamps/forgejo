@@ -6,6 +6,7 @@ package gitgraph
 import (
 	"bytes"
 	"fmt"
+	"slices"
 )
 
 // Parser represents a git graph parser. It is stateful containing the previous
@@ -166,8 +167,7 @@ func (parser *Parser) ParseGlyphs(glyphs []byte) {
 	// release unused colors
 	parser.releaseUnusedColors()
 
-	for i := len(glyphs) - 1; i >= 0; i-- {
-		glyph := glyphs[i]
+	for i, glyph := range slices.Backward(glyphs) {
 		switch glyph {
 		case '|':
 			fallthrough

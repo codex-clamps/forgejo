@@ -4,7 +4,6 @@
 package repo
 
 import (
-	"errors"
 	"net/http"
 
 	issues_model "forgejo.org/models/issues"
@@ -49,12 +48,12 @@ func StartIssueStopwatch(ctx *context.APIContext) {
 	//   "409":
 	//     description: Cannot start a stopwatch again if it already exists
 
-	issue, err := prepareIssueStopwatch(ctx, false)
-	if err != nil {
+	issue := prepareIssueStopwatch(ctx, false)
+	if ctx.Written() {
 		return
 	}
 
-	if err := issues_model.CreateIssueStopwatch(ctx, ctx.Doer, issue); err != nil {
+	if err := issues_model.CreateIssueStopwatch(ctx, ctx.Doer(), issue); err != nil {
 		ctx.Error(http.StatusInternalServerError, "CreateOrStopIssueStopwatch", err)
 		return
 	}
@@ -98,12 +97,12 @@ func StopIssueStopwatch(ctx *context.APIContext) {
 	//   "409":
 	//     description:  Cannot stop a non existent stopwatch
 
-	issue, err := prepareIssueStopwatch(ctx, true)
-	if err != nil {
+	issue := prepareIssueStopwatch(ctx, true)
+	if ctx.Written() {
 		return
 	}
 
-	if err := issues_model.FinishIssueStopwatch(ctx, ctx.Doer, issue); err != nil {
+	if err := issues_model.FinishIssueStopwatch(ctx, ctx.Doer(), issue); err != nil {
 		ctx.Error(http.StatusInternalServerError, "CreateOrStopIssueStopwatch", err)
 		return
 	}
@@ -147,12 +146,12 @@ func DeleteIssueStopwatch(ctx *context.APIContext) {
 	//   "409":
 	//     description:  Cannot cancel a non existent stopwatch
 
-	issue, err := prepareIssueStopwatch(ctx, true)
-	if err != nil {
+	issue := prepareIssueStopwatch(ctx, true)
+	if ctx.Written() {
 		return
 	}
 
-	if err := issues_model.CancelStopwatch(ctx, ctx.Doer, issue); err != nil {
+	if err := issues_model.CancelStopwatch(ctx, ctx.Doer(), issue); err != nil {
 		ctx.Error(http.StatusInternalServerError, "CancelStopwatch", err)
 		return
 	}
@@ -160,8 +159,8 @@ func DeleteIssueStopwatch(ctx *context.APIContext) {
 	ctx.Status(http.StatusNoContent)
 }
 
-func prepareIssueStopwatch(ctx *context.APIContext, shouldExist bool) (*issues_model.Issue, error) {
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+func prepareIssueStopwatch(ctx *context.APIContext, shouldExist bool) *issues_model.Issue {
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo().Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound()
@@ -169,31 +168,29 @@ func prepareIssueStopwatch(ctx *context.APIContext, shouldExist bool) (*issues_m
 			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
 		}
 
-		return nil, err
+		return nil
 	}
 
-	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
+	if !ctx.Repo().CanWriteIssuesOrPulls(issue.IsPull) {
 		ctx.Status(http.StatusForbidden)
-		return nil, errors.New("Unable to write to PRs")
+		return nil
 	}
 
-	if !ctx.Repo.CanUseTimetracker(ctx, issue, ctx.Doer) {
+	if !ctx.Repo().CanUseTimetracker(ctx, issue, ctx.Doer()) {
 		ctx.Status(http.StatusForbidden)
-		return nil, errors.New("Cannot use time tracker")
+		return nil
 	}
 
-	if issues_model.StopwatchExists(ctx, ctx.Doer.ID, issue.ID) != shouldExist {
+	if issues_model.StopwatchExists(ctx, ctx.Doer().ID, issue.ID) != shouldExist {
 		if shouldExist {
 			ctx.Error(http.StatusConflict, "StopwatchExists", "cannot stop/cancel a non existent stopwatch")
-			err = errors.New("cannot stop/cancel a non existent stopwatch")
 		} else {
 			ctx.Error(http.StatusConflict, "StopwatchExists", "cannot start a stopwatch again if it already exists")
-			err = errors.New("cannot start a stopwatch again if it already exists")
 		}
-		return nil, err
+		return nil
 	}
 
-	return issue, nil
+	return issue
 }
 
 // GetStopwatches get all stopwatches
@@ -222,13 +219,13 @@ func GetStopwatches(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	sws, err := issues_model.GetUserStopwatches(ctx, ctx.Doer.ID, utils.GetListOptions(ctx))
+	sws, err := issues_model.GetUserStopwatches(ctx, ctx.Doer().ID, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserStopwatches", err)
 		return
 	}
 
-	count, err := issues_model.CountUserStopwatches(ctx, ctx.Doer.ID)
+	count, err := issues_model.CountUserStopwatches(ctx, ctx.Doer().ID)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return

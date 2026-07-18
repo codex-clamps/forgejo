@@ -69,6 +69,7 @@ jobs:
 		require.NotEmpty(t, taskContext.Fields["forgejo_actions_id_token_request_token"].GetStringValue())
 		require.NotEmpty(t, taskContext.Fields["forgejo_actions_id_token_request_url"].GetStringValue())
 		require.NotEmpty(t, taskContext.Fields["gitea_runtime_token"].GetStringValue())
+		require.NotEmpty(t, taskContext.Fields["forgejo_runtime_token"].GetStringValue())
 	})
 
 	t.Run("openid connect enabled from fork with pull_request_target event", func(t *testing.T) {
@@ -79,6 +80,7 @@ jobs:
 		require.NotEmpty(t, taskContext.Fields["forgejo_actions_id_token_request_token"].GetStringValue())
 		require.NotEmpty(t, taskContext.Fields["forgejo_actions_id_token_request_url"].GetStringValue())
 		require.NotEmpty(t, taskContext.Fields["gitea_runtime_token"].GetStringValue())
+		require.NotEmpty(t, taskContext.Fields["forgejo_runtime_token"].GetStringValue())
 	})
 
 	t.Run("openid connect enabled from fork with pull_request event", func(t *testing.T) {
@@ -89,6 +91,7 @@ jobs:
 		require.Empty(t, taskContext.Fields["forgejo_actions_id_token_request_token"].GetStringValue())
 		require.Empty(t, taskContext.Fields["forgejo_actions_id_token_request_url"].GetStringValue())
 		require.NotEmpty(t, taskContext.Fields["gitea_runtime_token"].GetStringValue())
+		require.NotEmpty(t, taskContext.Fields["forgejo_runtime_token"].GetStringValue())
 	})
 
 	t.Run("openid connect disabled", func(t *testing.T) {
@@ -99,6 +102,7 @@ jobs:
 		require.Empty(t, taskContext.Fields["forgejo_actions_id_token_request_token"].GetStringValue())
 		require.Empty(t, taskContext.Fields["forgejo_actions_id_token_request_url"].GetStringValue())
 		require.NotEmpty(t, taskContext.Fields["gitea_runtime_token"].GetStringValue())
+		require.NotEmpty(t, taskContext.Fields["forgejo_runtime_token"].GetStringValue())
 	})
 }
 
@@ -162,6 +166,18 @@ func TestDeleteTask(t *testing.T) {
 		unittest.AssertCount(t, &actions_model.ActionTaskOutput{TaskID: task.ID}, 0)
 		unittest.AssertCount(t, &actions_model.ActionTaskStep{TaskID: task.ID}, 0)
 		unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunner{ID: runner.ID})
+	})
+
+	t.Run("Task without logs removed", func(t *testing.T) {
+		defer unittest.OverrideFixtures("services/actions/TestDeleteTask")()
+		require.NoError(t, unittest.PrepareTestDatabase())
+
+		task := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: 87604})
+		assert.Empty(t, task.LogFilename)
+
+		require.NoError(t, deleteTask(t.Context(), task.ID))
+
+		unittest.AssertNotExistsBean(t, &actions_model.ActionTask{ID: task.ID})
 	})
 
 	t.Run("No error if task does not exist", func(t *testing.T) {

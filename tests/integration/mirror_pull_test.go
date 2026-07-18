@@ -5,6 +5,7 @@
 package integration
 
 import (
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -21,13 +22,16 @@ import (
 	user_model "forgejo.org/models/user"
 	"forgejo.org/modules/git"
 	"forgejo.org/modules/gitrepo"
+	"forgejo.org/modules/lfs"
+	"forgejo.org/modules/log"
 	"forgejo.org/modules/migration"
 	"forgejo.org/modules/process"
 	"forgejo.org/modules/setting"
 	"forgejo.org/modules/structs"
+	"forgejo.org/modules/test"
 	app_context "forgejo.org/services/context"
 	"forgejo.org/services/forms"
-	"forgejo.org/services/migrations"
+	migrations_allowlist "forgejo.org/services/migrations/allowlist"
 	mirror_service "forgejo.org/services/mirror"
 	release_service "forgejo.org/services/release"
 	repo_service "forgejo.org/services/repository"
@@ -42,12 +46,25 @@ import (
 )
 
 func TestMirrorPull(t *testing.T) {
+	defer test.MockVariableValue(&setting.Migrations.AllowUnencrypted, true)()
+
 	t.Run("Basic", func(t *testing.T) {
 		defer tests.PrepareTestEnv(t)()
 
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 		repoPath := repo_model.RepoPath(user.Name, repo.Name)
+
+		// This test is mirroring a local repo, and at one point passed just because it missed any "IsMigrateURLAllowed"
+		// check. As one is now rechecked during the migration, to preserve the rest of the logic of this test we enable
+		// local imports for user 2 during this test:
+		defer test.MockVariableValue(&setting.ImportLocalPaths, true)()
+		_, err := db.GetEngine(t.Context()).ID(user.ID).SetExpr("allow_import_local", true).Update(user)
+		require.NoError(t, err)
+		defer func() { // restore allow_import_local
+			_, err := db.GetEngine(t.Context()).ID(user.ID).SetExpr("allow_import_local", false).Update(user)
+			require.NoError(t, err)
+		}()
 
 		opts := migration.MigrateOptions{
 			RepoName:    "test_mirror",
@@ -165,13 +182,13 @@ func TestMirrorPull(t *testing.T) {
 		},
 	}
 
-	// Not using MockVariableValue due to need to undo `migrations.Init()`
+	// Not using MockVariableValue due to need to undo `migrations_allowlist.Init()`
 	prev := setting.Migrations.AllowedDomains
 	setting.Migrations.AllowedDomains = "localhost"
-	migrations.Init() // reinitialize for changed allowList
+	migrations_allowlist.Init() // reinitialize for changed allowList
 	defer func() {
 		setting.Migrations.AllowedDomains = prev
-		migrations.Init() // reinitialize for changed allowList
+		migrations_allowlist.Init() // reinitialize for changed allowList
 	}()
 
 	onApplicationRun(t, func(t *testing.T, u *url.URL) {
@@ -301,6 +318,72 @@ func TestMirrorPull(t *testing.T) {
 	mirror = true
 	fetch = +refs/tags/*:refs/tags/*
 `, string(config))
+
+		t.Run("modernize", func(t *testing.T) {
+			require.NoError(t, mirror_service.ModernizePullMirrorConfig(t.Context(), mirror))
+			config, err = os.ReadFile(path.Join(repoPath, "config"))
+			require.NoError(t, err)
+			assert.Equal(t, `
+[core]
+	repositoryformatversion = 0
+	filemode = true
+	bare = true
+[remote "origin"]
+	url = https://user@example.com/org/repo.git
+	tagOpt = --no-tags
+	fetch = +refs/*:refs/*
+	mirror = true
+	fetch = +refs/tags/*:refs/tags/*
+[http]
+	followRedirects = false
+`, string(config))
+		})
+	})
+}
+
+// Verifies that a pull mirror which was created while the remote address was permitted will fail to sync if the
+// AllowedDomains configuration later changes such that the remote URL is no longer permitted.
+func TestMirrorPullAddressCheck(t *testing.T) {
+	defer test.MockVariableValue(&setting.Migrations.AllowUnencrypted, true)()
+
+	// Allow localhost as a migration domain so the mirror can initially be created from the local test server. Not
+	// using MockVariableValue due to need to undo `migrations_allowlist.Init()`.
+	prev := setting.Migrations.AllowedDomains
+	setting.Migrations.AllowedDomains = "localhost"
+	migrations_allowlist.Init() // reinitialize for changed allowList
+	defer func() {
+		setting.Migrations.AllowedDomains = prev
+		migrations_allowlist.Init() // reinitialize for changed allowList
+	}()
+
+	onApplicationRun(t, func(t *testing.T, u *url.URL) {
+		defer tests.PrintCurrentTest(t)()
+
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+		// Create the source repository that will be mirrored.
+		var sourceRepoSha string
+		sourceRepo := forgery.CreateRepository(t, user2, &forgery.CreateRepositoryOptions{
+			Files: forgery.MapFS{
+				"docs.md": forgery.MapFile("hello, world"),
+			},
+			LatestSha: &sourceRepoSha,
+		})
+		require.NotEmpty(t, sourceRepoSha)
+
+		// Create the pull mirror while localhost is still an allowed migration domain.
+		mirrorName := createPullMirrorViaWeb(t, sourceRepo, false)
+		verifyPullMirrorContents(t, mirrorName, sourceRepoSha)
+
+		// Reset the allowed domains to the default, which does not permit localhost.
+		setting.Migrations.AllowedDomains = prev
+		migrations_allowlist.Init()
+
+		// Re-triggering the mirror should now fail because the remote URL is no longer permitted.
+		mirrorRepo, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), "user2", mirrorName)
+		require.NoError(t, err)
+		ok := mirror_service.SyncPullMirror(t.Context(), mirrorRepo.ID)
+		assert.False(t, ok, "expected pull mirror sync to fail because the remote URL is no longer permitted")
 	})
 }
 
@@ -364,6 +447,7 @@ func createPullMirrorViaAPI(t *testing.T, sourceRepo *repo_model.Repository, aut
 		RepoOwner: "user2",
 		RepoName:  mirrorName,
 		Mirror:    true,
+		LFS:       true,
 	}
 	if authenticate {
 		form.AuthUsername = "user2"
@@ -502,6 +586,7 @@ func verifyPullMirrorConfig(t *testing.T, mirrorName string, sourceRepo *repo_mo
 	assert.Equal(t, expectedURL, getGitConfig(t, configPath, "remote.origin.url"))
 	assert.Equal(t, "true", getGitConfig(t, configPath, "remote.origin.mirror"))
 	assert.Equal(t, "+refs/tags/*:refs/tags/*", getGitConfig(t, configPath, "remote.origin.fetch"))
+	assert.Equal(t, "false", getGitConfig(t, configPath, "http.followRedirects"))
 }
 
 func changePullMirrorSource(t *testing.T, sourceRepo *repo_model.Repository, sourceRepoSha string) string {
@@ -567,4 +652,116 @@ func TestPullMirrorRedactCredentials(t *testing.T) {
 	flashCookie := session.GetCookie(app_context.CookieNameFlash)
 	assert.NotNil(t, flashCookie)
 	assert.Equal(t, "info%3DPulling%2Bchanges%2Bfrom%2Bthe%2Bremote%2Bhttps%253A%252F%252Fexample.com%252Fexample%252Fexample.git%2Bat%2Bthe%2Bmoment.", flashCookie.Value)
+}
+
+func TestMirrorPullLFS(t *testing.T) {
+	defer test.MockVariableValue(&setting.Migrations.AllowUnencrypted, true)()
+
+	// Not using MockVariableValue due to need to undo `migrations_allowlist.Init()`
+	prev := setting.Migrations.AllowedDomains
+	setting.Migrations.AllowedDomains = "localhost"
+	migrations_allowlist.Init() // reinitialize for changed allowList
+	defer func() {
+		setting.Migrations.AllowedDomains = prev
+		migrations_allowlist.Init() // reinitialize for changed allowList
+	}()
+
+	defer test.MockVariableValue(&setting.LFS.StartServer, true)()
+
+	onApplicationRun(t, func(t *testing.T, u *url.URL) {
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		session := loginUser(t, user2.LoginName)
+		apiToken := getTokenForLoggedInUser(t, session, auth.AccessTokenScopeWriteRepository)
+
+		// Create the source repository that will be mirrored.
+		var sourceRepoSha string
+		sourceRepo := forgery.CreateRepository(t, user2, &forgery.CreateRepositoryOptions{
+			Files: forgery.MapFS{
+				"docs.md":        forgery.MapFile("hello, world"),
+				".gitattributes": forgery.MapFile("*.txt filter=lfs diff=lfs merge=lfs -text"),
+			},
+			LatestSha: &sourceRepoSha,
+		})
+		require.NotEmpty(t, sourceRepoSha)
+
+		// Push a ".txt" file, which the .gitattributes should cause to be treated as an LFS file.
+		req := NewRequestWithJSON(t,
+			"POST",
+			fmt.Sprintf("/api/v1/repos/%s/%s/contents/my-lfs-file.txt", sourceRepo.OwnerName, sourceRepo.Name),
+			&structs.CreateFileOptions{
+				FileOptions: structs.FileOptions{
+					BranchName: sourceRepo.DefaultBranch,
+				},
+				ContentBase64: base64.StdEncoding.EncodeToString([]byte("Hello!")),
+			}).AddTokenAuth(apiToken)
+		MakeRequest(t, req, http.StatusCreated)
+
+		// Create pull mirror
+		mirror := createPullMirrorViaAPI(t, sourceRepo, false)
+
+		// raw file will be an LFS pointer
+		resp := session.MakeRequest(t,
+			NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/user2/%s/raw/%s/my-lfs-file.txt", mirror, sourceRepo.DefaultBranch)).AddTokenAuth(apiToken),
+			http.StatusOK)
+		assert.True(t, strings.HasPrefix(resp.Body.String(), "version https://git-lfs.github.com/spec/v1"), "my-lfs-file.txt should be stored as an LFS pointer")
+
+		// /media file will be the original correct contents
+		resp = session.MakeRequest(t,
+			NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/user2/%s/media/%s/my-lfs-file.txt", mirror, sourceRepo.DefaultBranch)).AddTokenAuth(apiToken),
+			http.StatusOK)
+		assert.Equal(t, "Hello!", resp.Body.String())
+
+		t.Run("verify http.Transport secure", func(t *testing.T) {
+			prevBlocked := setting.Migrations.BlockedDomains
+			setting.Migrations.BlockedDomains = "example.com"
+			migrations_allowlist.Init() // reinitialize for changed allowList
+			defer func() {
+				setting.Migrations.BlockedDomains = prevBlocked
+				migrations_allowlist.Init() // reinitialize for changed allowList
+			}()
+
+			// Push a new LFS object to the source repo so that it is found during the next sync:
+			req := NewRequestWithJSON(t,
+				"POST",
+				fmt.Sprintf("/api/v1/repos/%s/%s/contents/my-second-lfs-file.txt", sourceRepo.OwnerName, sourceRepo.Name),
+				&structs.CreateFileOptions{
+					FileOptions: structs.FileOptions{
+						BranchName: sourceRepo.DefaultBranch,
+					},
+					ContentBase64: base64.StdEncoding.EncodeToString([]byte("Hello, this is a new file!")),
+				}).AddTokenAuth(apiToken)
+			MakeRequest(t, req, http.StatusCreated)
+			resp := session.MakeRequest(t,
+				NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/user2/%s/raw/%s/my-second-lfs-file.txt", sourceRepo.Name, sourceRepo.DefaultBranch)).AddTokenAuth(apiToken),
+				http.StatusOK)
+
+			// Awkwardly this test won't try to download the LFS object because we're syncing between two local
+			// repositories and the LFS content store will be shared between them, so the content pointer is already
+			// present.  To ensure the LFS client is triggered, delete the content... of course it won't be available to
+			// be synced then, but we're expecting an error in this test case.
+			pointer, err := lfs.ReadPointerFromBuffer(resp.Body.Bytes())
+			require.NoError(t, err)
+			contentStore := lfs.NewContentStore()
+			contentStore.Delete(pointer.RelativePath())
+
+			// In order to pass the migration URL check, but fail on the LFS endpoint access, we'll reconfigure the LFS
+			// endpoint to a different domain name which is prohibited:
+			mirrorRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: mirror})
+			mirrorObj := unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: mirrorRepo.ID})
+			mirrorObj.LFSEndpoint = "https://example.com/something"
+			_, err = db.GetEngine(t.Context()).ID(mirrorObj.ID).Update(mirrorObj)
+			require.NoError(t, err)
+
+			lc, cleanup := test.NewLogChecker(log.DEFAULT, log.ERROR)
+			lc.Filter("migration can only call allowed HTTP servers (check your migrations.ALLOWED_DOMAINS/ALLOW_LOCALNETWORKS setting)")
+			lc.StopMark("SyncMirrors")
+			defer cleanup()
+
+			ok := mirror_service.SyncPullMirror(t.Context(), mirrorRepo.ID)
+			assert.True(t, ok) // LFS failure doesn't output a migration failure
+
+			logFiltered, _ := lc.Check(5 * time.Second)
+			assert.True(t, logFiltered[0], "expected migration error output")
+		})
+	})
 }

@@ -48,7 +48,7 @@ func (Action) ListActionsSecrets(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	opts := &secret_model.FindSecretsOptions{
-		OwnerID:     ctx.Org.Organization.ID,
+		OwnerID:     ctx.Org().Organization.ID,
 		ListOptions: utils.GetListOptions(ctx),
 	}
 
@@ -106,7 +106,7 @@ func (Action) CreateOrUpdateSecret(ctx *context.APIContext) {
 
 	opt := web.GetForm(ctx).(*api.CreateOrUpdateSecretOption)
 
-	_, created, err := secrets_service.CreateOrUpdateSecret(ctx, ctx.Org.Organization.ID, 0, ctx.Params("secretname"), opt.Data)
+	_, created, err := secrets_service.CreateOrUpdateSecret(ctx, ctx.Org().Organization.ID, 0, ctx.Params("secretname"), opt.Data)
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.Error(http.StatusBadRequest, "CreateOrUpdateSecret", err)
@@ -153,7 +153,7 @@ func (Action) DeleteSecret(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	err := secrets_service.DeleteSecretByName(ctx, ctx.Org.Organization.ID, 0, ctx.Params("secretname"))
+	err := secrets_service.DeleteSecretByName(ctx, ctx.Org().Organization.ID, 0, ctx.Params("secretname"))
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.Error(http.StatusBadRequest, "DeleteSecret", err)
@@ -191,7 +191,7 @@ func (Action) GetRegistrationToken(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/RegistrationToken"
 
-	shared.GetRegistrationToken(ctx, ctx.Org.Organization.ID, 0)
+	shared.GetRegistrationToken(ctx, ctx.Org().Organization.ID, 0)
 }
 
 // SearchActionRunJobs return a list of actions jobs filtered by the provided parameters
@@ -216,7 +216,7 @@ func (Action) SearchActionRunJobs(ctx *context.APIContext) {
 	//     "$ref": "#/responses/RunJobList"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
-	shared.GetActionRunJobs(ctx, ctx.Org.Organization.ID, 0)
+	shared.GetActionRunJobs(ctx, ctx.Org().Organization.ID, 0)
 }
 
 // ListVariables list org-level variables
@@ -249,7 +249,7 @@ func (Action) ListVariables(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	vars, count, err := db.FindAndCount[actions_model.ActionVariable](ctx, &actions_model.FindVariablesOpts{
-		OwnerID:     ctx.Org.Organization.ID,
+		OwnerID:     ctx.Org().Organization.ID,
 		ListOptions: utils.GetListOptions(ctx),
 	})
 	if err != nil {
@@ -303,7 +303,7 @@ func (Action) ListRunners(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	shared.ListRunners(ctx, ctx.Org.Organization.ID, 0)
+	shared.ListRunners(ctx, ctx.Org().Organization.ID, 0)
 }
 
 // GetRunner gets a particular runner that belongs to the organization
@@ -331,7 +331,7 @@ func (Action) GetRunner(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	shared.GetRunner(ctx, ctx.Org.Organization.ID, 0, ctx.ParamsInt64("runner_id"))
+	shared.GetRunner(ctx, ctx.Org().Organization.ID, 0, ctx.ParamsInt64("runner_id"))
 }
 
 // RegisterRunner registers a new organization-level runner
@@ -363,7 +363,7 @@ func (Action) RegisterRunner(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	shared.RegisterRunner(ctx, ctx.Org.Organization.ID, 0)
+	shared.RegisterRunner(ctx, ctx.Org().Organization.ID, 0)
 }
 
 // DeleteRunner removes a particular runner that belongs to the organization
@@ -391,7 +391,7 @@ func (Action) DeleteRunner(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	shared.DeleteRunner(ctx, ctx.Org.Organization.ID, 0, ctx.ParamsInt64("runner_id"))
+	shared.DeleteRunner(ctx, ctx.Org().Organization.ID, 0, ctx.ParamsInt64("runner_id"))
 }
 
 // GetVariable gives organization's variable
@@ -421,7 +421,7 @@ func (Action) GetVariable(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	v, err := actions_service.GetVariable(ctx, actions_model.FindVariablesOpts{
-		OwnerID: ctx.Org.Organization.ID,
+		OwnerID: ctx.Org().Organization.ID,
 		Name:    ctx.Params("variablename"),
 	})
 	if err != nil {
@@ -469,7 +469,7 @@ func (Action) DeleteVariable(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if err := actions_service.DeleteVariableByName(ctx, ctx.Org.Organization.ID, 0, ctx.Params("variablename")); err != nil {
+	if err := actions_service.DeleteVariableByName(ctx, ctx.Org().Organization.ID, 0, ctx.Params("variablename")); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.Error(http.StatusBadRequest, "DeleteVariableByName", err)
 		} else if errors.Is(err, util.ErrNotExist) {
@@ -519,7 +519,7 @@ func (Action) CreateVariable(ctx *context.APIContext) {
 
 	opt := web.GetForm(ctx).(*api.CreateVariableOption)
 
-	ownerID := ctx.Org.Organization.ID
+	ownerID := ctx.Org().Organization.ID
 	variableName := ctx.Params("variablename")
 
 	v, err := actions_service.GetVariable(ctx, actions_model.FindVariablesOpts{
@@ -584,7 +584,7 @@ func (Action) UpdateVariable(ctx *context.APIContext) {
 	opt := web.GetForm(ctx).(*api.UpdateVariableOption)
 
 	v, err := actions_service.GetVariable(ctx, actions_model.FindVariablesOpts{
-		OwnerID: ctx.Org.Organization.ID,
+		OwnerID: ctx.Org().Organization.ID,
 		Name:    ctx.Params("variablename"),
 	})
 	if err != nil {
@@ -599,7 +599,7 @@ func (Action) UpdateVariable(ctx *context.APIContext) {
 	if opt.Name == "" {
 		opt.Name = ctx.Params("variablename")
 	}
-	if _, err := actions_service.UpdateVariable(ctx, v.ID, ctx.Org.Organization.ID, 0, opt.Name, opt.Value); err != nil {
+	if _, err := actions_service.UpdateVariable(ctx, v.ID, ctx.Org().Organization.ID, 0, opt.Name, opt.Value); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.Error(http.StatusBadRequest, "UpdateVariable", err)
 		} else {

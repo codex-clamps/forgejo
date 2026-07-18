@@ -307,6 +307,7 @@ func PrepareTestDatabase() error {
 func PrepareTestEnv(t testing.TB) {
 	require.NoError(t, PrepareTestDatabase())
 	require.NoError(t, util.RemoveAll(setting.RepoRootPath))
+	giteaRoot = base.SetupGiteaRoot() // Makes sure GITEA_ROOT is set
 	metaPath := filepath.Join(giteaRoot, "tests", "gitea-repositories-meta")
 	require.NoError(t, CopyDir(metaPath, setting.RepoRootPath))
 	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
@@ -324,6 +325,4 @@ func PrepareTestEnv(t testing.TB) {
 			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "tag"), 0o755)
 		}
 	}
-
-	base.SetupGiteaRoot() // Makes sure GITEA_ROOT is set
 }

@@ -20,6 +20,6 @@ func RepositoryIDAssignmentAPI() func(ctx *APIContext) {
 		if err != nil {
 			ctx.Error(http.StatusNotFound, "GetRepositoryByID", err)
 		}
-		ctx.Repo = repository
+		ctx.SetRepo(repository)
 	}
 }

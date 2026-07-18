@@ -73,12 +73,11 @@ func WebfingerQuery(ctx *context.Context) {
 			}
 
 			ctx.Resp.Header().Add("Access-Control-Allow-Origin", "*")
-			ctx.JSON(http.StatusOK, &webfingerJRD{
+			ctx.JSONWithContentType(http.StatusOK, "application/jrd+json", &webfingerJRD{
 				Subject: fmt.Sprintf("acct:%s@%s", "ghost", appURL.Host),
 				Aliases: aliases,
 				Links:   links,
 			})
-			ctx.Resp.Header().Set("Content-Type", "application/jrd+json")
 
 			return
 		}
@@ -184,10 +183,9 @@ func WebfingerQuery(ctx *context.Context) {
 	}
 
 	ctx.Resp.Header().Add("Access-Control-Allow-Origin", "*")
-	ctx.JSON(http.StatusOK, &webfingerJRD{
+	ctx.JSONWithContentType(http.StatusOK, "application/jrd+json", &webfingerJRD{
 		Subject: fmt.Sprintf("acct:%s@%s", url.QueryEscape(u.Name), appURL.Host),
 		Aliases: aliases,
 		Links:   links,
 	})
-	ctx.Resp.Header().Set("Content-Type", "application/jrd+json")
 }

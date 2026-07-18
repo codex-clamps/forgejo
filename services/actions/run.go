@@ -5,6 +5,7 @@ package actions
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -215,5 +216,87 @@ func DeleteRun(ctx context.Context, runID int64) error {
 		}
 
 		return actions_model.DeleteRun(ctx, run.ID)
+	})
+}
+
+// PrioritizeRun marks the workflow run identified by the given ID as prioritized and recalculates the priority of each
+// run in the queue.
+func PrioritizeRun(ctx context.Context, run *actions_model.ActionRun) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		if run == nil {
+			return errors.New("run is nil")
+		}
+
+		if run.Prioritize {
+			// Run is already prioritized. There is nothing left to do.
+			return nil
+		}
+
+		run.Prioritize = true
+		if err := actions_model.UpdateRunWithoutNotification(ctx, run, "prioritize"); err != nil {
+			return fmt.Errorf("could not update workflow run %d to prioritize: %w", run.ID, err)
+		}
+
+		if err := recalculateRunPriorities(ctx, run.RepoID); err != nil {
+			return fmt.Errorf("could not recalculate workflow run priorities of repository %d: %w", run.RepoID, err)
+		}
+		return nil
+	})
+}
+
+// DeprioritizeRun removes the prioritized mark from a workflow run, if present, and recalculates the priority of each
+// run in the queue.
+func DeprioritizeRun(ctx context.Context, run *actions_model.ActionRun) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		if run == nil {
+			return errors.New("run is nil")
+		}
+
+		if !run.Prioritize {
+			// Run is already not prioritized. There is nothing left to do.
+			return nil
+		}
+
+		run.Prioritize = false
+		if err := actions_model.UpdateRunWithoutNotification(ctx, run, "prioritize"); err != nil {
+			return fmt.Errorf("could not update workflow run %d to deprioritize: %w", run.ID, err)
+		}
+
+		if err := recalculateRunPriorities(ctx, run.RepoID); err != nil {
+			return fmt.Errorf("could not recalculate workflow run priorities of repository %d: %w", run.RepoID, err)
+		}
+
+		return nil
+	})
+}
+
+// recalculateRunPriorities recalculates the priority of all queued workflow runs that belong to the given repository.
+var recalculateRunPriorities = func(ctx context.Context, repoID int64) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		runs, err := actions_model.GetQueuedRunsByRepoID(ctx, repoID)
+		if err != nil {
+			return fmt.Errorf("could not read pending workflow runs of repository %d: %w", repoID, err)
+		}
+
+		strategy := actions_model.DefaultPrioritizationStrategy{}
+		updatedRuns, err := strategy.PrioritizeRuns(runs)
+		if err != nil {
+			return fmt.Errorf("failed to prioritize pending workflow runs of repository %d: %w", repoID, err)
+		}
+
+		for _, run := range runs {
+			if !updatedRuns.Contains(run.ID) {
+				continue
+			}
+
+			if err = actions_model.UpdateRunWithoutNotification(ctx, run, "priority"); err != nil {
+				return fmt.Errorf("failed to update reprioritized workflow run %d: %w", run.ID, err)
+			}
+		}
+
+		// In the future notify webhook listeners. Pass *all* runs, not only updated runs to provide listeners a
+		// complete view.
+
+		return nil
 	})
 }

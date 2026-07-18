@@ -45,16 +45,16 @@ func ListSubscribers(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	subscribers, err := repo_model.GetRepoWatchers(ctx, ctx.Repo.Repository.ID, utils.GetListOptions(ctx))
+	subscribers, err := repo_model.GetRepoWatchers(ctx, ctx.Repo().Repository.ID, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetRepoWatchers", err)
 		return
 	}
 	users := make([]*api.User, len(subscribers))
 	for i, subscriber := range subscribers {
-		users[i] = convert.ToUser(ctx, subscriber, ctx.Doer)
+		users[i] = convert.ToUser(ctx, subscriber, ctx.Doer())
 	}
 
-	ctx.SetTotalCountHeader(int64(ctx.Repo.Repository.NumWatches))
+	ctx.SetTotalCountHeader(int64(ctx.Repo().Repository.NumWatches))
 	ctx.JSON(http.StatusOK, users)
 }

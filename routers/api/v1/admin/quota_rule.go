@@ -128,7 +128,7 @@ func GetQuotaRule(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	ctx.JSON(http.StatusOK, convert.ToQuotaRuleInfo(*ctx.QuotaRule, true))
+	ctx.JSON(http.StatusOK, convert.ToQuotaRuleInfo(*ctx.QuotaRule(), true))
 }
 
 // EditQuotaRule changes an existing quota rule
@@ -177,7 +177,7 @@ func EditQuotaRule(ctx *context.APIContext) {
 		subjects = &subjs
 	}
 
-	rule, err := ctx.QuotaRule.Edit(ctx, form.Limit, subjects)
+	rule, err := ctx.QuotaRule().Edit(ctx, form.Limit, subjects)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "quota_model.rule.Edit", err)
 		return
@@ -209,7 +209,7 @@ func DeleteQuotaRule(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	err := quota_model.DeleteRuleByName(ctx, ctx.QuotaRule.Name)
+	err := quota_model.DeleteRuleByName(ctx, ctx.QuotaRule().Name)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "quota_model.DeleteRuleByName", err)
 		return

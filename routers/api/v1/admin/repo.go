@@ -45,5 +45,5 @@ func CreateRepo(ctx *context.APIContext) {
 
 	form := web.GetForm(ctx).(*api.CreateRepoOption)
 
-	repo.CreateUserRepo(ctx, ctx.ContextUser, *form)
+	repo.CreateUserRepo(ctx, ctx.User(), *form)
 }
