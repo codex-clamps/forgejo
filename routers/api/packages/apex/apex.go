@@ -25,8 +25,13 @@ import (
 var (
 	apexPkgOrSig = regexp.MustCompile(`^.*\.c?apex(\.sig)*$`)
 	apexDBOrSig  = regexp.MustCompile(`^.*\.(db|files|providers)(\.tar\.gz)*(\.sig)*$`)
-	locker = sync.NewExclusivePool()
+	apexGroup    = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*$`)
+	locker       = sync.NewExclusivePool()
 )
+
+func isValidGroup(group string) bool {
+	return apexGroup.MatchString(group)
+}
 
 func apiError(ctx *context.Context, status int, obj any) {
 	helper.LogAndProcessError(ctx, status, obj, func(message string) {
@@ -35,7 +40,7 @@ func apiError(ctx *context.Context, status int, obj any) {
 }
 
 func refreshLocker(ctx *context.Context, group string) func() {
-	key := fmt.Sprintf("pkg_%d_arch_pkg_%s", ctx.Package.Owner.ID, group)
+	key := fmt.Sprintf("pkg_%d_apex_pkg_%s", ctx.Package.Owner.ID, group)
 	locker.CheckIn(key)
 	return func() {
 		locker.CheckOut(key)
@@ -57,6 +62,10 @@ func GetRepositoryKey(ctx *context.Context) {
 
 func PushPackage(ctx *context.Context) {
 	group := strings.Trim(ctx.Params("*"), "/")
+	if !isValidGroup(group) {
+		apiError(ctx, http.StatusBadRequest, "invalid repository group")
+		return
+	}
 	releaser := refreshLocker(ctx, group)
 	defer releaser()
 	upload, needToClose, err := ctx.UploadStream()
@@ -112,15 +121,15 @@ func PushPackage(ctx *context.Context) {
 		microArchPath = "v" + p.FileMetadata.MicroArchLevel + "/"
 	}
 
-	filename := fmt.Sprintf("%s/%s%s/%s/%s.%s", p.FileMetadata.Arch, microArchPath, p.FileMetadata.ApiLevel, strings.ReplaceAll(p.Name, ".", "/"), p.Version, p.FileMetadata.Extension)
+	filename := fmt.Sprintf("%s/%s%s/%s/%s.%s", p.FileMetadata.Arch, microArchPath, p.FileMetadata.APILevel, strings.ReplaceAll(p.Name, ".", "/"), p.Version, p.FileMetadata.Extension)
 
 	properties := map[string]string{
-		apex_module.PropertyDescription:  p.Desc(filename),
-		apex_module.PropertyFiles:        p.Files(),
-		apex_module.PropertyArch:         p.FileMetadata.Arch,
-		apex_module.PropertyProvides:     strings.Join(p.VersionMetadata.Provides, "\n"),
-		apex_module.PropertyMicroArch:    p.FileMetadata.MicroArchLevel,
-		apex_module.PropertyApiLevel:     p.FileMetadata.ApiLevel,
+		apex_module.PropertyDescription: p.Desc(filename),
+		apex_module.PropertyFiles:       p.Files(),
+		apex_module.PropertyArch:        p.FileMetadata.Arch,
+		apex_module.PropertyProvides:    strings.Join(p.VersionMetadata.Provides, "\n"),
+		apex_module.PropertyMicroArch:   p.FileMetadata.MicroArchLevel,
+		apex_module.PropertyAPILevel:    p.FileMetadata.APILevel,
 	}
 
 	version, _, err := packages_service.CreatePackageOrAddFileToExisting(
@@ -194,8 +203,12 @@ func GetPackageOrDB(ctx *context.Context) {
 		return
 	}
 	group := pathGroups[0]
+	if !isValidGroup(group) {
+		ctx.Status(http.StatusNotFound)
+		return
+	}
 	file := strings.Join(pathGroups[1:], "/")
-	
+
 	if apexPkgOrSig.MatchString(file) {
 		pkg, u, pf, err := apex_service.GetPackageFile(ctx, group, file, ctx.Package.Owner.ID)
 		if err != nil {
@@ -235,8 +248,12 @@ func RemovePackage(ctx *context.Context) {
 		return
 	}
 	group := pathGroups[0]
+	if !isValidGroup(group) {
+		ctx.Status(http.StatusBadRequest)
+		return
+	}
 	file := strings.Join(pathGroups[1:], "/")
-	
+
 	// `file` should be architecture-v<microarch>/reverse/domain/org/name/version.apex
 	// Parse the path to get pkg, ver, pkgArch
 	fileParts := strings.Split(file, "/")
@@ -244,7 +261,7 @@ func RemovePackage(ctx *context.Context) {
 		ctx.Status(http.StatusBadRequest)
 		return
 	}
-	
+
 	orgStartIndex := 2
 	if strings.HasPrefix(fileParts[1], "v") {
 		orgStartIndex = 3
@@ -307,7 +324,7 @@ func RemovePackage(ctx *context.Context) {
 
 func ForceBuildDB(ctx *context.Context) {
 	group := strings.Trim(ctx.Params("*"), "/")
-	if group == "" {
+	if !isValidGroup(group) {
 		ctx.Status(http.StatusBadRequest)
 		return
 	}
