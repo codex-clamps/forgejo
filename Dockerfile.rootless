@@ -6,6 +6,7 @@ ARG GOPROXY
 ENV GOPROXY=${GOPROXY:-https://proxy.golang.org,direct}
 
 ARG RELEASE_VERSION
+ARG FORGEJO_VERSION
 ARG TAGS="sqlite sqlite_unlock_notify"
 ENV TAGS="bindata timetzdata $TAGS"
 ARG CGO_EXTRA_CFLAGS
@@ -40,7 +41,19 @@ WORKDIR ${GOPATH}/src/forgejo.org
 RUN make clean-no-bindata
 RUN make frontend
 RUN go build contrib/environment-to-ini/environment-to-ini.go && xx-verify environment-to-ini
-RUN make FORGEJO_GENERATE_SKIP_HASH=true RELEASE_VERSION=$RELEASE_VERSION go-check generate-backend static-executable && xx-verify gitea
+RUN set -eu; \
+    set -- \
+      FORGEJO_GENERATE_SKIP_HASH=true \
+      "RELEASE_VERSION=$RELEASE_VERSION"; \
+    if [ -n "$FORGEJO_VERSION" ]; then \
+      set -- "$@" \
+        "FORGEJO_VERSION=$FORGEJO_VERSION" \
+        "FORGEJO_VERSION_API=$FORGEJO_VERSION"; \
+    else \
+      unset FORGEJO_VERSION; \
+    fi; \
+    make "$@" go-check generate-backend static-executable && \
+    xx-verify gitea
 
 # Copy local files
 COPY docker/rootless /tmp/local

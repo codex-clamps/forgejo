@@ -50,8 +50,18 @@ jobs:
         id: version
         shell: bash
         run: |
-          version="${GITHUB_RUN_ID}"
-          echo "value=${version}" >> "${GITHUB_OUTPUT}"
+          release_version="${GITHUB_RUN_ID}"
+
+          forgejo_version="$(make --no-print-directory show-version-api)"
+          if [[ ! "${forgejo_version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+            echo "Invalid Forgejo version: ${forgejo_version}" >&2
+            exit 1
+          fi
+
+          {
+            echo "release=${release_version}"
+            echo "forgejo=${forgejo_version}"
+          } >> "${GITHUB_OUTPUT}"
 
       - name: Generate image metadata
         id: meta
@@ -98,12 +108,28 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           annotations: ${{ steps.meta.outputs.annotations }}
           build-args: |
-            RELEASE_VERSION=${{ steps.version.outputs.value }}
+            RELEASE_VERSION=${{ steps.version.outputs.release }}
+            FORGEJO_VERSION=${{ steps.version.outputs.forgejo }}
             GOPROXY=https://proxy.golang.org,direct
           cache-from: type=gha,scope=forgejo-${{ matrix.variant }}
           cache-to: type=gha,mode=max,scope=forgejo-${{ matrix.variant }}
           provenance: mode=max
           sbom: true
+
+      - name: Verify published image version
+        shell: bash
+        env:
+          EXPECTED_VERSION: ${{ steps.version.outputs.forgejo }}
+          TAG_SUFFIX: ${{ matrix.tag_suffix }}
+        run: |
+          image="${REGISTRY}/${IMAGE_NAME}:sha-${GITHUB_SHA::12}${TAG_SUFFIX}"
+          output="$(docker run --rm --platform linux/amd64 \
+            --entrypoint /app/gitea/gitea "${image}" --version)"
+          echo "${output}"
+          if [[ "${output}" != *"${EXPECTED_VERSION}"* ]]; then
+            echo "Expected ${EXPECTED_VERSION} in the published binary version" >&2
+            exit 1
+          fi
 
       - name: Attest published image
         uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4.1.0
