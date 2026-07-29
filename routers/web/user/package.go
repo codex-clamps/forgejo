@@ -167,7 +167,14 @@ func RedirectToLastVersion(ctx *context.Context) {
 		return
 	}
 
-	ctx.Redirect(pd.VersionWebLink())
+	targetURL := pd.VersionWebLink()
+	if strings.TrimRight(targetURL, "/") == strings.TrimRight(ctx.Req.URL.Path, "/") || pd.Version.LowerVersion == "" {
+		ctx.Package.Descriptor = pd
+		ViewPackageVersion(ctx)
+		return
+	}
+
+	ctx.Redirect(targetURL)
 }
 
 // ViewPackageVersion displays a single package version

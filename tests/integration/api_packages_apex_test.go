@@ -180,3 +180,25 @@ func TestPackageApexRepositoryDBFallback(t *testing.T) {
 		assert.NotEmpty(t, resp.Body.Bytes())
 	}
 }
+
+func TestPackageApexViewingWeb(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	addApexPackageFile(t, owner, "stable", apexTestPackagePath, true)
+
+	// Test 1: Package Web Link (redirects to latest version)
+	req1 := NewRequest(t, "GET", fmt.Sprintf("/%s/-/packages/apex/%s", owner.Name, apexTestPackageName))
+	resp1 := MakeRequest(t, req1, http.StatusSeeOther)
+	t.Logf("Redirect 1 location: %s", resp1.Header().Get("Location"))
+
+	// Test 2: Version Web Link
+	req2 := NewRequest(t, "GET", resp1.Header().Get("Location"))
+	resp2 := MakeRequest(t, req2, http.StatusOK)
+	assert.Contains(t, resp2.Body.String(), apexTestPackageName)
+
+	// Test 3: API Package Download
+	req3 := NewRequest(t, "GET", fmt.Sprintf("/api/packages/%s/apex/stable/%s", owner.Name, apexTestPackagePath))
+	resp3 := MakeRequest(t, req3, http.StatusOK)
+	t.Logf("API Download status: %d", resp3.Code)
+}
