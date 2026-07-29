@@ -8,10 +8,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
+	stdjson "encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 
 	"forgejo.org/modules/json"
@@ -133,8 +135,6 @@ func ParsePackage(ctx context.Context, buf *packages.HashedBuffer) (*apex_module
 		vCode, _ := pkg.VersionCode.Int32()
 		if vCode > 0 {
 			pkgVersion = fmt.Sprintf("%d", vCode)
-		} else {
-			pkgVersion = "1.0.0"
 		}
 	}
 
@@ -199,6 +199,10 @@ func ParsePackage(ctx context.Context, buf *packages.HashedBuffer) (*apex_module
 		p.FileMetadata.Arch = "any"
 	}
 
+	var manifestName string
+	var manifestVersionName string
+	var manifestVersion int64
+
 	// Parse apex_manifest.pb if available
 	if pbFile != nil {
 		rcPb, err := pbFile.Open()
@@ -217,14 +221,27 @@ func ParsePackage(ctx context.Context, buf *packages.HashedBuffer) (*apex_module
 						break
 					}
 					fieldVal := data[tagLen : tagLen+valLen]
-					if typ == protowire.BytesType {
+					switch typ {
+					case protowire.BytesType:
 						v, n := protowire.ConsumeBytes(fieldVal)
 						if n >= 0 {
 							switch num {
+							case 1: // name
+								manifestName = string(v)
+							case 5: // versionName
+								manifestVersionName = string(v)
 							case 7: // provideNativeLibs
 								p.VersionMetadata.Provides = append(p.VersionMetadata.Provides, string(v))
 							case 8: // requireNativeLibs
 								p.VersionMetadata.Depends = append(p.VersionMetadata.Depends, string(v))
+							}
+						}
+					case protowire.VarintType:
+						v, n := protowire.ConsumeVarint(fieldVal)
+						if n >= 0 {
+							switch num {
+							case 2: // version
+								manifestVersion = int64(v)
 							}
 						}
 					}
@@ -239,10 +256,28 @@ func ParsePackage(ctx context.Context, buf *packages.HashedBuffer) (*apex_module
 			rcJSON.Close()
 			if err == nil {
 				var manifest struct {
-					ProvideNativeLibs []string `json:"provideNativeLibs"`
-					RequireNativeLibs []string `json:"requireNativeLibs"`
+					Name              string          `json:"name"`
+					Version           stdjson.RawMessage `json:"version"`
+					VersionName       string          `json:"versionName"`
+					ProvideNativeLibs []string        `json:"provideNativeLibs"`
+					RequireNativeLibs []string        `json:"requireNativeLibs"`
 				}
 				if err := json.Unmarshal(jsonBytes, &manifest); err == nil {
+					if manifest.Name != "" {
+						manifestName = manifest.Name
+					}
+					if manifest.VersionName != "" {
+						manifestVersionName = manifest.VersionName
+					}
+					if len(manifest.Version) > 0 {
+						var vInt int64
+						var vStr string
+						if err := json.Unmarshal(manifest.Version, &vInt); err == nil {
+							manifestVersion = vInt
+						} else if err := json.Unmarshal(manifest.Version, &vStr); err == nil && manifestVersionName == "" {
+							manifestVersionName = vStr
+						}
+					}
 					p.VersionMetadata.Provides = append(p.VersionMetadata.Provides, manifest.ProvideNativeLibs...)
 					p.VersionMetadata.Depends = append(p.VersionMetadata.Depends, manifest.RequireNativeLibs...)
 				}
@@ -250,17 +285,35 @@ func ParsePackage(ctx context.Context, buf *packages.HashedBuffer) (*apex_module
 		}
 	}
 
-	// Logic to suppress dependency checks when the APEX contains no dynamic libraries/binaries.
-	hasBinaries := false
-	for _, f := range fileList {
-		if strings.HasPrefix(f, "lib/") || strings.HasPrefix(f, "bin/") || strings.HasSuffix(f, ".so") {
-			hasBinaries = true
-			break
-		}
+	if p.Name == "" && manifestName != "" {
+		p.Name = manifestName
 	}
-	if !hasBinaries {
-		p.VersionMetadata.Depends = nil
+	if manifestVersionName != "" {
+		p.Version = manifestVersionName
+	} else if manifestVersion > 0 {
+		p.Version = strconv.FormatInt(manifestVersion, 10)
+	} else if p.Version == "" {
+		p.Version = "1.0.0"
 	}
 
+	p.VersionMetadata.Provides = sliceUnique(p.VersionMetadata.Provides)
+	p.VersionMetadata.Depends = sliceUnique(p.VersionMetadata.Depends)
+
 	return p, nil
+}
+
+func sliceUnique(slice []string) []string {
+	seen := make(map[string]struct{})
+	result := make([]string, 0, len(slice))
+	for _, item := range slice {
+		item = strings.TrimSpace(item)
+		if item == "" {
+			continue
+		}
+		if _, exists := seen[item]; !exists {
+			seen[item] = struct{}{}
+			result = append(result, item)
+		}
+	}
+	return result
 }
