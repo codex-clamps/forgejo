@@ -185,7 +185,18 @@ func collectRepositoryData(ctx context.Context, owner *user_model.User, fingerpr
 			return RepositoryData{}, fmt.Errorf("F-Droid package %s does not have exactly one pinned signer", pck.Name)
 		}
 		pinnedSigner := strings.ToLower(packageProperties[0].Value)
-		if strings.ToLower(fileMetadata.SignerSHA256) != pinnedSigner || strings.ToLower(propertyValue(properties, fdroid_module.PropertySignerSHA256)) != pinnedSigner {
+		signerMatches := func(signer string) bool {
+			if strings.EqualFold(signer, pinnedSigner) {
+				return true
+			}
+			for _, lSigner := range fileMetadata.SignerLineage {
+				if strings.EqualFold(lSigner, pinnedSigner) {
+					return true
+				}
+			}
+			return false
+		}
+		if !signerMatches(fileMetadata.SignerSHA256) || !signerMatches(propertyValue(properties, fdroid_module.PropertySignerSHA256)) {
 			return RepositoryData{}, fmt.Errorf("F-Droid APK %s signer does not match the pinned package signer", file.Name)
 		}
 

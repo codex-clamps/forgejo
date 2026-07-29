@@ -78,6 +78,7 @@ type apkManifestMetadata struct {
 type apkSignerIdentity struct {
 	scheme      int
 	certificate *x509.Certificate
+	lineage     []*x509.Certificate
 }
 
 // ParsePackage verifies an APK and extracts the metadata needed by F-Droid indexes.
@@ -101,6 +102,14 @@ func ParsePackage(ctx context.Context, buf *packages.HashedBuffer) (*fdroid_modu
 	}
 
 	signerSHA256 := sha256.Sum256(signer.certificate.Raw)
+	var signerLineage []string
+	for _, cert := range signer.lineage {
+		if cert != nil {
+			fp := sha256.Sum256(cert.Raw)
+			signerLineage = append(signerLineage, hex.EncodeToString(fp[:]))
+		}
+	}
+
 	return &fdroid_module.Package{
 		Name:    manifest.packageName,
 		Version: strconv.FormatInt(manifest.versionCode, 10),
@@ -119,6 +128,7 @@ func ParsePackage(ctx context.Context, buf *packages.HashedBuffer) (*fdroid_modu
 			Features:         manifest.features,
 			NativeCode:       manifest.nativeCode,
 			SignerSHA256:     hex.EncodeToString(signerSHA256[:]),
+			SignerLineage:    signerLineage,
 			SignatureScheme:  signer.scheme,
 		},
 	}, nil
@@ -345,10 +355,20 @@ func ensureSameAPKSigner(expected, candidate *apkSignerIdentity) error {
 	if expected == nil || expected.certificate == nil || candidate == nil || candidate.certificate == nil {
 		return ErrInvalidAPKSignature
 	}
-	if !bytes.Equal(expected.certificate.Raw, candidate.certificate.Raw) {
-		return ErrAPKSignerMismatch
+	if bytes.Equal(expected.certificate.Raw, candidate.certificate.Raw) {
+		return nil
 	}
-	return nil
+	for _, cert := range expected.lineage {
+		if cert != nil && bytes.Equal(cert.Raw, candidate.certificate.Raw) {
+			return nil
+		}
+	}
+	for _, cert := range candidate.lineage {
+		if cert != nil && bytes.Equal(cert.Raw, expected.certificate.Raw) {
+			return nil
+		}
+	}
+	return ErrAPKSignerMismatch
 }
 
 func signerIdentityFromResult(result apkverifier.Result) (*apkSignerIdentity, error) {
@@ -358,13 +378,22 @@ func signerIdentityFromResult(result apkverifier.Result) (*apkSignerIdentity, er
 	if len(result.SignerCerts) == 0 || len(result.SignerCerts[0]) == 0 {
 		return nil, ErrInvalidAPKSignature
 	}
-	return &apkSignerIdentity{scheme: result.SigningSchemeId, certificate: result.SignerCerts[0][0]}, nil
+	var lineage []*x509.Certificate
+	if result.SigningBlockResult != nil && result.SigningBlockResult.SigningLineage != nil {
+		for _, node := range result.SigningBlockResult.SigningLineage.Nodes {
+			if node.SigningCert != nil {
+				lineage = append(lineage, node.SigningCert)
+			}
+		}
+	}
+	return &apkSignerIdentity{
+		scheme:      result.SigningSchemeId,
+		certificate: result.SignerCerts[0][0],
+		lineage:     lineage,
+	}, nil
 }
 
 func apkSignerPolicyError(result apkverifier.Result) error {
-	if result.SigningSchemeId == 31 || verificationResultHasRotation(result.SigningBlockResult) {
-		return ErrAPKKeyRotation
-	}
 	if len(result.SignerCerts) > 1 {
 		return ErrMultipleAPKSigners
 	}
