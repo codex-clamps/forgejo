@@ -5,18 +5,15 @@
 		<div class="field">
 			<label>{{svg "octicon-terminal"}} APEX Repository Setup (repo.conf)</label>
 			<div class="markup">
-				<pre class="code-block"><code>{{range $group := .Groups}}
-[{{$group}}]
+				<pre class="code-block"><code>{{range $group := .Groups}}[{{$group}}]
 URL=<origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/apex/{{$group}}"></origin-url>
 {{end}}</code></pre>
 			</div>
 		</div>
 		<div class="field">
-			<label>{{svg "octicon-terminal"}} Installation via apex-install</label>
+			<label>{{svg "octicon-terminal"}} Installation via apexm</label>
 			<div class="markup">
-				{{$strippedName := StringUtils.ReplaceAll .PackageDescriptor.Package.Name (printf "%s." .PackageDescriptor.Metadata.Org) ""}}
-				{{$libraryName := StringUtils.ReplaceAll (StringUtils.ReplaceAll $strippedName "-" "_") "." "_"}}
-				<pre class="code-block"><code>apex-install libdummy_{{$libraryName}}.so</code></pre>
+				<pre class="code-block"><code>apexm -S {{.PackageDescriptor.Package.Name}}</code></pre>
 			</div>
 		</div>
 		<div class="field">
@@ -65,7 +62,7 @@ URL=<origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner
 			{{if .PackageDescriptor.Metadata.Depends}}
 			<tr>
 				<td class="collapsing">
-					<h5>Depends</h5>
+					<h5>Dependencies</h5>
 				</td>
 				<td>{{StringUtils.Join $.PackageDescriptor.Metadata.Depends "<br>" | SanitizeHTML}}</td>
 			</tr>
