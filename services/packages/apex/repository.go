@@ -362,6 +362,13 @@ func GetPackageDBFile(ctx context.Context, ownerID int64, group, file string, si
 	}
 
 	pkgFile, err := packages_model.GetFileForVersionByName(ctx, pv.ID, file, group)
+	if errors.Is(err, util.ErrNotExist) {
+		fallbackName := fmt.Sprintf("%s.db", group)
+		if sigFile {
+			fallbackName = fmt.Sprintf("%s.db.sig", group)
+		}
+		pkgFile, err = packages_model.GetFileForVersionByName(ctx, pv.ID, fallbackName, group)
+	}
 	if err != nil {
 		return nil, nil, nil, err
 	}

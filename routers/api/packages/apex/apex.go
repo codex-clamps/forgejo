@@ -219,7 +219,11 @@ func GetPackageOrDB(ctx *context.Context) {
 			}
 			return
 		}
-		helper.ServePackageFile(ctx, pkg, u, pf)
+		helper.ServePackageFile(ctx, pkg, u, pf, &context.ServeHeaderOptions{
+			Filename:           pf.Name,
+			LastModified:       pf.CreatedUnix.AsLocalTime(),
+			RedirectStatusCode: http.StatusTemporaryRedirect,
+		})
 		return
 	}
 
@@ -233,7 +237,11 @@ func GetPackageOrDB(ctx *context.Context) {
 			}
 			return
 		}
-		helper.ServePackageFile(ctx, pkg, u, pf)
+		helper.ServePackageFile(ctx, pkg, u, pf, &context.ServeHeaderOptions{
+			Filename:           file,
+			LastModified:       pf.CreatedUnix.AsLocalTime(),
+			RedirectStatusCode: http.StatusTemporaryRedirect,
+		})
 		return
 	}
 

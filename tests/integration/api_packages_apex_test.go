@@ -156,3 +156,27 @@ func TestPackageApexRemovesStaleRepositoryFiles(t *testing.T) {
 
 	assert.Equal(t, []string{"stable:keep.txt", "testing:testing.db"}, filenames)
 }
+
+func TestPackageApexRepositoryDBFallback(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	pv, err := apex_service.GetOrCreateRepositoryVersion(db.DefaultContext, owner.ID)
+	require.NoError(t, err)
+
+	addInternalApexRepositoryFile(t, owner, pv, "stable", "stable.db")
+	addInternalApexRepositoryFile(t, owner, pv, "stable", "stable.db.sig")
+
+	for _, reqPath := range []string{
+		fmt.Sprintf("/api/packages/%s/apex/stable/stable.db", owner.Name),
+		fmt.Sprintf("/api/packages/%s/apex/stable/stable.db.tar.gz", owner.Name),
+		fmt.Sprintf("/api/packages/%s/apex/stable/stable.files", owner.Name),
+		fmt.Sprintf("/api/packages/%s/apex/stable/stable.files.tar.gz", owner.Name),
+		fmt.Sprintf("/api/packages/%s/apex/stable/stable.db.sig", owner.Name),
+		fmt.Sprintf("/api/packages/%s/apex/stable/stable.db.tar.gz.sig", owner.Name),
+	} {
+		req := NewRequest(t, "GET", reqPath)
+		resp := MakeRequest(t, req, http.StatusOK)
+		assert.NotEmpty(t, resp.Body.Bytes())
+	}
+}
