@@ -49,7 +49,7 @@ func TestPackageFDroid(t *testing.T) {
 	t.Run("UploadAuthenticationAndVerification", func(t *testing.T) {
 		MakeRequest(t, NewRequestWithBody(t, "PUT", rootURL, bytes.NewReader(validAPK)), http.StatusUnauthorized)
 
-		for _, fixture := range []string{"unsigned.apk", "invalid-signature.apk", "multiple-signers.apk", "rotated-signing-key.apk"} {
+		for _, fixture := range []string{"unsigned.apk", "invalid-signature.apk", "multiple-signers.apk"} {
 			req := NewRequestWithBody(t, "PUT", rootURL, bytes.NewReader(readFDroidFixture(t, fixture))).AddBasicAuth(owner.Name)
 			MakeRequest(t, req, http.StatusBadRequest)
 		}
@@ -218,6 +218,12 @@ func TestPackageFDroid(t *testing.T) {
 		require.NoError(t, json.Unmarshal(readFDroidJAR(t, indexV1Response.Body.Bytes())[fdroid_service.IndexV1JSONFilename], &indexV1))
 		assert.Empty(t, indexV1.Apps)
 		assert.Empty(t, indexV1.Packages)
+	})
+
+	t.Run("UploadRotatedKey", func(t *testing.T) {
+		rotatedAPK := readFDroidFixture(t, "rotated-signing-key.apk")
+		reqRotated := NewRequestWithBody(t, "PUT", rootURL, bytes.NewReader(rotatedAPK)).AddBasicAuth(owner.Name)
+		MakeRequest(t, reqRotated, http.StatusCreated)
 	})
 }
 

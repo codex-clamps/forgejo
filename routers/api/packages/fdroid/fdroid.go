@@ -94,7 +94,7 @@ func UploadPackage(ctx *context.Context) {
 
 	release := lockOwner(ctx.Package.Owner.ID)
 	defer release()
-	if err := validatePinnedSigner(ctx, pck.Name, pck.FileMetadata.SignerSHA256); err != nil {
+	if err := validatePinnedSigner(ctx, pck.Name, pck.FileMetadata.SignerSHA256, pck.FileMetadata.SignerLineage); err != nil {
 		if errors.Is(err, fdroid_service.ErrAPKSignerMismatch) {
 			apiError(ctx, http.StatusConflict, err)
 		} else {
@@ -149,7 +149,7 @@ func UploadPackage(ctx *context.Context) {
 	ctx.Status(http.StatusCreated)
 }
 
-func validatePinnedSigner(ctx *context.Context, packageName, signer string) error {
+func validatePinnedSigner(ctx *context.Context, packageName, signer string, lineage []string) error {
 	pck, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.TypeFDroid, packageName)
 	if err != nil {
 		if errors.Is(err, packages_model.ErrPackageNotExist) {
@@ -161,10 +161,19 @@ func validatePinnedSigner(ctx *context.Context, packageName, signer string) erro
 	if err != nil {
 		return err
 	}
-	if len(properties) != 1 || !strings.EqualFold(properties[0].Value, signer) {
+	if len(properties) != 1 {
 		return fdroid_service.ErrAPKSignerMismatch
 	}
-	return nil
+	pinnedSigner := properties[0].Value
+	if strings.EqualFold(pinnedSigner, signer) {
+		return nil
+	}
+	for _, lSigner := range lineage {
+		if strings.EqualFold(pinnedSigner, lSigner) {
+			return nil
+		}
+	}
+	return fdroid_service.ErrAPKSignerMismatch
 }
 
 // GetRepositoryFile serves signed indexes and the APKs referenced by them.

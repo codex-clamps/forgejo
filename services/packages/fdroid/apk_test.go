@@ -41,7 +41,6 @@ func TestVerifyAPKSignatureRejectsUnsupportedSignatures(t *testing.T) {
 		{name: "unsigned", fixture: "unsigned.apk", expected: ErrInvalidAPKSignature},
 		{name: "invalid", fixture: "invalid-signature.apk", expected: ErrInvalidAPKSignature},
 		{name: "multiple signers", fixture: "multiple-signers.apk", expected: ErrMultipleAPKSigners},
-		{name: "key rotation", fixture: "rotated-signing-key.apk", expected: ErrAPKKeyRotation},
 	}
 
 	for _, testCase := range testCases {
@@ -52,6 +51,13 @@ func TestVerifyAPKSignatureRejectsUnsupportedSignatures(t *testing.T) {
 			require.ErrorIs(t, err, testCase.expected)
 		})
 	}
+
+	t.Run("key rotation", func(t *testing.T) {
+		buffer := openAPKFixture(t, "rotated-signing-key.apk")
+		identity, err := verifyAPKSignature(buffer, 1)
+		require.NoError(t, err)
+		require.NotNil(t, identity)
+	})
 }
 
 func TestDecodeManifestXML(t *testing.T) {
@@ -99,16 +105,19 @@ func TestSignerIdentityFromResult(t *testing.T) {
 	})
 	require.ErrorIs(t, err, ErrMultipleAPKSigners)
 
-	_, err = signerIdentityFromResult(apkverifier.Result{
+	identity, err := signerIdentityFromResult(apkverifier.Result{
 		SigningSchemeId: 3,
 		SignerCerts:     [][]*x509.Certificate{{certificate}},
 		SigningBlockResult: &signingblock.VerificationResult{
 			SigningLineage: &signingblock.V3SigningLineage{
-				Nodes: make(signingblock.V3LineageSigningCertificateNodeList, 2),
+				Nodes: signingblock.V3LineageSigningCertificateNodeList{
+					{SigningCert: certificate},
+				},
 			},
 		},
 	})
-	require.ErrorIs(t, err, ErrAPKKeyRotation)
+	require.NoError(t, err)
+	require.Len(t, identity.lineage, 1)
 }
 
 func TestEnsureSameAPKSigner(t *testing.T) {
