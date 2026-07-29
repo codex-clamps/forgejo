@@ -55,6 +55,8 @@ func ParsePackage(ctx context.Context, buf *packages.HashedBuffer) (*apex_module
 			pubKeyFile = f
 		case "apex_manifest.pb":
 			pbFile = f
+		case "apex_manifest.json":
+			jsonFile = f
 		}
 	}
 
@@ -127,6 +129,14 @@ func ParsePackage(ctx context.Context, buf *packages.HashedBuffer) (*apex_module
 
 	pkgName, _ := pkg.Package.String()
 	pkgVersion, _ := pkg.VersionName.String()
+	if pkgVersion == "" {
+		vCode, _ := pkg.VersionCode.Int32()
+		if vCode > 0 {
+			pkgVersion = fmt.Sprintf("%d", vCode)
+		} else {
+			pkgVersion = "1.0.0"
+		}
+	}
 
 	extension := "apex"
 	if originalApexFile != nil {
@@ -185,6 +195,10 @@ func ParsePackage(ctx context.Context, buf *packages.HashedBuffer) (*apex_module
 		}
 	}
 
+	if p.FileMetadata.Arch == "" {
+		p.FileMetadata.Arch = "any"
+	}
+
 	// Parse apex_manifest.pb if available
 	if pbFile != nil {
 		rcPb, err := pbFile.Open()
@@ -194,47 +208,27 @@ func ParsePackage(ctx context.Context, buf *packages.HashedBuffer) (*apex_module
 			if err == nil {
 				data := pbBytes
 				for len(data) > 0 {
-					num, typ, length := protowire.ConsumeTag(data)
-					if length < 0 {
+					num, typ, tagLen := protowire.ConsumeTag(data)
+					if tagLen < 0 {
 						break
 					}
-					data = data[length:]
-
+					valLen := protowire.ConsumeFieldValue(num, typ, data[tagLen:])
+					if valLen < 0 {
+						break
+					}
+					fieldVal := data[tagLen : tagLen+valLen]
 					if typ == protowire.BytesType {
-						v, n := protowire.ConsumeBytes(data)
-						if n < 0 {
-							break
+						v, n := protowire.ConsumeBytes(fieldVal)
+						if n >= 0 {
+							switch num {
+							case 7: // provideNativeLibs
+								p.VersionMetadata.Provides = append(p.VersionMetadata.Provides, string(v))
+							case 8: // requireNativeLibs
+								p.VersionMetadata.Depends = append(p.VersionMetadata.Depends, string(v))
+							}
 						}
-						switch num {
-						case 7: // provideNativeLibs
-							p.VersionMetadata.Provides = append(p.VersionMetadata.Provides, string(v))
-						case 8: // requireNativeLibs
-							p.VersionMetadata.Depends = append(p.VersionMetadata.Depends, string(v))
-						}
-						data = data[n:]
-					} else if typ == protowire.VarintType {
-						_, n := protowire.ConsumeVarint(data)
-						if n < 0 {
-							break
-						}
-						data = data[n:]
-					} else if typ == protowire.Fixed32Type {
-						_, n := protowire.ConsumeFixed32(data)
-						if n < 0 {
-							break
-						}
-						data = data[n:]
-					} else if typ == protowire.Fixed64Type {
-						_, n := protowire.ConsumeFixed64(data)
-						if n < 0 {
-							break
-						}
-						data = data[n:]
-					} else {
-						// Unknown wire type or unsupported, skip it by breaking (or skipping group)
-						// To be safe, if we hit an unknown type, we break to avoid infinite loop
-						break
 					}
+					data = data[tagLen+valLen:]
 				}
 			}
 		}
