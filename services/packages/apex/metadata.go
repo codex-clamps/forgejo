@@ -45,6 +45,7 @@ func ParsePackage(ctx context.Context, buf *packages.HashedBuffer) (*apex_module
 	var pubKeyFile *zip.File
 	var pbFile *zip.File
 	var jsonFile *zip.File
+	var buildInfoFile *zip.File
 
 	for _, f := range reader.File {
 		fileList = append(fileList, f.Name)
@@ -59,6 +60,8 @@ func ParsePackage(ctx context.Context, buf *packages.HashedBuffer) (*apex_module
 			pbFile = f
 		case "apex_manifest.json":
 			jsonFile = f
+		case "apex_build_info.pb":
+			buildInfoFile = f
 		}
 	}
 
@@ -97,6 +100,8 @@ func ParsePackage(ctx context.Context, buf *packages.HashedBuffer) (*apex_module
 				pbFile = f
 			} else if f.Name == "apex_manifest.json" && jsonFile == nil {
 				jsonFile = f
+			} else if f.Name == "apex_build_info.pb" && buildInfoFile == nil {
+				buildInfoFile = f
 			}
 		}
 	}
@@ -285,15 +290,65 @@ func ParsePackage(ctx context.Context, buf *packages.HashedBuffer) (*apex_module
 		}
 	}
 
-	if p.Name == "" && manifestName != "" {
+	var buildInfoName string
+	var buildInfoMinSDK string
+
+	if buildInfoFile != nil {
+		rcInfo, err := buildInfoFile.Open()
+		if err == nil {
+			infoBytes, err := io.ReadAll(rcInfo)
+			rcInfo.Close()
+			if err == nil {
+				data := infoBytes
+				for len(data) > 0 {
+					num, typ, tagLen := protowire.ConsumeTag(data)
+					if tagLen < 0 {
+						break
+					}
+					valLen := protowire.ConsumeFieldValue(num, typ, data[tagLen:])
+					if valLen < 0 {
+						break
+					}
+					fieldVal := data[tagLen : tagLen+valLen]
+					if typ == protowire.BytesType {
+						v, n := protowire.ConsumeBytes(fieldVal)
+						if n >= 0 {
+							switch num {
+							case 5: // min_sdk_version
+								buildInfoMinSDK = string(v)
+							case 8: // module_name
+								buildInfoName = string(v)
+							}
+						}
+					}
+					data = data[tagLen+valLen:]
+				}
+			}
+		}
+	}
+
+	if buildInfoName != "" {
+		p.Name = buildInfoName
+	} else if p.Name == "" && manifestName != "" {
 		p.Name = manifestName
 	}
+
+	if p.Name == "" {
+		return nil, errors.New("APEX package metadata missing name")
+	}
+
+	if buildInfoMinSDK != "" {
+		p.FileMetadata.APILevel = buildInfoMinSDK
+	}
+
 	if manifestVersionName != "" {
 		p.Version = manifestVersionName
 	} else if manifestVersion > 0 {
 		p.Version = strconv.FormatInt(manifestVersion, 10)
-	} else if p.Version == "" {
-		p.Version = "1.0.0"
+	}
+
+	if p.Version == "" {
+		return nil, errors.New("APEX package metadata missing version")
 	}
 
 	p.VersionMetadata.Provides = sliceUnique(p.VersionMetadata.Provides)

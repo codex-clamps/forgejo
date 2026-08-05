@@ -335,13 +335,18 @@ func GetPackageFile(ctx context.Context, group, file string, ownerID int64) (io.
 		return nil, nil, nil, errors.New("invalid file format: missing package name or version")
 	}
 
-	orgPathParts := fileParts[orgStartIndex : len(fileParts)-1]
-	pkgName := strings.Join(orgPathParts, ".")
-
 	verFile := fileParts[len(fileParts)-1]
 	pkgVer := strings.TrimSuffix(verFile, ".apex")
 	pkgVer = strings.TrimSuffix(pkgVer, ".capex")
 	pkgVer = strings.TrimSuffix(pkgVer, ".sig")
+
+	orgEndIndex := len(fileParts) - 1
+	if len(fileParts) > orgStartIndex+2 && fileParts[len(fileParts)-2] == pkgVer {
+		orgEndIndex = len(fileParts) - 2
+	}
+
+	orgPathParts := fileParts[orgStartIndex:orgEndIndex]
+	pkgName := strings.Join(orgPathParts, ".")
 	version, err := packages_model.GetVersionByNameAndVersion(ctx, ownerID, packages_model.TypeApex, pkgName, pkgVer)
 	if err != nil {
 		return nil, nil, nil, err
