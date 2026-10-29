@@ -26,12 +26,11 @@ import (
 
 const repositoryKeyBits = 3072
 
-var repositoryKeyLocker = sync.NewExclusivePool()
+var repositoryKeyLocker = sync.MutexMap{}
 
 func GetOrCreateRepositoryKey(ctx context.Context, ownerID int64) (*rsa.PrivateKey, *x509.Certificate, error) {
 	lockKey := fmt.Sprintf("pkg_%d_fdroid_repository_key", ownerID)
-	repositoryKeyLocker.CheckIn(lockKey)
-	defer repositoryKeyLocker.CheckOut(lockKey)
+	defer repositoryKeyLocker.Lock(lockKey)()
 
 	privateValue, privateErr := user_model.GetSetting(ctx, ownerID, fdroid_module.SettingKeyPrivateKey)
 	if privateErr != nil && !errors.Is(privateErr, util.ErrNotExist) {

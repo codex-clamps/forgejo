@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"net/url"
 	"regexp"
 	"sort"
@@ -34,7 +33,7 @@ const (
 )
 
 var (
-	repositoryLocker  = sync.NewExclusivePool()
+	repositoryLocker  = sync.MutexMap{}
 	indexV2FilenameRE = regexp.MustCompile(`^index-v2\.[0-9a-f]{64}\.json$`)
 )
 
@@ -81,8 +80,7 @@ func BuildRepositoryWithoutFile(ctx context.Context, ownerID, excludedFileID int
 
 func buildRepository(ctx context.Context, ownerID, excludedFileID int64) error {
 	lockKey := fmt.Sprintf("pkg_%d_fdroid_repository", ownerID)
-	repositoryLocker.CheckIn(lockKey)
-	defer repositoryLocker.CheckOut(lockKey)
+	defer repositoryLocker.Lock(lockKey)()
 
 	owner, err := user_model.GetUserByID(ctx, ownerID)
 	if err != nil {
@@ -369,7 +367,7 @@ func IsRepositoryMetadataFilename(filename string) bool {
 }
 
 // GetRepositoryFile returns a generated metadata file or an uploaded APK.
-func GetRepositoryFile(ctx context.Context, ownerID int64, filename string) (io.ReadSeekCloser, *url.URL, *packages_model.PackageFile, error) {
+func GetRepositoryFile(ctx context.Context, ownerID int64, filename string) (packages_service.ReadSeekCloseSizer, *url.URL, *packages_model.PackageFile, error) {
 	if IsRepositoryMetadataFilename(filename) {
 		version, err := GetOrCreateRepositoryVersion(ctx, ownerID)
 		if err != nil {

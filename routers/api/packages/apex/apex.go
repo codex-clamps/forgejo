@@ -26,7 +26,7 @@ var (
 	apexPkgOrSig = regexp.MustCompile(`^.*\.c?apex(\.sig)*$`)
 	apexDBOrSig  = regexp.MustCompile(`^.*\.(db|files|providers)(\.tar\.gz)*(\.sig)*$`)
 	apexGroup    = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*$`)
-	locker       = sync.NewExclusivePool()
+	locker       = sync.MutexMap{}
 )
 
 func isValidGroup(group string) bool {
@@ -41,10 +41,7 @@ func apiError(ctx *context.Context, status int, obj any) {
 
 func refreshLocker(ctx *context.Context, group string) func() {
 	key := fmt.Sprintf("pkg_%d_apex_pkg_%s", ctx.Package.Owner.ID, group)
-	locker.CheckIn(key)
-	return func() {
-		locker.CheckOut(key)
-	}
+	return locker.Lock(key)
 }
 
 func GetRepositoryKey(ctx *context.Context) {

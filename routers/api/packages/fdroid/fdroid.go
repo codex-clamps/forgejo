@@ -27,7 +27,7 @@ import (
 
 var (
 	applicationIDPattern = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z][A-Za-z0-9_]*)+$`)
-	mutationLocker       = sync.NewExclusivePool()
+	mutationLocker       = sync.MutexMap{}
 )
 
 func apiError(ctx *context.Context, status int, obj any) {
@@ -38,8 +38,7 @@ func apiError(ctx *context.Context, status int, obj any) {
 
 func lockOwner(ownerID int64) func() {
 	key := fmt.Sprintf("pkg_%d_fdroid_mutation", ownerID)
-	mutationLocker.CheckIn(key)
-	return func() { mutationLocker.CheckOut(key) }
+	return mutationLocker.Lock(key)
 }
 
 // UploadPackage verifies and publishes an APK without modifying its signature.

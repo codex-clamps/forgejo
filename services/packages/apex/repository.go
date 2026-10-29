@@ -27,7 +27,7 @@ import (
 	"github.com/ProtonMail/go-crypto/openpgp/packet"
 )
 
-var locker = sync.NewExclusivePool()
+var locker = sync.MutexMap{}
 
 func GetOrCreateRepositoryVersion(ctx context.Context, ownerID int64) (*packages_model.PackageVersion, error) {
 	return packages_service.GetOrCreateInternalPackageVersion(ctx, ownerID, packages_model.TypeApex, apex_module.RepositoryPackage, apex_module.RepositoryVersion)
@@ -102,8 +102,7 @@ func NewFileSign(ctx context.Context, ownerID int64, input io.Reader) (*packages
 // BuildApexDB Create db signature cache
 func BuildApexDB(ctx context.Context, ownerID int64, group, _ string) error {
 	key := fmt.Sprintf("pkg_%d_apex_db_%s", ownerID, group)
-	locker.CheckIn(key)
-	defer locker.CheckOut(key)
+	defer locker.Lock(key)()
 	pv, err := GetOrCreateRepositoryVersion(ctx, ownerID)
 	if err != nil {
 		return err
@@ -320,7 +319,7 @@ func createDB(ctx context.Context, ownerID int64, group string) (*packages_modul
 
 // GetPackageFile Get data related to provided filename and distribution, for package files
 // update download counter.
-func GetPackageFile(ctx context.Context, group, file string, ownerID int64) (io.ReadSeekCloser, *url.URL, *packages_model.PackageFile, error) {
+func GetPackageFile(ctx context.Context, group, file string, ownerID int64) (packages_service.ReadSeekCloseSizer, *url.URL, *packages_model.PackageFile, error) {
 	fileParts := strings.Split(file, "/")
 	if len(fileParts) < 4 {
 		return nil, nil, nil, errors.New("invalid file format")
@@ -360,7 +359,7 @@ func GetPackageFile(ctx context.Context, group, file string, ownerID int64) (io.
 	return packages_service.GetPackageFileStream(ctx, pkgFile)
 }
 
-func GetPackageDBFile(ctx context.Context, ownerID int64, group, file string, sigFile bool) (io.ReadSeekCloser, *url.URL, *packages_model.PackageFile, error) {
+func GetPackageDBFile(ctx context.Context, ownerID int64, group, file string, sigFile bool) (packages_service.ReadSeekCloseSizer, *url.URL, *packages_model.PackageFile, error) {
 	pv, err := GetOrCreateRepositoryVersion(ctx, ownerID)
 	if err != nil {
 		return nil, nil, nil, err

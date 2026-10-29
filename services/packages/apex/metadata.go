@@ -261,11 +261,11 @@ func ParsePackage(ctx context.Context, buf *packages.HashedBuffer) (*apex_module
 			rcJSON.Close()
 			if err == nil {
 				var manifest struct {
-					Name              string          `json:"name"`
+					Name              string             `json:"name"`
 					Version           stdjson.RawMessage `json:"version"`
-					VersionName       string          `json:"versionName"`
-					ProvideNativeLibs []string        `json:"provideNativeLibs"`
-					RequireNativeLibs []string        `json:"requireNativeLibs"`
+					VersionName       string             `json:"versionName"`
+					ProvideNativeLibs []string           `json:"provideNativeLibs"`
+					RequireNativeLibs []string           `json:"requireNativeLibs"`
 				}
 				if err := json.Unmarshal(jsonBytes, &manifest); err == nil {
 					if manifest.Name != "" {
